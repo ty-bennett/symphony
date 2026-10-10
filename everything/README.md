@@ -114,14 +114,17 @@ decision never invokes the LM head. There is no cache-fork or repeated-prefill
 fallback. This intentionally replaces the original **one identical final vector**
 requirement with **different token positions from the same transformer forward**.
 
-Install and start on a machine with enough RAM/VRAM:
+Install from the repository root on a machine with enough RAM/VRAM:
 
 ```bash
-python -m pip install -e '.[dev,strands]'
+source .venv/bin/activate
+python -m pip install -e './everything[dev,strands]'
 # Review this profile first. Gemma access must already be authorized locally.
 set -a
 source .env.gemma4-strands.example
 set +a
+cd everything
+# First produce the approved INT8 artifact, as described below.
 bash scripts/run_server.sh
 ```
 
@@ -146,6 +149,83 @@ and benchmark commands work with the exported Gemma 4 profile; none is required
 to bootstrap it. Background training still requires explicit approved local labels
 and retention; inference does not silently collect examples.
 
+### INT8 SmoothQuant (no training)
+
+The Gemma 4 profile now selects `QUANTIZATION=smoothquant_int8` with
+`DTYPE=float16`. This is actual INT8 storage and integer matrix multiplication,
+not FP16 casting or floating-point fake quantization. Based on the
+[SmoothQuant method](https://arxiv.org/abs/2211.10438), it uses offline calibrated
+channel smoothing, per-output-channel signed INT8 weights, and dynamic
+per-token INT8 inputs for the decoder's attention/MLP linear projections.
+The frozen Strands LoRA is **merged before calibration/quantization**, so the
+single effective adapted backbone is shared by routing and local generation.
+There is no adapter toggle, second backbone, extra request-time calibration,
+or second prompt prefill. A conversion process is separate from serving.
+
+Embeddings (including PLE), PLE projections, LM head, residual stream, attention
+BMMs, and KV cache remain FP16. Decision heads/probabilities remain FP32.
+INT32 GEMM accumulation and FP32 scaling return outputs to FP16. This is
+**W8A8 linear-layer quantization**, not an entirely INT8 transformer or KV cache.
+To preserve Gemma's norm/residual behavior, the inverse smoothing scale is
+applied at each linear input rather than folded into a preceding norm; that
+unfused operation adds overhead. No inference speedup is claimed yet.
+
+Calibration only runs forward passes; it requires no labels, optimizer,
+backpropagation, or custom decision-head training. Supply an explicitly approved
+**local** JSONL file with representative production-style conversations:
+
+```json
+{"messages":[{"role":"user","content":"Summarize this public release."}]}
+```
+
+With the profile exported, run these commands from `everything/`:
+
+```bash
+python scripts/quantize_smoothquant.py \
+  --calibration-jsonl /approved/local/calibration.jsonl \
+  --output artifacts/gemma4-strands-sq-int8 --alpha 0.5 --max-examples 128
+bash scripts/run_server.sh
+python scripts/benchmark_shared_prefill.py --max-new-tokens 32
+```
+
+Calibration needs the original model's memory footprint, so prepare the artifact
+on a sufficiently large machine, then provision the immutable directory locally.
+Prompts/labels/responses/features are not exported or logged; only model tensors,
+tokenizer, rubric, provenance hashes, and aggregate conversion metadata are saved.
+Calibrated model artifacts may still reflect calibration data; they are not claimed
+to be anonymized. No arbitrary user-content collection or remote calibration
+service exists. Input errors do not echo raw calibration records.
+
+Serving loads the compressed safetensors artifact into a meta-initialized model,
+one tensor at a time, without first loading the original FP16 weights or LoRA.
+It validates digests, the base revision, tokenizer/chat/rubric identity, tensor
+shapes/dtypes, finite parameters, and positive scales. Digests are integrity
+checks, **not signatures**: bootstrap backbone artifacts must be administrator
+approved, immutable, and protected from concurrent modification. The quantized
+backbone fingerprint also binds federated heads/updates, preventing mixing
+clients or checkpoints with incompatible quantized representations.
+
+The integer kernel is native PyTorch `torch._int_mm` (INT8 × INT8 → INT32),
+isolated behind the quantization module for future TensorRT/CUTLASS replacement.
+It pads dimensions/one-token decode rows for kernel alignment and probes the
+installed CPU/CUDA build before use. This private ATen interface is a portability
+risk: validate the actual JetPack PyTorch build, GPU kernel, memory, generation,
+and head accuracy on Jetson before deployment. A missing artifact, bad calibration,
+or unavailable kernel fails explicitly; there is **no silent FP16 fallback**.
+`/v1/model/info` reports the quantization scope, recipe, kernel, and merged-adapter
+state. Existing cache/security tests also run against a tiny real INT8 Gemma 4.
+
+For an explicit small-model native CUDA/cache smoke test on the deployment machine:
+
+```bash
+RUN_SMOOTHQUANT_CUDA_TESTS=1 pytest -q tests/test_gemma4_strands.py -k smoothquant_cuda
+```
+
+The converter reports linear storage, total weight/quantization storage (excluding
+runtime/KV/decision-head overhead), artifact bytes, conversion time, and peak CUDA
+allocation if available. These are measured sizes, not an assumed 2× whole-model
+memory reduction.
+
 **Quality limitation:** the pretrained Strands questions were evaluated separately,
 not packed into this chat layout. The second question now sees the first, and local
 generation sees both. Routing accuracy, sensitivity recall, generation quality,
@@ -155,11 +235,12 @@ starting values, not claimed to be calibrated for enterprise routing. `/v1/model
 reports that limitation. The deterministic scanner/metadata/policy remains
 authoritative; high learned PUBLIC confidence is never a complete DLP guarantee.
 
-**Hardware limitation:** this implementation currently supports only unquantized
-weights. The E4B text weights are approximately 15 GB in BF16 and **do not fit an
-8 GB Orin Nano**. A separately validated Q4/INT4 backend is still needed; unsupported
-quantization raises an explicit error. This is an architecture-correct HF prototype,
-not a claim of measured Jetson deployment readiness.
+**Hardware limitation:** unquantized E4B text weights are approximately 15 GB in
+FP16/BF16 and **do not fit an 8 GB Orin Nano**. SmoothQuant reduces the selected
+linear-weight storage, not the large embeddings/PLE tables or KV cache; INT8 does
+**not guarantee** E4B fits in 8 GB. Inspect actual checkpoint/CUDA memory and allow
+OS/runtime/cache headroom. Q4/INT4 and embedding compression remain future work.
+This is an HF prototype, not measured Jetson deployment readiness.
 
 ```bash
 pytest -q
@@ -257,8 +338,10 @@ a bounded queue, and cancellation so model locks remain owned by one thread.
 
 Environment variables are shown in `.env.example`; the app reads environment
 variables directly, so export them yourself (it does not implicitly load `.env`).
-YAML controls the policy and federation/training. `QUANTIZATION=none` is currently
-the supported implementation; other values raise an explicit error.
+YAML controls the policy and federation/training. `QUANTIZATION=none` selects the
+unquantized adapters. Gemma 4 + Strands also supports `smoothquant_int8`, requiring
+an offline calibrated artifact at `QUANTIZED_MODEL_PATH`. Unsupported methods
+raise an explicit error; they do not silently fall back to floating-point weights.
 
 ## Frontend API
 
@@ -502,13 +585,13 @@ logging; never enable it for enterprise production.
 
 ## Jetson optimization and remaining deployment work
 
-No Jetson/CUDA hardware or licensed 4B weights were available for this milestone's
-CPU verification. FP16/BF16 4B weights alone are approximately 8 GB before KV cache,
-runtime, and OS overhead; an Orin Nano will need a validated reduced-memory format
-and careful context limits. The current unquantized adapter is for architectural
-correctness and larger development hardware, not an assertion that 4B fits Jetson.
+No Jetson/CUDA hardware or production weights were available for this milestone's
+CPU verification. A conventional dense 4B model's FP16/BF16 weights alone are
+approximately 8 GB before KV cache, runtime, and OS overhead. Gemma 4 E4B has a
+larger total text footprint, discussed above. The INT8 linear implementation is
+tested on tiny real models, not an assertion that E4B fits Jetson's 8 GB.
 
-Install JetPack-compatible PyTorch, validate BF16/SDPA kernels, measure actual KV
+Install JetPack-compatible PyTorch, validate the native INT8 GEMM and FP16 kernels, measure actual KV
 memory/TTFT under chosen contexts, then implement a dedicated INT4/Q4 or
 TensorRT-LLM backend behind `SharedBackboneBackend`. Preserve final hidden access,
 exact prompt formatting, one prefill, identical backbone weights, and cache-aware

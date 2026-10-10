@@ -226,12 +226,22 @@ class Gemma4StrandsBackend(HuggingFaceBackend):
             "prompt_format": "appended-two-choice-v1",
             "calibration_scope": "upstream single-question; combined-prompt validation required",
             "adapter_frozen": True,
+            "adapter_merged": hasattr(self, "quantization_report"),
+            "quantization_details": getattr(self, "quantization_report", None),
         }
 
 
 def build_gemma4_strands_backend(settings: Settings) -> Gemma4StrandsBackend:
     if not transformers.__version__.startswith("5.18."):
         raise RuntimeError("Install Transformers 5.18.x for Gemma 4")
+    if settings.dtype not in {"float32", "float16", "bfloat16"}:
+        raise ValueError("Unsupported model dtype")
+    if settings.quantization == "smoothquant_int8":
+        from edge_router.model.quantization.checkpoint import load_quantized_backend
+
+        return load_quantized_backend(settings)
+    if settings.quantization != "none":
+        raise NotImplementedError("Gemma 4 quantization requires a validated backend; no fallback")
     from peft import (
         PeftConfig,
         get_peft_model,
@@ -240,10 +250,6 @@ def build_gemma4_strands_backend(settings: Settings) -> Gemma4StrandsBackend:
     )
     from transformers import AutoConfig, AutoTokenizer, Gemma4ForCausalLM
 
-    if settings.quantization != "none":
-        raise NotImplementedError("Gemma 4 quantization requires a validated backend; no fallback")
-    if settings.dtype not in {"float32", "float16", "bfloat16"}:
-        raise ValueError("Unsupported model dtype")
     directory, strands, revision, hashes = read_strands_artifacts(settings)
     if settings.max_context_tokens > strands.get("max_length", settings.max_context_tokens):
         raise ValueError("Configured context exceeds the Strands checkpoint's context limit")

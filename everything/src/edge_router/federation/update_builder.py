@@ -55,6 +55,7 @@ def build_update(
         update_norm=final_norm,
         clipped=clipped,
         optimization="fedprox" if proximal_mu else "fedavg",
+        backbone_quantization_hash=identity.get("backbone_quantization_hash"),
     )
 
 
@@ -68,6 +69,8 @@ def validate_update(update: FederatedUpdate, baseline: HeadSnapshot, identity: d
     for key in ["base_model_id", "base_model_revision", "tokenizer_hash", "chat_template_hash"]:
         if getattr(update, key) != identity[key]:
             raise ValueError("Update backbone identity mismatch")
+    if update.backbone_quantization_hash != identity.get("backbone_quantization_hash"):
+        raise ValueError("Update quantized-backbone identity mismatch")
     if (
         update.head_architecture_version != baseline.heads.architecture_version
         or update.num_examples < 1

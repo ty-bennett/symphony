@@ -14,6 +14,7 @@ class Settings(StrictModel):
     device: str = "cpu"
     dtype: str = "float32"
     quantization: str = "none"
+    quantized_model_path: str | None = None
     decision_checkpoint: str | None = None
     policy_config: str = "config/routing_policy.yaml"
     max_context_tokens: int = Field(default=2048, ge=2)

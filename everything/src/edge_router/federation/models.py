@@ -78,6 +78,7 @@ class PackageMetadata(StrictModel):
     head_dropout: float = Field(default=0.1, ge=0, lt=1)
     backbone_adapter_hash: str | None = None
     decision_prompt_hash: str | None = None
+    backbone_quantization_hash: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -106,6 +107,7 @@ class FederatedUpdate:
     clipped: bool
     optimization: str = "fedavg"
     privacy_metadata: dict[str, float | bool] = field(default_factory=lambda: {"dp_enabled": False})
+    backbone_quantization_hash: str | None = None
 
     def metadata(self) -> dict:
         return {

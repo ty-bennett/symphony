@@ -1,6 +1,7 @@
 """Real tiny Gemma 4 + PEFT cache tests. No Hub downloads or enterprise data."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,9 @@ from edge_router.model.gemma4_strands_backend import (
     read_strands_artifacts,
 )
 from edge_router.model.memory import cache_bytes, parameter_hash
+from edge_router.model.quantization.checkpoint import load_quantized_backend, save_quantized_backend
+from edge_router.model.quantization.gemma4 import gemma4_linear_targets, quantize_backend
+from edge_router.model.quantization.smoothquant import SmoothQuantInt8Linear
 from edge_router.model.strands_heads import StrandsDecisionHeads, StrandsPointerHead
 from edge_router.model.strands_prompt import StrandsPromptConfig, encode_strands_prompt
 from edge_router.routing.policy import RoutingPolicy
@@ -404,14 +408,18 @@ def provisioned_strands(strands_backend, tmp_path):
     )
 
 
-def test_actual_text_only_loader_and_peft_restore(provisioned_strands, strands_backend):
-    loaded = build_orchestrator(provisioned_strands).backend
+@pytest.mark.parametrize("dtype", ["float32", "float16"])
+def test_actual_text_only_loader_and_peft_restore(provisioned_strands, strands_backend, dtype):
+    settings = provisioned_strands.model_copy(update={"dtype": dtype})
+    loaded = build_orchestrator(settings).backend
     assert loaded.identity["base_model_revision"] == "a" * 40
     assert not hasattr(loaded.model, "vision_tower")
     assert loaded.backbone is loaded.model.model
     assert all(not p.requires_grad for p in loaded.model.parameters())
+    assert all(p.dtype == getattr(torch, dtype) for p in loaded.model.parameters())
+    assert all(p.dtype == torch.float32 for p in loaded.head_manager.snapshot().heads.parameters())
     for key, value in strands_backend.model.state_dict().items():
-        torch.testing.assert_close(loaded.model.state_dict()[key], value)
+        torch.testing.assert_close(loaded.model.state_dict()[key], value.to(getattr(torch, dtype)))
     context = loaded.prefill([Message(role="user", content="hello")])
     assert context.past_key_values is not None
     assert loaded.classify(context, loaded.head_manager.snapshot())[0].label in {
@@ -419,6 +427,253 @@ def test_actual_text_only_loader_and_peft_restore(provisioned_strands, strands_b
         "MEDIUM",
         "HIGH",
     }
+
+
+def test_fp16_cache_and_fp32_readouts_preserve_single_prefill(provisioned_strands):
+    settings = provisioned_strands.model_copy(update={"dtype": "float16"})
+    backend = build_orchestrator(settings).backend
+    backend.eos_ids.clear()
+    trace = []
+    hook = backend.backbone.register_forward_pre_hook(
+        lambda module, args, kwargs: trace.append(kwargs["input_ids"].shape[1]), with_kwargs=True
+    )
+    try:
+        context = backend.prefill([Message(role="user", content="hello world")])
+        assert context.final_hidden_state.dtype == torch.float16
+        assert context.metadata["decision_features"].dtype == torch.float16
+        cache_tensors = [
+            value
+            for layer in context.past_key_values.layers
+            for value in (layer.keys, layer.values)
+            if value is not None
+        ]
+        assert cache_tensors
+        assert all(value.dtype == torch.float16 for value in cache_tensors)
+        with torch.inference_mode():
+            logits = backend.head_manager.snapshot().heads(context.metadata["decision_features"])
+        assert all(value.dtype == torch.float32 and torch.isfinite(value).all() for value in logits)
+        complexity, sensitivity = backend.classify(context, backend.head_manager.snapshot())
+        for prediction in (complexity, sensitivity):
+            assert sum(prediction.probabilities.values()) == pytest.approx(1.0)
+        tokens = list(backend.decode_from_prefill(context, GenerationOptions(max_new_tokens=4)))
+    finally:
+        hook.remove()
+    assert len(tokens) == 4
+    assert trace == [context.prompt_length, 1, 1, 1]
+    assert backend.instrumentation.prefill_calls == 1
+    assert backend.instrumentation.prompt_tokens == context.prompt_length
+    assert backend.instrumentation.decoded_input_tokens == 3
+
+
+@pytest.fixture
+def smoothquant_backend(provisioned_strands, tmp_path):
+    settings = provisioned_strands.model_copy(update={"dtype": "float16"})
+    backend = build_orchestrator(settings).backend
+    before_heads = parameter_hash(backend.head_manager.snapshot().heads)
+    before_lm = parameter_hash(backend.lm_head)
+    recipe = quantize_backend(backend, [[Message(role="user", content="hello world")]])
+    assert parameter_hash(backend.head_manager.snapshot().heads) == before_heads
+    assert parameter_hash(backend.lm_head) == before_lm
+    destination = save_quantized_backend(backend, recipe, tmp_path / "int8")
+    loaded = build_orchestrator(
+        settings.model_copy(
+            update={
+                "quantization": "smoothquant_int8",
+                "quantized_model_path": str(destination),
+            }
+        )
+    ).backend
+    loaded.eos_ids.clear()
+    return loaded
+
+
+def test_smoothquant_reloads_actual_int8_without_loading_base(smoothquant_backend, monkeypatch):
+    backend = smoothquant_backend
+    assert all(
+        isinstance(m, SmoothQuantInt8Linear) for m in gemma4_linear_targets(backend.model).values()
+    )
+    assert all(
+        m.weight_int8.dtype == torch.int8 for m in gemma4_linear_targets(backend.model).values()
+    )
+    assert not hasattr(backend.backbone, "peft_config")
+    assert all(not p.requires_grad for p in backend.model.parameters())
+    assert backend.model.model.embed_tokens.weight is backend.model.lm_head.weight
+    assert backend.model_info()["quantization"] == "smoothquant_int8"
+    assert backend.model_info()["adapter_merged"] is True
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("INT8 serving must not load original model or Strands weights")
+
+    monkeypatch.setattr(Gemma4ForCausalLM, "from_pretrained", forbidden)
+    import edge_router.model.gemma4_strands_backend as adapter
+
+    monkeypatch.setattr(adapter, "read_strands_artifacts", forbidden)
+    reloaded = build_orchestrator(backend.settings).backend
+    assert parameter_hash(reloaded.model) == parameter_hash(backend.model)
+
+
+def test_smoothquant_shared_prefill_after_hot_swap(smoothquant_backend, policy):
+    backend = smoothquant_backend
+    model_before = parameter_hash(backend.model)
+    service = local_service(backend, policy)  # Atomic decision-head swap only.
+    trace = []
+    hook = backend.backbone.register_forward_pre_hook(
+        lambda m, args, kwargs: trace.append(kwargs["input_ids"].shape[1]), with_kwargs=True
+    )
+    try:
+        result = service.run(
+            ChatRequest(
+                messages=[Message(role="user", content="hello world")],
+                generation={"max_new_tokens": 4},
+            )
+        )
+    finally:
+        hook.remove()
+    assert result.route == "LOCAL"
+    assert trace == [result.decision.prompt_tokens, 1, 1, 1]
+    assert backend.instrumentation.prefill_calls == 1
+    assert backend.instrumentation.backbone_instances == 1
+    assert parameter_hash(backend.model) == model_before
+
+
+def test_smoothquant_fl_freezes_integer_weights_and_binds_updates(smoothquant_backend, examples):
+    from edge_router.federation.update_builder import validate_update
+
+    backend = smoothquant_backend
+    model_before = parameter_hash(backend.model)
+    active = backend.head_manager.snapshot()
+    heads_before = parameter_hash(active.heads)
+    result = FederatedLocalTrainer(
+        FrozenFeatureExtractor(backend), FederationConfig(federate_sensitivity=False)
+    ).train(active, examples)
+    assert parameter_hash(backend.model) == model_before
+    assert parameter_hash(backend.head_manager.snapshot().heads) == heads_before
+    assert parameter_hash(result.candidate.heads.complexity) != parameter_hash(
+        active.heads.complexity
+    )
+    assert (
+        result.update.backbone_quantization_hash == backend.identity["backbone_quantization_hash"]
+    )
+    with pytest.raises(ValueError, match="quantized-backbone identity"):
+        validate_update(
+            result.update,
+            active,
+            {**backend.identity, "backbone_quantization_hash": "different-artifact"},
+        )
+
+
+def test_smoothquant_cached_logits_match_full_prefix(smoothquant_backend):
+    backend = smoothquant_backend
+    context = backend.prefill([Message(role="user", content="hello world")])
+    with torch.inference_mode():
+        reference = backend.model(input_ids=context.input_ids, use_cache=False, logits_to_keep=1)
+        torch.testing.assert_close(
+            backend._logits(context.final_hidden_state),
+            reference.logits[:, -1],
+            atol=1e-3,
+            rtol=1e-3,
+        )
+        token = reference.logits[:, -1].argmax(-1, keepdim=True)
+        cached = backend._forward(
+            token,
+            torch.cat([context.attention_mask, torch.ones_like(token)], dim=1),
+            context.past_key_values,
+            context.prompt_length,
+        )
+        full = backend.model(
+            input_ids=torch.cat([context.input_ids, token], dim=1),
+            use_cache=False,
+            logits_to_keep=1,
+        )
+        torch.testing.assert_close(
+            backend._logits(cached.last_hidden_state[:, -1]),
+            full.logits[:, -1],
+            atol=5e-3,
+            rtol=5e-3,
+        )
+    assert all(
+        v.dtype == torch.float16
+        for layer in context.past_key_values.layers
+        for v in (layer.keys, layer.values)
+        if v is not None
+    )
+
+
+def test_smoothquant_keeps_security_overrides(smoothquant_backend, policy, caplog):
+    backend = smoothquant_backend
+    # Deliberately wrong learned output; hard security must still win.
+    backend.classify = lambda *args: (
+        ComplexityPrediction(
+            label="HIGH",
+            probabilities={"LOW": 0.001, "MEDIUM": 0.001, "HIGH": 0.998},
+            confidence=0.998,
+        ),
+        SensitivityPrediction(
+            label="PUBLIC", probabilities={"PUBLIC": 0.999, "SENSITIVE": 0.001}, confidence=0.999
+        ),
+    )
+    service = Orchestrator(backend, policy)
+    for message, security in [
+        ("password=SYNTHETIC_EXAMPLE_ONLY", {}),
+        ("hello world", {"classification": "SENSITIVE"}),
+    ]:
+        result = service.run(
+            ChatRequest(messages=[Message(role="user", content=message)], security_context=security)
+        )
+        assert result.route == "PRIVATE_AWS"
+    assert backend.instrumentation.decode_calls == 0
+    assert "SYNTHETIC_EXAMPLE_ONLY" not in caplog.text
+
+
+def test_smoothquant_artifact_corruption_and_identity_rejected(smoothquant_backend, tmp_path):
+    backend = smoothquant_backend
+    with pytest.raises(ValueError, match="Incompatible SmoothQuant"):
+        load_quantized_backend(backend.settings.model_copy(update={"model_revision": "b" * 40}))
+    save_checkpoint(backend.head_manager.snapshot(), backend.identity, tmp_path / "heads-int8")
+    with pytest.raises(ValueError, match="quantized backbone"):
+        load_checkpoint(
+            tmp_path / "heads-int8", {**backend.identity, "backbone_quantization_hash": None}
+        )
+    artifact = Path(backend.settings.quantized_model_path) / "model.safetensors"
+    artifact.write_bytes(b"SYNTHETIC_CORRUPTION")
+    with pytest.raises(ValueError, match="digest mismatch"):
+        load_quantized_backend(backend.settings)
+
+
+def test_smoothquant_requires_artifact_and_explicit_calibration(strands_backend):
+    with pytest.raises(ValueError, match="QUANTIZED_MODEL_PATH"):
+        load_quantized_backend(Settings(quantization="smoothquant_int8"))
+    with pytest.raises(ValueError, match="requires examples"):
+        quantize_backend(strands_backend, [])
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    os.getenv("RUN_SMOOTHQUANT_CUDA_TESTS") != "1", reason="Explicit CUDA/Jetson opt-in required"
+)
+def test_smoothquant_cuda_cache_reuse(smoothquant_backend, policy):
+    assert torch.cuda.is_available(), "CUDA was requested but is unavailable"
+    backend = load_quantized_backend(
+        smoothquant_backend.settings.model_copy(update={"device": "cuda"})
+    )
+    backend.eos_ids.clear()
+    trace = []
+    hook = backend.backbone.register_forward_pre_hook(
+        lambda m, args, kwargs: trace.append(kwargs["input_ids"].shape[1]), with_kwargs=True
+    )
+    try:
+        result = local_service(backend, policy).run(
+            ChatRequest(
+                messages=[Message(role="user", content="hello world")],
+                generation={"max_new_tokens": 4},
+            )
+        )
+    finally:
+        hook.remove()
+    torch.cuda.synchronize()
+    assert result.route == "LOCAL"
+    assert trace == [result.decision.prompt_tokens, 1, 1, 1]
+    assert backend.instrumentation.prefill_calls == 1
 
 
 @pytest.mark.parametrize("corruption", ["hash", "revision", "backbone", "head_type"])

@@ -85,6 +85,8 @@ def verify_compatibility(metadata: PackageMetadata, identity: dict):
     for key in ["backbone_adapter_hash", "decision_prompt_hash"]:
         if getattr(metadata, key) != identity.get(key):
             raise ValueError("Incompatible frozen adapter or decision rubric")
+    if metadata.backbone_quantization_hash != identity.get("backbone_quantization_hash"):
+        raise ValueError("Incompatible quantized backbone")
 
 
 def read_package(package: GlobalModelPackage, identity: dict, verifier: ModelPackageVerifier):
