@@ -1,0 +1,159 @@
+/*
+ * Symphony design tokens. Mirrors the "Design system" board on the Symphony
+ * canvas: opencode's light theme by default, opencode's dark theme with a
+ * white main action as the alternative.
+ */
+:root {
+  --bg: #ffffff;
+  --panel: #fafafa;
+  --raised: #f2f2f2;
+  --line: #ebebeb;
+  --line-strong: #8f8f8f;
+  --text: #1a1a1a;
+  --muted: #6f6f6f;
+  --hi: #1a1a1a;
+  --on-hi: #ffffff;
+  --focus: #2968c3;
+
+  /* The three places work can run, plus "needs a decision". */
+  --device: #2d7a43;
+  --private: #2968c3;
+  --open: #7b5bb6;
+  --warn: #c4343a;
+  --device-tint: #ecf6ef;
+  --private-tint: #ecf2fc;
+  --open-tint: #f3eefa;
+  --warn-tint: #fcefef;
+
+  --font-display: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
+  --font-body: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-meta: 13px;
+  --fs-body: 15px;
+  --fs-lead: 17px;
+  --fs-section: 22px;
+  --fs-title: 34px;
+
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --target: 44px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a;
+    --panel: #141414;
+    --raised: #1e1e1e;
+    --line: #282828;
+    --line-strong: #6a6a6a;
+    --text: #eeeeee;
+    --muted: #8a8a8a;
+    --hi: #ffffff;
+    --on-hi: #0a0a0a;
+    --focus: #5c9cf5;
+    --device: #7fd88f;
+    --private: #5c9cf5;
+    --open: #9d7cd8;
+    --warn: #e06c75;
+    --device-tint: #16261b;
+    --private-tint: #13203a;
+    --open-tint: #231b30;
+    --warn-tint: #2c1416;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --panel: #141414;
+  --raised: #1e1e1e;
+  --line: #282828;
+  --line-strong: #6a6a6a;
+  --text: #eeeeee;
+  --muted: #8a8a8a;
+  --hi: #ffffff;
+  --on-hi: #0a0a0a;
+  --focus: #5c9cf5;
+  --device: #7fd88f;
+  --private: #5c9cf5;
+  --open: #9d7cd8;
+  --warn: #e06c75;
+  --device-tint: #16261b;
+  --private-tint: #13203a;
+  --open-tint: #231b30;
+  --warn-tint: #2c1416;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

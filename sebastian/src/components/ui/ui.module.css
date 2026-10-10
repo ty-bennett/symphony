@@ -1,0 +1,73 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--target);
+  padding: 0 18px;
+  border-radius: var(--radius-s);
+  border: 1px solid transparent;
+  background: transparent;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.primary {
+  background: var(--hi);
+  color: var(--on-hi);
+  padding: 0 20px;
+}
+
+.secondary {
+  border-color: var(--line-strong);
+}
+
+.secondary:hover:not(:disabled),
+.icon:hover:not(:disabled) {
+  background: var(--raised);
+}
+
+.text {
+  padding: 0 8px;
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+.icon {
+  width: var(--target);
+  padding: 0;
+  color: var(--muted);
+}
+
+.empty {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  align-items: center;
+}
+
+.emptyTitle {
+  font-size: var(--fs-section);
+  line-height: 1.25;
+}
+
+.emptyBody {
+  color: var(--muted);
+}
+
+.emptyAction {
+  margin-top: 8px;
+}
