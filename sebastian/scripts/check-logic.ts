@@ -12,6 +12,10 @@ import {
   type AgentState,
 } from "../src/lib/opencode/state"
 import type { MessageInfo, OcEvent, Part } from "../src/lib/opencode/types"
+import { permissionRules, spending, toJob } from "../src/lib/symphony/jobs"
+import { placeForProvider } from "../src/lib/symphony/places"
+import { redactContactInfo, restoreRedactions, routeTask } from "../src/lib/symphony/routing"
+import { customCategory, normalizeSettings } from "../src/lib/symphony/settings"
 
 let passed = 0
 function check(name: string, fn: () => void) {
@@ -255,5 +259,107 @@ check("per-turn diffs (opencode 1.18) combine per file; empty session.diff is ig
   state = run([{ type: "session.diff", properties: { sessionID: S, diff: [] } }], S, state)
   assert.equal(state.diff!.length, 2, "an empty session.diff must not blank the panel")
 })
+
+// ---------- Symphony routing, settings, jobs ----------
+
+const base = normalizeSettings({})
+
+check("routing: quick and private jobs stay on the Symphony", () => {
+  assert.deepEqual(pick(routeTask("Write a thank-you note for the bakery window", base)), ["device", "it's a quick job", false])
+  const catering = routeTask("Draft replies to the catering inquiries in my inbox", base)
+  assert.deepEqual(pick(catering), ["device", "it includes customer contact info", false])
+  assert.deepEqual(routeTask("Reply to jo@example.com about Saturday", base).privateHits, ["Customer contact info"])
+  assert.deepEqual(routeTask("Call (803) 555-0142 back", base).privateHits, ["Customer contact info"])
+})
+
+check("routing: big private jobs go to the private cloud, big shareable ones to the open cloud", () => {
+  assert.deepEqual(pick(routeTask("Analyze last year's payroll and find overtime trends", base)), [
+    "private",
+    "it's a big job that includes staff and payroll",
+    false,
+  ])
+  assert.deepEqual(pick(routeTask("Write a report on fall baking trends for our blog", base)), [
+    "open",
+    "it's a big job with nothing private in it",
+    false,
+  ])
+})
+
+check("routing: web jobs need the open cloud and ask first when private info is involved", () => {
+  assert.deepEqual(pick(routeTask("Look up what other bakeries online charge for cupcakes", base)), ["open", "it needs to search the web", false])
+  const mixed = routeTask("Compare our customer comments with reviews of the bakeries nearby", base)
+  assert.deepEqual(pick(mixed), ["open", "it needs to search the web", true])
+})
+
+check("routing: respects switched-off places and the open-cloud rule", () => {
+  const noOpen = normalizeSettings({ places: { open: { enabled: false } } })
+  assert.equal(routeTask("Write a report on fall baking trends", noOpen).place, "private")
+  const never = normalizeSettings({ places: { open: { rule: "never" } } })
+  const r = routeTask("Compare our customer comments with reviews of other bakeries nearby", never)
+  assert.equal(r.place, "private")
+  assert.equal(r.needsConsent, false)
+  const noPrivate = normalizeSettings({ places: { private: { enabled: false } } })
+  assert.equal(routeTask("Analyze last year's payroll", noPrivate).place, "device")
+  const always = normalizeSettings({ places: { open: { rule: "ask-always" } } })
+  assert.equal(routeTask("Write a report on fall baking trends", always).needsConsent, true)
+  const off = normalizeSettings({ keepPrivate: base.keepPrivate.map((c) => ({ ...c, on: false })) })
+  assert.equal(routeTask("Draft replies to the catering inquiries", off).place, "device")
+  assert.deepEqual(routeTask("Draft replies to the catering inquiries", off).privateHits, [])
+})
+
+check("routing: custom keep-private items count", () => {
+  const custom = normalizeSettings({ keepPrivate: [...base.keepPrivate, customCategory("Wedding cakes")] })
+  assert.deepEqual(routeTask("Price list for wedding cakes", custom).privateHits, ["Wedding cakes"])
+  assert.deepEqual(routeTask("Quote for a wedding cake", custom).privateHits, ["Wedding cakes"])
+  assert.deepEqual(customCategory("Glass").keywords, ["glass"])
+})
+
+check("redaction removes emails and phone numbers and restores them for display", () => {
+  const { text, redactions } = redactContactInfo("Email jo@example.com or call 803-555-0142, cc sam@shop.co")
+  assert.equal(text, "Email [email 1] or call [phone 1], cc [email 2]")
+  assert.equal(restoreRedactions("I wrote to [email 1] and [email 2]", redactions), "I wrote to jo@example.com and sam@shop.co")
+})
+
+check("settings: defaults fill gaps and bad values are cleaned", () => {
+  const s = normalizeSettings({ spending: { limit: -5, atLimit: "explode" }, places: { open: { rule: "sometimes" } }, checkFirst: "yes" })
+  assert.equal(s.spending.limit, 40)
+  assert.equal(s.spending.atLimit, "pause")
+  assert.equal(s.places.open.rule, "ask-if-private")
+  assert.equal(s.checkFirst, true)
+  assert.equal(s.keepPrivate.length, 6)
+})
+
+check("jobs: status, place and monthly spending", () => {
+  const session = (over: Record<string, unknown>) => ({ id: "ses_a", title: "A", cost: 0.5, time: { created: Date.UTC(2026, 9, 3), updated: Date.UTC(2026, 9, 3) }, ...over })
+  assert.equal(toJob(session({}), "busy", 0, base).status, "working")
+  assert.equal(toJob(session({}), "busy", 1, base).status, "needs-ok")
+  assert.equal(toJob(session({ revert: { messageID: "msg_1" } }), undefined, 0, base).status, "undone")
+  assert.equal(toJob(session({}), "idle", 0, base).status, "done")
+  assert.equal(toJob(session({ metadata: { symphony: { place: "private", reason: "x", checkFirst: true } } }), "idle", 0, base).place, "private")
+  assert.equal(toJob(session({ model: { id: "m", providerID: "amazon-bedrock" } }), "idle", 0, base).place, "private")
+  assert.equal(toJob(session({ model: { id: "m", providerID: "ollama" } }), "idle", 0, base).place, "device")
+  assert.equal(placeForProvider("mock", { device: "mock/mock-coder" }), "device")
+  const jobs = [
+    toJob(session({ id: "1", cost: 0.25, metadata: { symphony: { place: "private", reason: "", checkFirst: true } } }), "idle", 0, base),
+    toJob(session({ id: "2", cost: 1.5, metadata: { symphony: { place: "open", reason: "", checkFirst: true } } }), "idle", 0, base),
+    toJob(session({ id: "3", cost: 9, time: { created: Date.UTC(2026, 8, 3), updated: 0 }, metadata: { symphony: { place: "open", reason: "", checkFirst: true } } }), "idle", 0, base),
+  ]
+  const spent = spending(jobs, base, Date.UTC(2026, 9, 10))
+  assert.equal(spent.month, "2026-10")
+  assert.equal(spent.total, 1.75)
+  assert.deepEqual(spent.byPlace, { device: 0, private: 0.25, open: 1.5 })
+})
+
+check("check-with-me-first maps to opencode permission rules", () => {
+  assert.deepEqual(
+    permissionRules(true).map((r) => `${r.permission}:${r.action}`),
+    ["edit:ask", "bash:ask", "webfetch:ask"],
+  )
+  assert.ok(permissionRules(false).every((r) => r.action === "allow"))
+})
+
+function pick(r: { place: string; reason: string; needsConsent: boolean }) {
+  return [r.place, r.reason, r.needsConsent]
+}
 
 console.log(`\n${passed} checks passed`)

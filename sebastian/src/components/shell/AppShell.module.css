@@ -108,6 +108,16 @@
     gap: 8px;
   }
 
+  /* Four tabs don't fit as words on a phone: icons only, names kept for screen readers. */
+  .navLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
   .footer {
     margin: 0 0 0 auto;
     padding: 0;

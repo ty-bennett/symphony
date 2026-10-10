@@ -39,7 +39,7 @@ function FileRows({ file }: { file: FileDiff }) {
   )
 }
 
-function FileEntry({ file }: { file: FileDiff }) {
+export function FileEntry({ file }: { file: FileDiff }) {
   const [open, setOpen] = useState(false)
   const path = file.file ?? "(unknown file)"
   const slash = path.lastIndexOf("/")

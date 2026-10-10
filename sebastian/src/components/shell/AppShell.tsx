@@ -9,7 +9,9 @@ import styles from "./AppShell.module.css"
 
 const nav: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Today", icon: "today" },
+  { href: "/work", label: "Work", icon: "work" },
   { href: "/coding-agent", label: "Coding agent", icon: "code" },
+  { href: "/privacy", label: "Privacy and spending", icon: "shield" },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -31,10 +33,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
+                    title={item.label}
                     className={active ? `${styles.navLink} ${styles.navActive}` : styles.navLink}
                   >
                     <Icon name={item.icon} size={18} />
-                    {item.label}
+                    <span className={styles.navLabel}>{item.label}</span>
                   </Link>
                 </li>
               )
