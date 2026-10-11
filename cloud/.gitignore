@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.zip
+
+# Terraform local-only inputs and overrides (shared test inputs stay committed)
+*.tfvars
+!terraform/*/tests/terraform.tfvars
+backend.hcl
+*_override.tf
+crash.log
