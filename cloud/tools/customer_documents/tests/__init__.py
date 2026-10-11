@@ -1,0 +1,1 @@
+"""Customer document tool tests."""

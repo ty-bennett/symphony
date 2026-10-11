@@ -1,0 +1,7 @@
+# Copy to backend.hcl (gitignored) after the bootstrap apply and fill in its outputs.
+# Each root passes its own state key at init: -backend-config="key=symphony/<root>.tfstate"
+bucket       = "symphony-tfstate-111111111111"
+region       = "us-east-1"
+encrypt      = true
+kms_key_id   = "arn:aws:kms:us-east-1:111111111111:key/00000000-0000-0000-0000-000000000000"
+use_lockfile = true

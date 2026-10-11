@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.zip
+
+# Terraform local-only inputs and overrides (shared test inputs stay committed)
+*.tfvars
+!terraform/*/tests/terraform.tfvars
+backend.hcl
+*_override.tf
+crash.log
+.terraform-offline/
+
+# Device PKI: only public CA certificates are committed; keys and CSRs never are.
+pki/**/*.key
+pki/**/*.csr
+pki/**/devices/
+
+# Ingress Lambda build output and dependencies
+services/ingress/node_modules/
+services/ingress/dist/
+terraform/*/.build/
