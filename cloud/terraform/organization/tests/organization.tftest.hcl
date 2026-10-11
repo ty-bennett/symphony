@@ -138,3 +138,78 @@ run "attaches_both_policies_to_every_workload_ou" {
     error_message = "Both SCPs must be attached to Infrastructure, Customers, and Sandbox."
   }
 }
+
+# --- accounts ---
+run "vends_one_account_per_tenant" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(module.tenant_account)) == toset(["acme"])
+    error_message = "Each configured tenant needs exactly one vended account."
+  }
+
+  assert {
+    condition     = aws_servicecatalog_principal_portfolio_association.terraform.principal_arn == "arn:aws:iam::111111111111:role/SymphonyTerraform"
+    error_message = "The Terraform principal must be associated with the Account Factory portfolio."
+  }
+}
+
+run "publishes_tenant_account_ids_and_regions" {
+  command = plan
+
+  assert {
+    condition     = output.tenant_accounts["acme"].account_id == "444444444444"
+    error_message = "tenant_accounts must expose the vended account ID."
+  }
+
+  assert {
+    condition     = output.tenant_accounts["acme"].workload_region == "us-east-1"
+    error_message = "tenant_accounts must expose the tenant workload Region."
+  }
+}
+
+run "rejects_a_reused_account_email" {
+  command = plan
+
+  variables {
+    fixture_account = { email = "AWS+Shared@example.com" }
+  }
+
+  expect_failures = [var.tenants]
+}
+
+run "rejects_a_region_outside_the_pilot_pair" {
+  command = plan
+
+  variables {
+    tenants = {
+      acme = {
+        display_name       = "Acme Pilot"
+        account_email      = "aws+acme@example.com"
+        workload_region    = "us-west-2"
+        monthly_budget_usd = 250
+        billing_contacts   = ["billing@acme.example.com"]
+      }
+    }
+  }
+
+  expect_failures = [var.tenants]
+}
+
+run "rejects_an_invalid_tenant_id" {
+  command = plan
+
+  variables {
+    tenants = {
+      "Acme_Corp" = {
+        display_name       = "Acme Pilot"
+        account_email      = "aws+acme@example.com"
+        workload_region    = "us-east-1"
+        monthly_budget_usd = 250
+        billing_contacts   = ["billing@acme.example.com"]
+      }
+    }
+  }
+
+  expect_failures = [var.tenants]
+}
