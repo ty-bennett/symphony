@@ -50,6 +50,7 @@ ROOTS: list[str] = [
     "shared-services",
     "tenant-baseline",
     "sandbox-fixture",
+    "tenant-workload",
 ]
 
 
