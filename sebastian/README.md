@@ -43,7 +43,16 @@ http://localhost:3000.
 5. **Spending.** Costs come from opencode's per-session `cost`, totalled per
    month and per place. At the limit, cloud jobs either pause (`402`) or run on
    the box instead, whichever the owner picked.
-6. **Undo all** reverts the session to before its first message (opencode's
+6. **Saved.** For every job kept off the open cloud, Symphony prices the
+   tokens it used (opencode records them per session) at open-cloud rates
+   and subtracts what the job actually cost. "Compare with" in Privacy and
+   spending picks the rates: your open-cloud model's price from opencode
+   (the default), a specific priced model, or typical frontier prices
+   ($3 in / $15 out per million tokens), which are also the fallback when a
+   model has no price. It's an estimate and doesn't count the box or its
+   electricity. Shown on Today, each job, Privacy and spending, and in the CSV
+   report (`src/lib/symphony/savings.ts`).
+7. **Undo all** reverts the session to before its first message (opencode's
    revert), which puts changed files back. **Redo** un-reverts.
 
 Where each job ran, and why, is saved on the opencode session as
@@ -59,9 +68,9 @@ Set `SYMPHONY_DATA_DIR` to keep them somewhere else.
 | Route | Does |
 |---|---|
 | `GET, PUT /api/symphony/settings` | Privacy and spending settings |
-| `GET /api/symphony/jobs` | `{ jobs, spending }` for this month |
+| `GET /api/symphony/jobs` | `{ jobs, spending, savings }`; each job carries `tokens`, `wouldHaveCost` and `saved` |
 | `POST /api/symphony/jobs` | `{ text, checkFirst?, place?, consent?, redact? }` → 202 `{ jobId, place, reason }`, or 409 `{ needsConsent, decision }` |
-| `GET /api/symphony/jobs/:id` | One job plus its removed details (to restore them on screen) |
+| `GET /api/symphony/jobs/:id` | One job, the comparison `rates`, and its removed details (to restore them on screen) |
 | `POST /api/symphony/jobs/:id/undo`, `/redo` | Revert or un-revert the job's changes |
 
 These routes use the same auth hook as `/api/oc/*`.
@@ -121,7 +130,7 @@ refuses requests in production until `checkAuth()` in
 | Route | Does |
 |---|---|
 | `GET /api/oc/health` | opencode health and version |
-| `GET /api/oc/providers` | providers and model names (API keys are stripped) |
+| `GET /api/oc/providers` | providers, model names and prices (API keys are stripped) |
 | `GET, POST /api/oc/sessions` | list (newest first), create |
 | `DELETE /api/oc/sessions/:id` | delete |
 | `GET /api/oc/sessions/:id/messages` | history as `[{ info, parts }]` |
@@ -148,6 +157,6 @@ refuses requests in production until `checkAuth()` in
 ```sh
 npm run lint
 npm run typecheck
-npm run check:logic   # event handling, history merge, diffs, routing, redaction, spending
+npm run check:logic   # event handling, history merge, diffs, routing, redaction, spending, savings
 npm run build
 ```

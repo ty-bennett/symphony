@@ -4,13 +4,15 @@ import { OcError, oc, ocJson, parseModel, sendPrompt, unwrap } from "@/lib/openc
 import type { RawPermission, SessionStatus } from "@/lib/opencode/types"
 import { placeForProvider, PLACE_ORDER } from "./places"
 import { redactContactInfo, routeTask } from "./routing"
-import type { Job, JobMeta, Place, Settings, Spending } from "./types"
+import { ratesFromProviders, readTokens, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "./savings"
+import type { Job, JobMeta, Place, Rates, Savings, Settings, Spending } from "./types"
 
 type OcSession = {
   id: string
   title?: string
   parentID?: string
   cost?: number
+  tokens?: unknown
   model?: { id: string; providerID: string }
   metadata?: Record<string, unknown>
   revert?: unknown
@@ -54,7 +56,42 @@ export function toJob(session: OcSession, status: string | undefined, approvals:
     checkFirst: meta?.checkFirst,
     cost: session.cost ?? 0,
     approvals,
+    tokens: readTokens(session.tokens),
   }
+}
+
+// opencode's provider list is large and rarely changes; keep it a minute.
+const priceCache = globalThis as unknown as { __symphonyPrices?: { at: number; providers: PricedProvider[]; model?: string } }
+
+async function priceList() {
+  const cached = priceCache.__symphonyPrices
+  if (cached && Date.now() - cached.at < 60_000) return cached
+  const [providers, config] = await Promise.all([
+    oc().config.providers().then((r) => unwrap(r)?.providers ?? []),
+    ocJson<{ model?: string }>("/config").catch(() => null),
+  ])
+  const fresh = { at: Date.now(), providers: providers as PricedProvider[], model: config?.model }
+  priceCache.__symphonyPrices = fresh
+  return fresh
+}
+
+/** The prices "saved" is measured against. Falls back to typical frontier prices. */
+export async function compareRates(settings: Settings): Promise<Rates> {
+  const choice = settings.savings.compareWith
+  if (choice === "typical") return TYPICAL_RATES
+  try {
+    const prices = await priceList()
+    const model = choice === "open" ? settings.places.open.model || prices.model || "" : choice
+    return ratesFromProviders(model, prices.providers) ?? TYPICAL_RATES
+  } catch {
+    return TYPICAL_RATES
+  }
+}
+
+export async function jobsWithSavings(settings: Settings): Promise<{ jobs: Job[]; savings: Savings }> {
+  const [jobs, rates] = await Promise.all([listJobs(settings), compareRates(settings)])
+  const priced = jobs.map((j) => withSavings(j, rates))
+  return { jobs: priced, savings: summarizeSavings(priced, rates) }
 }
 
 async function snapshot() {

@@ -13,7 +13,8 @@ import type { FileDiff, MessageWithParts, Part, RawPermission } from "@/lib/open
 import { useDebounced, useEvents } from "@/lib/opencode/useEvents"
 import { formatCost, PLACES } from "@/lib/symphony/places"
 import { restoreRedactions } from "@/lib/symphony/routing"
-import type { Job } from "@/lib/symphony/types"
+import { formatSaved } from "@/lib/symphony/savings"
+import type { Job, Rates } from "@/lib/symphony/types"
 import styles from "./page.module.css"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -46,6 +47,7 @@ function StepIcon({ status }: { status?: string }) {
 export function JobView({ id }: { id: string }) {
   const [job, setJob] = useState<Job | null>(null)
   const [redactions, setRedactions] = useState<Record<string, string>>({})
+  const [rates, setRates] = useState<Rates | null>(null)
   const [state, setState] = useState<AgentState>(initialAgentState)
   const [error, setError] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
@@ -54,8 +56,9 @@ export function JobView({ id }: { id: string }) {
 
   const loadJob = useCallback(async () => {
     try {
-      const data = await api<{ job: Job; redactions: Record<string, string> }>("/api/symphony", `/jobs/${encodeURIComponent(id)}`)
+      const data = await api<{ job: Job; rates: Rates; redactions: Record<string, string> }>("/api/symphony", `/jobs/${encodeURIComponent(id)}`)
       setJob(data.job)
+      setRates(data.rates)
       setRedactions(data.redactions)
     } catch (e) {
       if (message(e).includes("not found")) setMissing(true)
@@ -307,6 +310,19 @@ export function JobView({ id }: { id: string }) {
                     <dt>Cost</dt>
                     <dd>{formatCost(job.cost)}</dd>
                   </div>
+                  {job.place !== "open" && job.saved !== undefined && job.wouldHaveCost ? (
+                    <div>
+                      <dt>Saved</dt>
+                      <dd>
+                        <span style={{ color: job.saved > 0 ? "var(--device)" : undefined, fontWeight: 600 }}>{formatSaved(job.saved)}</span>
+                        <span className={styles.meta}>
+                          {" "}
+                          It would have cost {formatCost(job.wouldHaveCost)} at {rates?.label ?? "open-cloud"} prices.{" "}
+                          <Link href="/privacy#saved">How this is worked out</Link>
+                        </span>
+                      </dd>
+                    </div>
+                  ) : null}
                 </dl>
               </>
             ) : (

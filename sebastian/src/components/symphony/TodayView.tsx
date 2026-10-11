@@ -13,8 +13,9 @@ import type { RawPermission } from "@/lib/opencode/types"
 import { useDebounced, useEvents } from "@/lib/opencode/useEvents"
 import { PLACE_ORDER, PLACES } from "@/lib/symphony/places"
 import { routeTask } from "@/lib/symphony/routing"
+import { formatSaved } from "@/lib/symphony/savings"
 import { startersFor } from "@/lib/symphony/starters"
-import type { Job, Place, RouteDecision, Settings } from "@/lib/symphony/types"
+import type { Job, Place, RouteDecision, Savings, Settings } from "@/lib/symphony/types"
 import { ConsentDialog, type ConsentChoice } from "./ConsentDialog"
 import styles from "./page.module.css"
 
@@ -24,6 +25,7 @@ export function TodayView() {
   const router = useRouter()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [jobs, setJobs] = useState<Job[] | null>(null)
+  const [savings, setSavings] = useState<Savings | null>(null)
   const [pending, setPending] = useState<RawPermission[]>([])
   const [text, setText] = useState("")
   const [checkFirst, setCheckFirst] = useState(true)
@@ -37,10 +39,11 @@ export function TodayView() {
   const load = useCallback(async () => {
     try {
       const [list, approvals] = await Promise.all([
-        api<{ jobs: Job[] }>("/api/symphony", "/jobs"),
+        api<{ jobs: Job[]; savings: Savings }>("/api/symphony", "/jobs"),
         api<RawPermission[]>("/api/oc", "/permissions"),
       ])
       setJobs(list.jobs)
+      setSavings(list.savings)
       setPending(approvals)
     } catch (e) {
       setError(message(e))
@@ -112,9 +115,17 @@ export function TodayView() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.headerText}>
-        <h1 style={{ fontSize: "var(--fs-title)", lineHeight: 1.15 }}>Today</h1>
-        <p className={styles.muted}>{today}</p>
+      <header className={styles.header}>
+        <div className={styles.headerText}>
+          <h1>Today</h1>
+          <p className={styles.muted}>{today}</p>
+        </div>
+        {savings && savings.jobs > 0 && savings.saved > 0 ? (
+          <Link href="/privacy#saved" className={styles.savedStat}>
+            <span className={styles.meta}>Saved this month</span>
+            <span className={styles.savedAmount}>{formatSaved(savings.saved)}</span>
+          </Link>
+        ) : null}
       </header>
 
       {error ? (

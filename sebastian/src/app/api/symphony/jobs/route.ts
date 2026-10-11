@@ -1,5 +1,5 @@
 import { withOc } from "@/lib/opencode/server"
-import { ConsentRequired, createJob, listJobs, spending, type NewJob } from "@/lib/symphony/jobs"
+import { ConsentRequired, createJob, jobsWithSavings, spending, type NewJob } from "@/lib/symphony/jobs"
 import { readSettings } from "@/lib/symphony/settings-store"
 import type { Place } from "@/lib/symphony/types"
 
@@ -8,8 +8,8 @@ export const runtime = "nodejs"
 
 export const GET = withOc(async () => {
   const settings = await readSettings()
-  const jobs = await listJobs(settings)
-  return Response.json({ jobs, spending: spending(jobs, settings) })
+  const { jobs, savings } = await jobsWithSavings(settings)
+  return Response.json({ jobs, spending: spending(jobs, settings), savings })
 })
 
 // Body: { text, checkFirst?, place?, consent?, redact? } -> 202 { jobId, place, reason }

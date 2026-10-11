@@ -85,7 +85,11 @@ export type RawPermission = {
 
 export type Permission = { id: string; sessionID: string; title: string; details: string[] }
 
-export type ProviderSummary = { id: string; name: string; models: Record<string, { id: string; name: string }> }
+export type ProviderSummary = {
+  id: string
+  name: string
+  models: Record<string, { id: string; name: string; cost?: { input: number; output: number } }>
+}
 export type ProvidersResponse = { providers: ProviderSummary[]; default: Record<string, string> }
 
 export type OcEvent = { type: string; properties: Record<string, unknown> }

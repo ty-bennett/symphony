@@ -9,8 +9,9 @@ import { PlaceLabel } from "@/components/ui/PlaceLabel"
 import { api } from "@/lib/opencode/client"
 import type { ProvidersResponse } from "@/lib/opencode/types"
 import { formatCost, PLACE_ORDER, PLACES } from "@/lib/symphony/places"
+import { describeRates, formatSaved, TYPICAL_RATES } from "@/lib/symphony/savings"
 import { customCategory } from "@/lib/symphony/settings"
-import type { Job, OpenCloudRule, Place, Settings, Spending } from "@/lib/symphony/types"
+import type { Job, OpenCloudRule, Place, Savings, Settings, Spending } from "@/lib/symphony/types"
 import styles from "./page.module.css"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -28,6 +29,7 @@ export function PrivacyView() {
   const [providers, setProviders] = useState<ProvidersResponse | null>(null)
   const [jobs, setJobs] = useState<Job[] | null>(null)
   const [money, setMoney] = useState<Spending | null>(null)
+  const [savings, setSavings] = useState<Savings | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [save, setSave] = useState<SaveState>("idle")
   const [newItem, setNewItem] = useState("")
@@ -37,9 +39,10 @@ export function PrivacyView() {
 
   const loadJobs = useCallback(async () => {
     try {
-      const data = await api<{ jobs: Job[]; spending: Spending }>("/api/symphony", "/jobs")
+      const data = await api<{ jobs: Job[]; spending: Spending; savings: Savings }>("/api/symphony", "/jobs")
       setJobs(data.jobs)
       setMoney(data.spending)
+      setSavings(data.savings)
     } catch (e) {
       setError(message(e))
     }
@@ -72,11 +75,13 @@ export function PrivacyView() {
       const saved = await api<Settings>("/api/symphony", "/settings", { method: "PUT", body: JSON.stringify(body) })
       if (latest.current === body) setSave("saved")
       setMoney((m) => (m ? { ...m, limit: saved.spending.limit, atLimit: saved.spending.atLimit } : m))
+      // Model choices change what "saved" is measured against.
+      void loadJobs()
     } catch (e) {
       setSave("error")
       setError(`Couldn't save your changes. ${message(e)}`)
     }
-  }, [])
+  }, [loadJobs])
 
   function update(change: (s: Settings) => Settings) {
     setSettings((current) => {
@@ -114,7 +119,10 @@ export function PrivacyView() {
   }
 
   function downloadReport() {
-    const rows = [["Job", "Started", "Where it ran", "Why", "Model", "Cost (USD)"]]
+    const compared = savings?.rates.label ?? "the open cloud"
+    const rows = [
+      ["Job", "Started", "Where it ran", "Why", "Model", "Tokens in", "Tokens out", "Cost (USD)", `Would have cost at ${compared} prices (USD)`, "Saved (USD)"],
+    ]
     for (const job of jobs ?? []) {
       rows.push([
         job.title,
@@ -122,7 +130,11 @@ export function PrivacyView() {
         job.place ? PLACES[job.place].name : "Unknown",
         job.reason ?? "",
         job.model ?? "",
+        String(job.tokens ? job.tokens.input + job.tokens.cacheRead + job.tokens.cacheWrite : ""),
+        String(job.tokens ? job.tokens.output + job.tokens.reasoning : ""),
         job.cost.toFixed(4),
+        job.wouldHaveCost === undefined ? "" : job.wouldHaveCost.toFixed(4),
+        job.saved === undefined ? "" : job.saved.toFixed(4),
       ])
     }
     const csv = rows.map((r) => r.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\r\n")
@@ -138,6 +150,12 @@ export function PrivacyView() {
 
   const models = (providers?.providers ?? []).flatMap((p) =>
     Object.values(p.models).map((m) => ({ value: `${p.id}/${m.id}`, label: m.name, provider: p.name })),
+  )
+
+  const priced = (providers?.providers ?? []).flatMap((p) =>
+    Object.values(p.models)
+      .filter((m) => m.cost)
+      .map((m) => ({ value: `${p.id}/${m.id}`, label: `${m.name} ($${m.cost!.input} in, $${m.cost!.output} out)`, provider: p.name })),
   )
 
   function modelSelect(place: Place, value: string, disabled: boolean) {
@@ -392,6 +410,86 @@ export function PrivacyView() {
             </div>
           </section>
 
+          <section className={styles.section} aria-labelledby="saved-h" id="saved">
+            <h2 id="saved-h">Saved in {month}</h2>
+            {!savings ? (
+              <p className={styles.muted}>Loading</p>
+            ) : savings.jobs === 0 ? (
+              <p className={styles.muted}>
+                Nothing yet this month. Jobs that run {PLACES.device.short} or {PLACES.private.short} count here.
+              </p>
+            ) : (
+              <>
+                <p>
+                  <span className={styles.big} style={savings.saved < 0 ? undefined : { color: "var(--device)" }}>
+                    {formatSaved(savings.saved)}
+                  </span>{" "}
+                  <span className={styles.muted}>
+                    {savings.saved < 0 ? "more than the open cloud" : "saved"} by keeping {savings.jobs}{" "}
+                    {savings.jobs === 1 ? "job" : "jobs"} off the open cloud
+                  </span>
+                </p>
+                <p>
+                  At {savings.rates.label} prices, {savings.jobs === 1 ? "that job" : "those jobs"} would have cost{" "}
+                  <strong>{formatCost(savings.wouldHaveCost)}</strong>. {savings.jobs === 1 ? "It" : "They"} cost{" "}
+                  <strong>{formatCost(savings.actual)}</strong>.
+                </p>
+                <ul className={styles.legend} style={{ marginTop: 4 }}>
+                  {PLACE_ORDER.filter((p) => p !== "open").map((place) => (
+                    <li key={place}>
+                      <span className={styles.swatch} style={{ background: PLACES[place].color }} aria-hidden="true" />
+                      <span>{PLACES[place].name}</span>
+                      <span className={styles.muted} style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {formatSaved(savings.byPlace[place])}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.meta}>Since you started: {formatSaved(savings.allTime)}</p>
+              </>
+            )}
+
+            <div className={styles.settingRow} style={{ alignItems: "flex-start", borderTop: "1px solid var(--line)", marginTop: 16 }}>
+              <label className={styles.field} style={{ width: "min(420px, 100%)" }}>
+                <span className={styles.fieldLabel}>Compare with</span>
+                <Select
+                  value={settings.savings.compareWith}
+                  onChange={(e) => update((s) => ({ ...s, savings: { compareWith: e.target.value } }))}
+                >
+                  <option value="open">Your open-cloud model</option>
+                  <option value="typical">
+                    A typical frontier model (${TYPICAL_RATES.input} in, ${TYPICAL_RATES.output} out)
+                  </option>
+                  {priced.some((m) => m.value === settings.savings.compareWith) ||
+                  ["open", "typical"].includes(settings.savings.compareWith) ? null : (
+                    <option value={settings.savings.compareWith}>{settings.savings.compareWith}</option>
+                  )}
+                  {Array.from(new Set(priced.map((m) => m.provider))).map((g) => (
+                    <optgroup key={g} label={g}>
+                      {priced
+                        .filter((m) => m.provider === g)
+                        .map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
+                </Select>
+              </label>
+              <div className={styles.settingText} style={{ flexBasis: 260 }}>
+                {savings ? (
+                  <p className={styles.meta} style={{ paddingTop: 22 }}>
+                    {settings.savings.compareWith === "open" && savings.rates.typical
+                      ? `Your open-cloud model has no price in opencode, so this uses typical frontier prices (${describeRates(savings.rates)}).`
+                      : `Priced at ${describeRates(savings.rates)}.`}{" "}
+                    An estimate from the tokens each job used. It doesn&apos;t count the Symphony box or its electricity.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
           <section className={styles.section} aria-labelledby="went-h">
             <div className={styles.actions}>
               <h2 id="went-h" style={{ fontSize: "var(--fs-section)", lineHeight: 1.25 }}>
@@ -418,6 +516,9 @@ export function PrivacyView() {
                       <th scope="col" className={styles.num}>
                         Cost
                       </th>
+                      <th scope="col" className={styles.num}>
+                        Saved
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -436,6 +537,9 @@ export function PrivacyView() {
                           {job.reason ? job.reason.charAt(0).toUpperCase() + job.reason.slice(1) : "Started from the coding agent"}
                         </td>
                         <td className={styles.num}>{formatCost(job.cost)}</td>
+                        <td className={styles.num} style={{ color: job.saved ? "var(--device)" : "var(--muted)" }}>
+                          {job.saved === undefined || job.place === "open" ? "—" : formatSaved(job.saved)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

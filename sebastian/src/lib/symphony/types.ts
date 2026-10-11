@@ -24,6 +24,8 @@ export type Settings = {
     open: { enabled: boolean; model: string; rule: OpenCloudRule }
   }
   spending: { limit: number; atLimit: "pause" | "device-only" }
+  /** What "saved" is measured against: "open" (the open-cloud model), "typical", or a "provider/model". */
+  savings: { compareWith: string }
 }
 
 export type RouteDecision = {
@@ -50,6 +52,36 @@ export type Job = {
   checkFirst?: boolean
   cost: number
   approvals: number
+  tokens?: Tokens
+  /** What the same tokens would have cost in the open cloud (see Rates). */
+  wouldHaveCost?: number
+  /** wouldHaveCost minus what the job actually cost. 0 for open-cloud jobs. */
+  saved?: number
+}
+
+export type Tokens = { input: number; output: number; reasoning: number; cacheRead: number; cacheWrite: number }
+
+/** Prices in USD per million tokens. */
+export type Rates = {
+  label: string
+  model?: string
+  input: number
+  output: number
+  cacheRead: number
+  cacheWrite: number
+  typical: boolean
+}
+
+export type Savings = {
+  month: string
+  /** This month: what jobs kept off the open cloud would have cost there, what they cost, and the difference. */
+  wouldHaveCost: number
+  actual: number
+  saved: number
+  byPlace: Record<Place, number>
+  jobs: number
+  allTime: number
+  rates: Rates
 }
 
 export type Spending = {

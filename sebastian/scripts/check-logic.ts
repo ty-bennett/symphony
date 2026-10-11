@@ -15,6 +15,7 @@ import type { MessageInfo, OcEvent, Part } from "../src/lib/opencode/types"
 import { permissionRules, spending, toJob } from "../src/lib/symphony/jobs"
 import { placeForProvider } from "../src/lib/symphony/places"
 import { redactContactInfo, restoreRedactions, routeTask } from "../src/lib/symphony/routing"
+import { formatSaved, ratesFromProviders, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "../src/lib/symphony/savings"
 import { customCategory, normalizeSettings } from "../src/lib/symphony/settings"
 
 let passed = 0
@@ -348,6 +349,49 @@ check("jobs: status, place and monthly spending", () => {
   assert.equal(spent.month, "2026-10")
   assert.equal(spent.total, 1.75)
   assert.deepEqual(spent.byPlace, { device: 0, private: 0.25, open: 1.5 })
+})
+
+check("savings: priced from tokens against the open cloud, never invented", () => {
+  const providers: PricedProvider[] = [
+    { id: "anthropic", models: { "big-model": { id: "big-model", name: "Big model", cost: { input: 5, output: 25, cache: { read: 0.5, write: 6.25 } } } } },
+    { id: "mock", models: { "mock-coder": { id: "mock-coder", name: "Mock coder" } } },
+  ]
+  const rates = ratesFromProviders("anthropic/big-model", providers)!
+  assert.equal(rates.label, "Big model")
+  assert.equal(ratesFromProviders("mock/mock-coder", providers), null, "unpriced models fall back")
+  assert.equal(ratesFromProviders("nope", providers), null)
+  const at = (place: string, cost: number, tokens: unknown, created = Date.UTC(2026, 9, 3)) =>
+    withSavings(
+      toJob(
+        { id: place + cost, cost, tokens, time: { created, updated: created }, metadata: { symphony: { place, reason: "", checkFirst: true } } },
+        "idle",
+        0,
+        base,
+      ),
+      rates,
+    )
+  // 1M input at $5 + 100k output at $25 + 200k cache reads at $0.50 = 5 + 2.5 + 0.1
+  const device = at("device", 0, { input: 1_000_000, output: 80_000, reasoning: 20_000, cache: { read: 200_000, write: 0 } })
+  assert.equal(device.wouldHaveCost?.toFixed(2), "7.60")
+  assert.equal(device.saved?.toFixed(2), "7.60")
+  const priv = at("private", 1.2, { input: 400_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
+  assert.equal(priv.saved?.toFixed(2), "0.80", "private saves the difference")
+  const open = at("open", 3, { input: 1_000_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
+  assert.equal(open.saved, 0, "open-cloud jobs save nothing")
+  const old = at("device", 0, { input: 200_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } }, Date.UTC(2026, 8, 3))
+  const noTokens = at("device", 0, undefined)
+  assert.equal(noTokens.saved, undefined)
+  const sum = summarizeSavings([device, priv, open, old, noTokens], rates, Date.UTC(2026, 9, 10))
+  assert.equal(sum.jobs, 2)
+  assert.equal(sum.saved.toFixed(2), "8.40")
+  assert.equal(sum.wouldHaveCost.toFixed(2), "9.60")
+  assert.equal(sum.actual.toFixed(2), "1.20")
+  assert.equal(sum.allTime.toFixed(2), "9.40")
+  assert.equal(sum.byPlace.device.toFixed(2), "7.60")
+  assert.equal(TYPICAL_RATES.typical, true)
+  assert.equal(formatSaved(0.004), "under 1¢")
+  assert.equal(formatSaved(-0.4), "−$0.40")
+  assert.equal(normalizeSettings({}).savings.compareWith, "open")
 })
 
 check("check-with-me-first maps to opencode permission rules", () => {

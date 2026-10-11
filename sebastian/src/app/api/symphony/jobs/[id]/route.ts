@@ -1,5 +1,6 @@
 import { withOc } from "@/lib/opencode/server"
-import { getJob } from "@/lib/symphony/jobs"
+import { compareRates, getJob } from "@/lib/symphony/jobs"
+import { withSavings } from "@/lib/symphony/savings"
 import { readSettings } from "@/lib/symphony/settings-store"
 
 export const dynamic = "force-dynamic"
@@ -9,6 +10,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 export const GET = withOc(async (_req, { params }: Ctx) => {
   const { id } = await params
-  const { job, meta } = await getJob(id, await readSettings())
-  return Response.json({ job, redactions: meta?.redactions ?? {} })
+  const settings = await readSettings()
+  const [{ job, meta }, rates] = await Promise.all([getJob(id, settings), compareRates(settings)])
+  return Response.json({ job: withSavings(job, rates), rates, redactions: meta?.redactions ?? {} })
 })
