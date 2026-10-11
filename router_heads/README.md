@@ -67,6 +67,19 @@ runs on Orin use externalized INT4 weights (`--externalize-weights int4_ffn` for
 `out/heads/version.json` records the Stage 0 manifest hash, the chat template hash, L_d and
 `device_max_prompt_tokens`.
 
+### Trained artifacts
+
+The quantized checkpoint from the training run is too large for git and is stored on
+[Google Drive](https://drive.google.com/drive/folders/1G5vgaZqHA7QTsjRa5_DU7-n_Zj8rA2QI?usp=drive_link)
+(the contents of `<paths.quant>/`):
+
+- `edgellm_ckpt/` (~1.7 GB): INT4 AWQ Qwen3.5-2B for `tensorrt-edgellm` export; this is what runs on the device.
+- `modelopt_state.pth` (~3.6 GB): ModelOpt-restorable state, only needed to re-extract features or retrain the head.
+- `manifest.json`: file hashes and versions. Its SHA-256 (`c3f1cc3f…a8522`) must equal `manifest_sha256` in
+  `out/heads/version.json`; the head in `out/` only works with this checkpoint.
+
+The head itself (`out/heads/`, `out/onnx/difficulty.onnx` + `heads.json`) and the run reports are in `out/`.
+
 ## Self-checks
 
 | check | where |
