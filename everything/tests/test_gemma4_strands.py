@@ -429,6 +429,22 @@ def test_actual_text_only_loader_and_peft_restore(provisioned_strands, strands_b
     }
 
 
+def test_adapter_validation_disables_peft_remote_embedding_probe(provisioned_strands, monkeypatch):
+    import peft
+
+    original = peft.get_peft_model_state_dict
+    calls = []
+
+    def offline_state(model, **kwargs):
+        calls.append(kwargs)
+        assert kwargs.get("save_embedding_layers") is False
+        return original(model, **kwargs)
+
+    monkeypatch.setattr(peft, "get_peft_model_state_dict", offline_state)
+    build_orchestrator(provisioned_strands)
+    assert len(calls) == 1
+
+
 def test_fp16_cache_and_fp32_readouts_preserve_single_prefill(provisioned_strands):
     settings = provisioned_strands.model_copy(update={"dtype": "float16"})
     backend = build_orchestrator(settings).backend
@@ -534,6 +550,22 @@ def test_smoothquant_shared_prefill_after_hot_swap(smoothquant_backend, policy):
     assert backend.instrumentation.prefill_calls == 1
     assert backend.instrumentation.backbone_instances == 1
     assert parameter_hash(backend.model) == model_before
+
+
+def test_model_harness_uses_real_smoothquant_cache_path(smoothquant_backend, policy):
+    from edge_router.testing.harness import EvaluationCase, ModelTestHarness
+
+    backend = smoothquant_backend
+    harness = ModelTestHarness(local_service(backend, policy))
+    outcome = harness.run(
+        EvaluationCase(messages=[Message(role="user", content="hello world")]),
+        GenerationOptions(max_new_tokens=3),
+    )
+    assert outcome.shared_prefill_verified
+    assert outcome.instrumentation["prefill_calls"] == 1
+    assert outcome.instrumentation["decoded_input_tokens"] == 2
+    assert outcome.safe_record()["time_to_first_token_ms"] > 0
+    assert backend.model_info()["quantization"] == "smoothquant_int8"
 
 
 def test_smoothquant_fl_freezes_integer_weights_and_binds_updates(smoothquant_backend, examples):

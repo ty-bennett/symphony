@@ -5,6 +5,148 @@ transformer supplies both routing features and the cache for local generation.
 PRIVATE_AWS and FRONTIER return structured handoffs; neither has a network client.
 On-device federation trains and replaces **only the small decision heads**.
 
+## Qwen3.5-4B AWQ Orin Nano smoke test
+
+A separate, opt-in [Jetson smoke test](docs/qwen35_awq_jetson.md) checks whether a
+real **INT4 AWQ / FP16-activation** Qwen3.5-4B text model loads and generates on
+your device. It does not change the Gemma/Strands router or require training.
+Start with read-only diagnostics on the Jetson:
+
+```bash
+python3 everything/scripts/test_qwen35_awq_jetson.py doctor
+```
+
+The pinned NVIDIA native runtime path requires JetPack 7.2/CUDA 13.2 and Python
+3.10–3.12; **JetPack 6.x is reported as incompatible with this wheel**, not as a
+model-fit failure. The linked guide includes isolated installation, explicit
+weight download/build/run commands, smaller-context retries, memory/throughput
+reports, and the experimental AWQ builder caveat. No CPU/FP16 fallback, remote
+inference, decision-head training, or vision engine is used.
+
+## Test the model interactively or with a dataset
+
+From the repository root, the tester works with the existing virtual environment;
+its wrapper locates source/config files without requiring an editable reinstall:
+
+```bash
+# Read-only diagnostics; no model allocation or downloads.
+.venv/bin/python everything/scripts/test_model.py --doctor
+
+# Try the interface immediately, entirely offline. NOT a real Gemma quality test.
+.venv/bin/python everything/scripts/test_model.py --demo
+
+# Actual INT8 Gemma/Strands, after provisioning your approved exported artifact.
+.venv/bin/python everything/scripts/test_model.py \
+  --checkpoint /absolute/path/to/gemma4-strands-sq-int8
+```
+
+The real-model tester defaults to the repository's Gemma 4/Strands profile.
+`--profile PATH` selects another **literal** env profile (never shell-executed).
+Profile values override environment settings; explicit CLI flags override those.
+Model/config paths inside the profile are resolved relative to `everything/`;
+`--checkpoint` and input/output paths are relative to your calling directory.
+Loading requires an approved matching checkpoint and suitable hardware. CPU-only
+PyTorch or a missing artifact is reported as a blocker, **not** a silent demo
+fallback. `--device cpu` explicitly tests on CPU if sufficient RAM is available;
+its performance numbers are not Jetson measurements.
+
+Type a prompt and see complexity/sensitivity probabilities, the resolved route,
+policy reason, streamed **LOCAL-only** response, prompt/generated-token counts,
+prefill/decision/end-to-end latency, time to first token, decode tokens/sec, peak
+CUDA allocation when available, and a per-request single-prefill audit. `/info`
+shows the loaded model/version/precision/quantization details; `/quit` exits.
+Each prompt is an independent conversation. Remote routes remain handoffs:
+the tester never forces generation or sends anything to AWS/Snowflake.
+
+```bash
+# One prompt (don't put secrets in shell history/process arguments).
+.venv/bin/python everything/scripts/test_model.py \
+  --checkpoint /absolute/path/to/int8-artifact \
+  --prompt 'Reply with the word hello.' --max-new-tokens 32
+
+# Decision-only batch, with aggregate quality/performance metrics.
+.venv/bin/python everything/scripts/test_model.py \
+  --checkpoint /absolute/path/to/int8-artifact \
+  --cases everything/examples/test_cases.jsonl --mode decision \
+  --output routing-test-report.json
+```
+
+JSONL cases contain `messages`, optional `security_context`, and optional expected
+`complexity`, `sensitivity`, and `route` labels. These expected labels only score
+predictions: they are **not** injected as trusted metadata. Reports include
+accuracy, per-class precision/recall, confusion matrices, sensitive false-negative
+and false-positive rates, route accuracy, and two distinct security counts:
+ground-truth sensitive examples reaching FRONTIER (including undetected learned
+errors), and deterministic **resolved SENSITIVE → FRONTIER** violations. Exit 1
+flags either security count; exit 2 means a configuration/load/request failure.
+The six supplied examples are synthetic, manually labelled smoke cases, not a
+representative enterprise benchmark. Precision/recall require labelled data; a
+single unlabeled prompt does not estimate accuracy, and model confidence is not
+measured precision. Demo results are explicitly marked invalid as real quality
+evidence. Inspect real generation quality yourself or use your approved evaluation
+dataset; the tester does not fabricate an automatic response-quality score.
+
+Use `--mode chat` for routed generation, `--classification SENSITIVE` to exercise
+trusted security overrides, `--system` for your production system message, and
+`--temperature`/`--top-p`/`--max-new-tokens` for sampling. Batch `--warmup N` makes
+N explicitly unscored requests before measurement; default is zero. Startup/model
+load time is shown separately, and TTFT is measured from request start to the first
+generated token (including prefill and routing). Decision-only and remote requests
+have no TTFT/generation metric.
+
+No training, feedback collection, federation, or prompt/response retention is
+enabled. Output text is displayed **only in your terminal**; be careful with screen
+sharing/terminal capture. Opt-in `--output` stores metadata/aggregate metrics, never
+prompts, responses, hidden vectors, token sequences, or raw secret matches; reports
+refuse overwriting existing files. Application metadata logs are quiet by default;
+`--metadata-logs` displays structured content-free logs. Downloads are denied by
+default, regardless of the profile. To deliberately test original (not INT8)
+weights before calibration, on a sufficiently large machine with approved Hub
+access, use `--unquantized --allow-download` and explicitly select its device.
+This is a separate reference test, **not** an INT8 performance result.
+
+### Provision the real weights on this laptop
+
+The download helper fetches exact matching revisions into the git-ignored local
+`everything/artifacts/hub` cache; it sends no prompts, responses or training data.
+The original Gemma package is about 16 GB and Strands adds about 435 MB. The
+original package includes multimodal tensors, but the backend only instantiates
+the text model. Downloads are resumable; no remote model code is executed.
+
+```bash
+# From the repository root. Downloads are explicitly requested by this command.
+.venv/bin/python everything/scripts/download_real_model.py
+
+# Build a REAL INT8 smoke artifact with six synthetic forward-only calibration cases.
+# This is not decision-head training and is not production-quality calibration.
+.venv/bin/python everything/scripts/quantize_smoothquant.py \
+  --profile .env.gemma4-strands.cpu.example \
+  --hub-cache everything/artifacts/hub \
+  --calibration-jsonl everything/examples/test_cases.jsonl \
+  --output everything/artifacts/gemma4-strands-sq-int8-smoke --max-examples 6
+
+# Interactive real INT8 test, offline, on CPU.
+.venv/bin/python everything/scripts/test_model.py \
+  --profile .env.gemma4-strands.cpu.example
+```
+
+This profile intentionally selects CPU. Check NVIDIA driver availability and use
+a compatible CUDA PyTorch build before GPU testing; the E4B model's large
+embedding tables mean INT8 decoder linears alone may not fit an 8 GB GPU.
+CPU calibration can take several minutes and requires the original model's RAM
+footprint plus conversion working memory. A synthetic smoke artifact proves the
+real path runs; validate with approved representative calibration/evaluation data
+before using routing scores in production. Exported artifacts are immutable, so
+use a fresh output path if repeating conversion.
+
+The real CPU smoke run on this laptop (2026-10-10) returned `hello` with route
+`LOCAL`: 370 prompt tokens processed in exactly one prefill, followed by one
+cached decode input (two generated tokens including EOS). The request took about
+99.5 seconds, excluding about 15.7 seconds of model startup. The exported smoke
+artifact is 11,108,386,280 bytes (about 10.35 GiB). These are functional CPU
+measurements with six synthetic calibration cases, not Jetson benchmarks or
+decision-quality validation.
+
 ## Architecture
 
 ```text

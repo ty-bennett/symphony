@@ -91,6 +91,8 @@ class Orchestrator:
             generation_start = perf_counter()
             count, pieces, finish = 0, [], "length"
             for token in self.local.execute(context, options):
+                if count == 0:
+                    decision.timing_ms["time_to_first_token"] = (perf_counter() - start) * 1000
                 count += 1
                 if token.text:
                     pieces.append(token.text)

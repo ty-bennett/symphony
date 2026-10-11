@@ -300,7 +300,10 @@ def build_gemma4_strands_backend(settings: Settings) -> Gemma4StrandsBackend:
     adapter_config = PeftConfig.from_pretrained(str(directory / "lora"))
     model.model = get_peft_model(model.model, adapter_config)
     adapter_state = load_file(str(directory / "lora/adapter_model.safetensors"))
-    expected_adapter = get_peft_model_state_dict(model.model)
+    # All permitted targets are decoder linears; vocabulary/embeddings are fixed.
+    # PEFT's default "auto" performs a remote base-config lookup even in an
+    # otherwise offline loader. Disable that probe rather than silently networking.
+    expected_adapter = get_peft_model_state_dict(model.model, save_embedding_layers=False)
     if set(adapter_state) != set(expected_adapter) or any(
         value.shape != expected_adapter[name].shape or not torch.isfinite(value).all()
         for name, value in adapter_state.items()
