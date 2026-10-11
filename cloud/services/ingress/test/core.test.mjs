@@ -84,7 +84,7 @@ const authDeps = (o = {}) => ({ getDevice: async () => device, verifyToken: asyn
 
 test("authorizer allows an active device with a valid user token", async () => {
   const r = await authorize({ clientCert: { serialNumber: "AB12" }, authorization: "Bearer t", tenantId: "demo", deps: authDeps() });
-  assert.deepEqual(r.context, { user_sub: "user-123", device_id: "jetson-01", tenant_id: "demo" });
+  assert.deepEqual(r.context, { user_sub: "user-123", device_id: "jetson-01", tenant_id: "demo", groups: "" });
 });
 
 test("authorizer rejects revoked, expired, foreign, or missing devices and bad tokens", async () => {
@@ -155,3 +155,12 @@ test("matches API Gateway's decimal serial to the registry's hex (observed live)
   assert.equal(normalizeSerial("458237401760167982303825506377863675654501280832"), "50441364c2eb2d6f1420cff52f572c140737ac40");
   assert.equal(normalizeSerial("00:0A:1B:2C"), "a1b2c");
 });
+
+test("passes the user's Cognito groups to the Lambdas (for owner-only routes)", async () => {
+  const device = { status: "active", tenant_id: "demo", device_id: "jetson-01", not_after: "2099-01-01T00:00:00Z" }
+  const base = { clientCert: { serialNumber: "1" }, authorization: "Bearer t", tenantId: "demo" }
+  const withGroups = await authorize({ ...base, deps: { getDevice: async () => device, verifyToken: async () => ({ sub: "u1", "cognito:groups": ["owner", "member"] }), now: () => 0 } })
+  assert.equal(withGroups.context.groups, "owner,member")
+  const none = await authorize({ ...base, deps: { getDevice: async () => device, verifyToken: async () => ({ sub: "u2" }), now: () => 0 } })
+  assert.equal(none.context.groups, "")
+})

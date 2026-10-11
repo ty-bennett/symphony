@@ -403,3 +403,70 @@ run "a_customer_identity_provider_is_configuration_only" {
     error_message = "Adding an identity provider makes it a sign-in option on the Jetson client."
   }
 }
+
+override_resource {
+  target          = aws_cloudwatch_log_group.orchestra
+  override_during = plan
+  values          = { arn = "arn:aws:logs:us-east-2:444444444444:log-group:/symphony/acme/orchestra" }
+}
+
+override_resource {
+  target          = aws_lambda_function.chat
+  override_during = plan
+  values          = { arn = "arn:aws:lambda:us-east-2:444444444444:function:symphony-acme-chat" }
+}
+
+override_resource {
+  target          = aws_lambda_function.admin
+  override_during = plan
+  values = {
+    arn        = "arn:aws:lambda:us-east-2:444444444444:function:symphony-acme-admin"
+    invoke_arn = "arn:aws:apigateway:us-east-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-2:444444444444:function:symphony-acme-admin/invocations"
+  }
+}
+
+run "orchestra_model_endpoint_streams_behind_the_same_authorizer" {
+  command = plan
+
+  assert {
+    condition     = aws_api_gateway_resource.chat_completions.path_part == "completions" && aws_api_gateway_method.chat.http_method == "POST" && aws_api_gateway_method.chat.authorization == "CUSTOM"
+    error_message = "POST /v1/chat/completions requires the device-and-user authorizer."
+  }
+
+  assert {
+    condition     = aws_api_gateway_integration.chat.response_transfer_mode == "STREAM" && aws_api_gateway_integration.chat.uri == "arn:aws:apigateway:us-east-2:lambda:path/2021-11-15/functions/arn:aws:lambda:us-east-2:444444444444:function:symphony-acme-chat/response-streaming-invocations"
+    error_message = "Chat completions stream from the chat Lambda."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.chat.policy).Statement[0].Action == ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"] && jsondecode(aws_iam_role_policy.chat.policy).Statement[0].Resource == local.allowed_model_arns
+    error_message = "Orchestra may call only the tenant's allowlisted models."
+  }
+
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.chat.policy).Statement) == 2
+    error_message = "The chat role may call models and write its logs; nothing else."
+  }
+}
+
+run "team_api_is_owner_only_and_scoped_to_the_pool" {
+  command = plan
+
+  assert {
+    condition     = aws_cognito_user_group.role["owner"].name == "owner" && aws_cognito_user_group.role["member"].name == "member" && aws_cognito_user_group.role["owner"].user_pool_id == "us-east-2_AcmePool1"
+    error_message = "Roles are the Cognito groups owner and member."
+  }
+
+  assert {
+    condition = toset(jsondecode(aws_iam_role_policy.admin.policy).Statement[0].Action) == toset([
+      "cognito-idp:ListUsers", "cognito-idp:ListUsersInGroup", "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminAddUserToGroup", "cognito-idp:AdminDisableUser", "cognito-idp:AdminUserGlobalSignOut",
+    ]) && jsondecode(aws_iam_role_policy.admin.policy).Statement[0].Resource == "arn:aws:cognito-idp:us-east-2:444444444444:userpool/us-east-2_AcmePool1"
+    error_message = "The admin Lambda manages users only in the tenant pool, and cannot delete them."
+  }
+
+  assert {
+    condition     = alltrue([for m in aws_api_gateway_method.admin : m.authorization == "CUSTOM"]) && toset(keys(aws_api_gateway_method.admin)) == toset(["list", "invite", "remove"])
+    error_message = "List, invite and remove sit behind the device-and-user authorizer."
+  }
+}

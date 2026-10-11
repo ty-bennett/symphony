@@ -404,6 +404,8 @@ resource "aws_api_gateway_deployment" "ingress" {
       integration = [aws_api_gateway_integration.post.uri, aws_api_gateway_integration.post.response_transfer_mode, aws_api_gateway_integration.post.timeout_milliseconds]
       authorizer  = [aws_api_gateway_authorizer.device_user.authorizer_uri, aws_api_gateway_authorizer.device_user.identity_source, aws_api_gateway_authorizer.device_user.authorizer_result_ttl_in_seconds]
       responses   = { for k, r in aws_api_gateway_gateway_response.denied : k => [r.status_code, r.response_templates] }
+      chat        = [aws_api_gateway_method.chat.id, aws_api_gateway_integration.chat.uri, aws_api_gateway_integration.chat.response_transfer_mode]
+      admin       = { for k, i in aws_api_gateway_integration.admin : k => [aws_api_gateway_method.admin[k].id, i.uri] }
     }))
   }
 

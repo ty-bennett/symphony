@@ -24,7 +24,9 @@ export async function authorize({ clientCert, authorization, tenantId, deps }) {
   } catch {
     throw new AuthError("USER_UNAUTHORIZED");
   }
-  return { principalId: claims.sub, context: { user_sub: claims.sub, device_id: device.device_id, tenant_id: tenantId } };
+  // API Gateway context values must be strings, so groups travel comma-separated.
+  const groups = Array.isArray(claims["cognito:groups"]) ? claims["cognito:groups"].join(",") : ""
+  return { principalId: claims.sub, context: { user_sub: claims.sub, device_id: device.device_id, tenant_id: tenantId, groups } };
 }
 
 /**
