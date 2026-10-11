@@ -129,7 +129,15 @@ async function callTool(config: N8nConfig, name: string, args: Record<string, un
 /** Workflows the agent can see: active and "Available in MCP". */
 export async function listWorkflows(config: N8nConfig): Promise<AppWorkflow[]> {
   const out = (await callTool(config, "search_workflows", { limit: 100 })) as {
-    data?: { id: string; name?: string | null; description?: string | null; active?: boolean | null; availableInMCP?: boolean; tags?: unknown[] }[]
+    data?: {
+      id: string
+      name?: string | null
+      description?: string | null
+      active?: boolean | null
+      availableInMCP?: boolean
+      tags?: unknown[]
+      nodes?: { type?: string }[]
+    }[]
     error?: string
   }
   if (out?.error) throw new OcError(`n8n: ${out.error}`, 502)
@@ -138,10 +146,12 @@ export async function listWorkflows(config: N8nConfig): Promise<AppWorkflow[]> {
     name: w.name || "Untitled workflow",
     description: w.description ?? null,
     active: Boolean(w.active),
-    availableInMCP: Boolean(w.availableInMCP),
+    // n8n 2.8 lists only workflows already enabled for MCP and has no such field.
+    availableInMCP: w.availableInMCP ?? true,
     tags: (w.tags ?? [])
       .map((t) => (typeof t === "string" ? t : (t as { name?: string })?.name))
       .filter((t): t is string => typeof t === "string"),
+    nodes: (w.nodes ?? []).map((n) => n.type).filter((t): t is string => typeof t === "string"),
   }))
 }
 

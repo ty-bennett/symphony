@@ -1,6 +1,6 @@
 {
   "name": "Square: find a customer",
-  "description": "Look up a Square customer by email address or phone number. Body: { \"query\": \"jane@example.com\" } or { \"query\": \"803-555-0142\" }. Returns up to 5 matches with name, email and phone.",
+  "description": "Look up a Square customer by email address or phone number. Body: { \"query\": \"jane@example.com\" } or { \"query\": \"803-555-0142\" }. Returns up to 5 matches with name, email and phone. Use method POST.",
   "nodes": [
     {
       "parameters": {

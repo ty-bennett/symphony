@@ -1,6 +1,6 @@
 {
   "name": "Square: today's sales",
-  "description": "Today's completed Square payments: how many, the total and tips. Send an empty body; no inputs needed.",
+  "description": "Today's completed Square payments: how many, the total and tips. Send an empty body; no inputs needed. Use method POST.",
   "nodes": [
     {
       "parameters": {

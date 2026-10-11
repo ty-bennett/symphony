@@ -25,6 +25,8 @@ export type AppDef = {
   categories: string[]
   /** How n8n talks to it. */
   via: "built-in" | "http"
+  /** n8n node types that mean a workflow uses this app. */
+  nodeTypes?: string[]
   /** Starter n8n workflows shipped in public/n8n/. */
   starters?: { file: string; title: string }[]
 }
@@ -51,6 +53,7 @@ export const APPS: AppDef[] = [
     keywords: ["google calendar", "calendar", "appointment", "booking"],
     categories: ["customers"],
     via: "built-in",
+    nodeTypes: ["n8n-nodes-base.googleCalendar", "n8n-nodes-base.googleCalendarTrigger"],
   },
   {
     id: "gmail",
@@ -60,6 +63,7 @@ export const APPS: AppDef[] = [
     keywords: ["gmail", "inbox", "email"],
     categories: ["customers"],
     via: "built-in",
+    nodeTypes: ["n8n-nodes-base.gmail", "n8n-nodes-base.gmailTrigger"],
   },
   {
     id: "quickbooks",
@@ -69,6 +73,7 @@ export const APPS: AppDef[] = [
     keywords: ["quickbooks", "invoice", "bookkeeping"],
     categories: ["money", "customers"],
     via: "built-in",
+    nodeTypes: ["n8n-nodes-base.quickbooks"],
   },
   {
     id: "shopify",
@@ -78,6 +83,7 @@ export const APPS: AppDef[] = [
     keywords: ["shopify", "online store", "online order"],
     categories: ["customers", "money"],
     via: "built-in",
+    nodeTypes: ["n8n-nodes-base.shopify", "n8n-nodes-base.shopifyTrigger"],
   },
   {
     id: "google-sheets",
@@ -87,6 +93,7 @@ export const APPS: AppDef[] = [
     keywords: ["google sheet", "spreadsheet", "sheet"],
     categories: [],
     via: "built-in",
+    nodeTypes: ["n8n-nodes-base.googleSheets", "n8n-nodes-base.googleSheetsTrigger"],
   },
   {
     id: "mailchimp",
@@ -96,6 +103,7 @@ export const APPS: AppDef[] = [
     keywords: ["mailchimp", "newsletter", "mailing list"],
     categories: ["customers"],
     via: "built-in",
+    nodeTypes: ["n8n-nodes-base.mailchimp", "n8n-nodes-base.mailchimpTrigger"],
   },
 ]
 
@@ -107,15 +115,19 @@ export type AppWorkflow = {
   active: boolean
   availableInMCP: boolean
   tags: string[]
+  /** Node types in the workflow, when n8n reports them (n8n 2.8 does; later versions don't). */
+  nodes?: string[]
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
 
-/** Which app a workflow belongs to: a tag naming the app wins, then its name and description. */
-export function appForWorkflow(w: Pick<AppWorkflow, "name" | "description" | "tags">): AppDef | null {
+/** Which app a workflow belongs to: a tag naming the app, then the app's n8n node, then its name and description. */
+export function appForWorkflow(w: Pick<AppWorkflow, "name" | "description" | "tags" | "nodes">): AppDef | null {
   const tags = w.tags.map(norm)
   const byTag = APPS.find((a) => tags.includes(norm(a.name)) || tags.includes(norm(a.id)))
   if (byTag) return byTag
+  const byNode = APPS.find((a) => a.nodeTypes?.some((t) => w.nodes?.includes(t)))
+  if (byNode) return byNode
   const text = ` ${norm(`${w.name} ${w.description ?? ""}`)} `
   return APPS.find((a) => a.keywords.some((k) => text.includes(` ${norm(k)} `))) ?? null
 }

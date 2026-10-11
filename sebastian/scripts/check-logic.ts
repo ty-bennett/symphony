@@ -401,6 +401,7 @@ check("connected apps: matching, routing and the n8n guard", () => {
   assert.equal(appForWorkflow(wf("Daily totals", ["Square"]))?.id, "square", "a tag naming the app wins")
   assert.equal(appForWorkflow(wf("Book a tasting", [], "Adds an event to Google Calendar"))?.id, "google-calendar")
   assert.equal(appForWorkflow(wf("Squared numbers")), null, "whole words only")
+  assert.equal(appForWorkflow({ name: "Unread mail", tags: [], description: "", nodes: ["n8n-nodes-base.webhook", "n8n-nodes-base.gmail"] })?.id, "gmail", "found by its n8n node")
   assert.deepEqual(appsMentioned("What did we sell on Square today?", ["square"]).map((a) => a.id), ["square"])
   assert.deepEqual(appsMentioned("What did we sell on Square today?", []), [], "only apps with actions count")
 
