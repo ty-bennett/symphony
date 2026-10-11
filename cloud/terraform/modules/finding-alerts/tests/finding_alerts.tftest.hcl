@@ -69,3 +69,40 @@ run "rejects_an_empty_contact_list" {
 
   expect_failures = [var.subscriber_emails]
 }
+
+run "formats_guardduty_alerts_as_readable_text" {
+  command = plan
+
+  assert {
+    condition     = one(aws_cloudwatch_event_target.findings["guardduty"].input_transformer).input_paths["title"] == "$.detail.title"
+    error_message = "GuardDuty alerts must pull the finding title."
+  }
+
+  assert {
+    condition     = startswith(one(aws_cloudwatch_event_target.findings["guardduty"].input_transformer).input_template, "\"[Symphony] GuardDuty finding, severity <severity>: <title>")
+    error_message = "GuardDuty alerts must be a readable text message, not raw JSON."
+  }
+}
+
+run "formats_security_hub_alerts_as_readable_text" {
+  command = plan
+
+  assert {
+    condition     = one(aws_cloudwatch_event_target.findings["securityhub"].input_transformer).input_paths["title"] == "$.detail.findings[0].Title"
+    error_message = "Security Hub alerts must pull the finding title."
+  }
+
+  assert {
+    condition     = startswith(one(aws_cloudwatch_event_target.findings["securityhub"].input_transformer).input_template, "\"[Symphony] Security Hub finding, <severity>: <title>")
+    error_message = "Security Hub alerts must be a readable text message, not raw JSON."
+  }
+}
+
+run "does_not_email_guardduty_findings_twice" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_cloudwatch_event_rule.findings["securityhub"].event_pattern).detail.findings.ProductName == [{ "anything-but" = "GuardDuty" }]
+    error_message = "Security Hub re-imports GuardDuty findings; its rule must skip them so each finding emails once."
+  }
+}

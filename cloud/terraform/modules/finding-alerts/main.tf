@@ -18,11 +18,62 @@ locals {
           Severity    = { Label = ["HIGH", "CRITICAL"] }
           Workflow    = { Status = ["NEW"] }
           RecordState = ["ACTIVE"]
+          # GuardDuty findings are also imported into Security Hub; the
+          # GuardDuty rule already alerts on them.
+          ProductName = [{ "anything-but" = "GuardDuty" }]
         }
       }
     }
   }
   rule_arns = [for name in values(local.rule_names) : "arn:aws:events:${var.region}:${var.account_id}:rule/${name}"]
+
+  # Turn the raw event into a short plain-text email. A quoted template makes
+  # EventBridge deliver a string (with values escaped) instead of JSON.
+  alert_formats = {
+    guardduty = {
+      input_paths = {
+        severity    = "$.detail.severity"
+        title       = "$.detail.title"
+        type        = "$.detail.type"
+        account     = "$.detail.accountId"
+        region      = "$.region"
+        time        = "$.detail.updatedAt"
+        description = "$.detail.description"
+        id          = "$.detail.id"
+      }
+      input_template = join("\\n", [
+        "\"[Symphony] GuardDuty finding, severity <severity>: <title>",
+        "Account: <account>   Region: <region>",
+        "Type: <type>",
+        "When: <time>",
+        "",
+        "<description>",
+        "",
+        "Open in console: https://<region>.console.aws.amazon.com/guardduty/home?region=<region>#/findings?macros=current&fId=<id>\"",
+      ])
+    }
+    securityhub = {
+      input_paths = {
+        severity    = "$.detail.findings[0].Severity.Label"
+        title       = "$.detail.findings[0].Title"
+        product     = "$.detail.findings[0].ProductName"
+        account     = "$.detail.findings[0].AwsAccountId"
+        region      = "$.detail.findings[0].Region"
+        time        = "$.detail.findings[0].UpdatedAt"
+        description = "$.detail.findings[0].Description"
+      }
+      input_template = join("\\n", [
+        "\"[Symphony] Security Hub finding, <severity>: <title>",
+        "Account: <account>   Region: <region>",
+        "Source: <product>",
+        "When: <time>",
+        "",
+        "<description>",
+        "",
+        "Open in console: https://<region>.console.aws.amazon.com/securityhub/home?region=<region>#/findings\"",
+      ])
+    }
+  }
 }
 
 # EventBridge cannot publish to an SNS topic encrypted with the AWS managed key,
@@ -91,6 +142,11 @@ resource "aws_cloudwatch_event_target" "findings" {
   rule      = aws_cloudwatch_event_rule.findings[each.key].name
   target_id = "sns"
   arn       = aws_sns_topic.alerts.arn
+
+  input_transformer {
+    input_paths    = local.alert_formats[each.key].input_paths
+    input_template = local.alert_formats[each.key].input_template
+  }
 }
 
 resource "aws_sns_topic_subscription" "email" {
