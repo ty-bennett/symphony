@@ -14,7 +14,7 @@ resource "aws_iam_role" "gateway" {
 }
 
 resource "aws_iam_role_policy" "gateway" {
-  name = "invoke-tenant-tools"
+  name = "invoke-documents-tool"
   role = aws_iam_role.gateway.id
   policy = jsonencode({
     Version = "2012-10-17"
