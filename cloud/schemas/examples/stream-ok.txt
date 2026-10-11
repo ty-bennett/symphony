@@ -1,0 +1,15 @@
+event: meta
+data: {"request_id":"7d2c9a4e-0b51-4f3e-9a7c-1f2e3d4c5b6a","route":"private-cloud","model":"moonshotai.kimi-k2.5"}
+
+event: tool
+data: {"name":"docs___search_documents"}
+
+event: token
+data: {"text":"Full-time staff accrue 1.5 days"}
+
+event: token
+data: {"text":" of paid time off per month (approved-docs/handbook/pto-policy.md)."}
+
+event: done
+data: {"stop_reason":"end_turn","usage":{"inputTokens":2310,"outputTokens":24,"totalTokens":2334}}
+

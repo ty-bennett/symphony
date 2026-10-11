@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "request_id": "local-only-example-01",
+  "conversation_id": "conv-2026-10-11-0003",
+  "data_tier": "local-only",
+  "messages": [{ "role": "user", "text": "Summarize this patient note." }]
+}
