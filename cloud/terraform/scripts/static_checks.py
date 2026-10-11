@@ -40,6 +40,7 @@ REQUIRED: list[tuple[str, str, int, str]] = [
     ("modules/ct-account/main.tf", PREVENT_DESTROY, 1, "Vended accounts must not be terminated by Terraform."),
     ("shared-services/main.tf", PREVENT_DESTROY, 1, "The artifact key must not be destroyed."),
     ("tenant-baseline/main.tf", PREVENT_DESTROY, 3, "Tenant key, device registry, and user pool must not be destroyed."),
+    ("tenant-workload/knowledge_base.tf", PREVENT_DESTROY, 1, "The tenant vector bucket must not be destroyed."),
     (
         "organization/security_services.tf",
         r"ignore_changes\s*=\s*\[email,\s*invite\]",

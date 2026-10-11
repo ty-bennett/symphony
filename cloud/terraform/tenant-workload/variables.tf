@@ -43,3 +43,36 @@ variable "model_id" {
     error_message = "model_id must be one of the benchmarked candidates: moonshotai.kimi-k2.5, zai.glm-5, qwen.qwen3-32b-v1:0."
   }
 }
+
+variable "step_up_model_id" {
+  description = "US cross-Region inference profile used for hard tasks, chosen per request with the InvokeHarness model override."
+  type        = string
+  default     = "us.anthropic.claude-opus-4-5-20251101-v1:0"
+
+  validation {
+    condition     = contains(["us.anthropic.claude-opus-4-5-20251101-v1:0", "us.anthropic.claude-opus-5-5", "us.openai.gpt-6.1-sol"], var.step_up_model_id)
+    error_message = "step_up_model_id must be a US cross-Region profile: us.anthropic.claude-opus-4-5-20251101-v1:0, us.anthropic.claude-opus-5-5, or us.openai.gpt-6.1-sol."
+  }
+}
+
+variable "browser_allowed_domains" {
+  description = "Hostnames the AgentCore Browser may open; every other URL is blocked by Chrome enterprise policy."
+  type        = list(string)
+  default     = ["docs.aws.amazon.com", "aws.amazon.com"]
+
+  validation {
+    condition     = length(var.browser_allowed_domains) >= 1 && alltrue([for d in var.browser_allowed_domains : can(regex("^[a-z0-9.-]+\\.[a-z]{2,}$", d))])
+    error_message = "browser_allowed_domains must be a non-empty list of bare hostnames such as docs.aws.amazon.com."
+  }
+}
+
+variable "trace_indexing_percent" {
+  description = "Share of spans indexed by CloudWatch Transaction Search (raise to 100 only for a demo window)."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.trace_indexing_percent >= 1 && var.trace_indexing_percent <= 100
+    error_message = "trace_indexing_percent must be between 1 and 100."
+  }
+}

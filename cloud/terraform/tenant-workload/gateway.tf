@@ -14,15 +14,15 @@ resource "aws_iam_role" "gateway" {
 }
 
 resource "aws_iam_role_policy" "gateway" {
-  name = "invoke-documents-tool"
+  name = "invoke-tenant-tools"
   role = aws_iam_role.gateway.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid      = "InvokeOnlyTheDocumentTool"
+      Sid      = "InvokeOnlyTenantTools"
       Effect   = "Allow"
       Action   = "lambda:InvokeFunction"
-      Resource = aws_lambda_function.documents_tool.arn
+      Resource = [aws_lambda_function.documents_tool.arn, aws_lambda_function.knowledge_search.arn]
     }]
   })
 }

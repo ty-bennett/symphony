@@ -33,7 +33,7 @@ override_data {
 
 override_data {
   target = data.terraform_remote_state.sandbox_fixture
-  values = { outputs = { documents_bucket_name = "symphony-fixture-666666666666-docs", approved_prefix = "approved-docs/" } }
+  values = { outputs = { documents_bucket_name = "symphony-fixture-666666666666-docs", approved_prefix = "approved-docs/", documents_kms_key_arn = "arn:aws:kms:us-east-1:666666666666:key/33333333-3333-3333-3333-333333333333" } }
 }
 
 run "plans_in_the_vended_tenant_account" {
