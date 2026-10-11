@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.env
+artifacts/
+*.safetensors
+*.jsonl
+!examples/*.jsonl
+!everything/examples/test_cases.jsonl
+!.env.example
+
+# Node dependencies (any package)
+node_modules/
+.DS_Store

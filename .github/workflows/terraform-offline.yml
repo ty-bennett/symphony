@@ -1,0 +1,30 @@
+name: terraform-offline
+
+on:
+  pull_request:
+    paths:
+      - "cloud/terraform/**"
+      - ".github/workflows/terraform-offline.yml"
+  push:
+    branches: [main]
+    paths:
+      - "cloud/terraform/**"
+      - ".github/workflows/terraform-offline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Offline Terraform checks (no AWS credentials)
+        run: cloud/terraform/scripts/check.sh

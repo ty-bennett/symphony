@@ -1,0 +1,46 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { Icon } from "@/components/ui/Icon"
+import styles from "./AppShell.module.css"
+
+type Theme = "light" | "dark"
+
+function currentTheme(): Theme {
+  const explicit = document.documentElement.dataset.theme
+  if (explicit === "light" || explicit === "dark") return explicit
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+}
+
+export function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme | null>(null)
+
+  useEffect(() => setTheme(currentTheme()), [])
+
+  function toggle() {
+    const next: Theme = currentTheme() === "dark" ? "light" : "dark"
+    document.documentElement.dataset.theme = next
+    // Keep the phone's status bar the same color as the top bar.
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+      m.content = next === "dark" ? "#1c1c1b" : "#f7f7e3"
+    })
+    try {
+      localStorage.setItem("symphony-theme", next)
+    } catch {
+      // Storage can be unavailable (private mode); the choice still applies for this visit.
+    }
+    setTheme(next)
+  }
+
+  return (
+    <button
+      type="button"
+      className={styles.navLink}
+      aria-label={theme === "dark" ? "Light theme" : "Dark theme"}
+      onClick={toggle}
+    >
+      <Icon name={theme === "dark" ? "sun" : "moon"} size={18} />
+      <span className={styles.toggleLabel}>{theme === "dark" ? "Light theme" : "Dark theme"}</span>
+    </button>
+  )
+}

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "request_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  "conversation_id": "conv-2026-10-11-0002",
+  "data_tier": "frontier-eligible",
+  "model_preference": "step-up",
+  "messages": [
+    { "role": "user", "text": "Total Q3 revenue by region from the sales CSV." },
+    { "role": "assistant", "text": "South 139,000; West 114,000; East 106,000; Central 103,500." },
+    { "role": "user", "text": "Which region grew fastest month over month?" }
+  ]
+}

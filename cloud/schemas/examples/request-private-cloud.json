@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "request_id": "7d2c9a4e-0b51-4f3e-9a7c-1f2e3d4c5b6a",
+  "conversation_id": "conv-2026-10-11-0001",
+  "data_tier": "private-cloud",
+  "deadline_ms": 120000,
+  "model_preference": "default",
+  "messages": [{ "role": "user", "text": "How much paid time off do full-time staff accrue?" }]
+}

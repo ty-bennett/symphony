@@ -1,0 +1,31 @@
+name: edge-router
+
+on:
+  pull_request:
+    paths:
+      - "everything/**"
+      - ".github/workflows/edge-router.yml"
+  push:
+    branches: [main]
+    paths:
+      - "everything/**"
+      - ".github/workflows/edge-router.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: everything
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Unit tests (CPU PyTorch; real-model integration tests stay opt-in)
+        env:
+          PYTHONPATH: .
+          UV_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+          UV_INDEX_STRATEGY: unsafe-best-match
+        run: uv run --python 3.12 --with-editable '.[dev,strands,signatures]' pytest -q -m "not integration" -p no:cacheprovider

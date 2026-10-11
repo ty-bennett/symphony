@@ -1,0 +1,6 @@
+public_confidence_required_for_frontier: 0.95
+sensitivity_confidence_threshold: 0.80
+uncertain_route: PRIVATE_AWS
+matrix:
+  PUBLIC: {LOW: LOCAL, MEDIUM: PRIVATE_AWS, HIGH: FRONTIER}
+  SENSITIVE: {LOW: LOCAL, MEDIUM: PRIVATE_AWS, HIGH: PRIVATE_AWS}

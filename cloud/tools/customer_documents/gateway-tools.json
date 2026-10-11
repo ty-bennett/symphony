@@ -1,0 +1,33 @@
+[
+  {
+    "name": "list_documents",
+    "description": "List document keys in the customer's approved folder. The folder is fixed by deployment policy; relative_prefix selects a subfolder, not a bucket or account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "relative_prefix": {
+          "type": "string",
+          "description": "Optional subfolder beneath the approved folder, such as policies/2026. Empty means the approved folder."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of keys to return, from 1 to 20. Defaults to 10."
+        }
+      }
+    }
+  },
+  {
+    "name": "read_document",
+    "description": "Read up to 32 KiB of a UTF-8 text document from the customer's approved folder. The key is relative to that folder; this tool cannot read other buckets or prefixes.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Relative document key returned by list_documents, such as policies/handbook.md."
+        }
+      },
+      "required": ["key"]
+    }
+  }
+]

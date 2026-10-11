@@ -1,0 +1,6 @@
+event: meta
+data: {"request_id":"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d","route":"private-cloud-step-up","model":"us.anthropic.claude-opus-4-5-20251101-v1:0"}
+
+event: error
+data: {"code":"MODEL_UNAVAILABLE","message":"The model is busy; retry shortly"}
+

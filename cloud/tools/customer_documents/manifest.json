@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "bundle_id": "customer_documents",
+  "version": "0.1.0",
+  "owner": "Symphony",
+  "deployment_scope": "per_tenant",
+  "default_enabled": false,
+  "authorization": "tenant_wide_read_only",
+  "request_data_tiers": ["private-cloud", "frontier-eligible"],
+  "execution_routes": ["private-cloud"],
+  "frontier_egress_allowed": false,
+  "target_type": "agentcore_gateway_lambda",
+  "required_customer_review": true,
+  "tools": [
+    {
+      "name": "list_documents",
+      "idempotent": true,
+      "write_capable": false,
+      "delete_capable": false,
+      "timeout_seconds": 10,
+      "max_results": 20
+    },
+    {
+      "name": "read_document",
+      "idempotent": true,
+      "write_capable": false,
+      "delete_capable": false,
+      "timeout_seconds": 10,
+      "max_output_bytes": 32768
+    }
+  ]
+}

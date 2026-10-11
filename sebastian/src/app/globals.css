@@ -1,0 +1,189 @@
+/*
+ * Symphony design tokens. Mirrors the "Design system" board on the Symphony
+ * canvas: the official palette, Ivory with Onyx text by default and Onyx with
+ * Ivory text in dark mode.
+ */
+:root {
+  /* Official palette: Onyx #141414 and Ivory #ffffed. */
+  --bg: #ffffed;
+  --panel: #f7f7e3;
+  --raised: #efefda;
+  --line: #e4e4cf;
+  --line-strong: #858577;
+  --text: #141414;
+  --muted: #5f5f56;
+  --hi: #141414;
+  --on-hi: #ffffed;
+  --focus: #40707a;
+
+  /* The three places work can run. --device etc. are the official colors, used
+     for icons, bars and swatches. The -text shades are the same hues adjusted
+     to stay readable as text (4.5:1) on this background. */
+  --device: #814618; /* Saddle Brown: Soloist (the box) */
+  --private: #1a3d26; /* Deep Forest: Orchestra (private cloud) */
+  --device-text: #814618;
+  --private-text: #1a3d26;
+  --device-tint: #f5e9d8;
+  --private-tint: #e4eee3;
+
+  /* Status colors (not places). */
+  --good: #2a7247;
+  --good-tint: #e6f2e3;
+  --warn: #b3261e;
+  --warn-tint: #fbe8e1;
+
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-meta: 13px;
+  --fs-body: 15px;
+  --fs-lead: 17px;
+  --fs-section: 22px;
+  --fs-title: 34px;
+
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --target: 44px;
+
+  color-scheme: light;
+}
+
+/* Touch screens: 16px text, so iPhones don't zoom in when a field is tapped. */
+@media (pointer: coarse) {
+  :root {
+    --fs-body: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141414;
+    --panel: #1c1c1b;
+    --raised: #262624;
+    --line: #2f2f2d;
+    --line-strong: #75756c;
+    --text: #ffffed;
+    --muted: #a3a396;
+    --hi: #ffffed;
+    --on-hi: #141414;
+    --focus: #7fb4ba;
+    /* Brown and Forest are too dark to see on Onyx, so dark mode uses lighter
+       shades of the same hues. Pacific Cyan is used as is for fills. */
+    --device: #c98a55;
+    --private: #5f9e75;
+    --device-text: #d9a070;
+    --private-text: #7dbb91;
+    --device-tint: #2b1f15;
+    --private-tint: #15241a;
+    --good: #7dbb91;
+    --good-tint: #17261b;
+    --warn: #f2867e;
+    --warn-tint: #2f1715;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #141414;
+  --panel: #1c1c1b;
+  --raised: #262624;
+  --line: #2f2f2d;
+  --line-strong: #75756c;
+  --text: #ffffed;
+  --muted: #a3a396;
+  --hi: #ffffed;
+  --on-hi: #141414;
+  --focus: #7fb4ba;
+  /* Brown and Forest are too dark to see on Onyx, so dark mode uses lighter
+     shades of the same hues. Pacific Cyan is used as is for fills. */
+  --device: #c98a55;
+  --private: #5f9e75;
+  --device-text: #d9a070;
+  --private-text: #7dbb91;
+  --device-tint: #2b1f15;
+  --private-tint: #15241a;
+  --good: #7dbb91;
+  --good-tint: #17261b;
+  --warn: #f2867e;
+  --warn-tint: #2f1715;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  /* Syne's default figures are old-style; use full-height ones for counts and prices. */
+  font-variant-numeric: lining-nums;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

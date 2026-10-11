@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: Symphony tenant ingress
+  version: "1.0.0"
+  description: |
+    The Jetson sends cloud-bound prompts here and streams the agent's answer back
+    to the person using it. One endpoint per tenant: `https://api.<tenant>.symphony-edge.link`.
+
+    Every call needs both:
+    1. **Device identity**: mutual TLS with the Jetson's client certificate, signed by the
+       tenant's pilot CA and registered (active) in the tenant device registry.
+    2. **User identity**: `Authorization: Bearer <access token>` from the tenant's Cognito
+       user pool, issued to the Jetson app client (token_use = access, 60-minute lifetime).
+
+    The tenant is derived from these credentials and is never accepted in the body.
+servers:
+  - url: https://api.demo.symphony-edge.link
+    description: demo tenant
+security:
+  - deviceCertificate: []
+    userToken: []
+paths:
+  /v1/requests:
+    post:
+      operationId: createRequest
+      summary: Run the tenant agent on a conversation and stream the answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./request.v1.schema.json"
+            examples:
+              privateCloud:
+                externalValue: ./examples/request-private-cloud.json
+              stepUp:
+                externalValue: ./examples/request-step-up.json
+      responses:
+        "200":
+          description: |
+            Server-sent events (see sse-events.v1.md): `meta`, then any number of `tool` and
+            `token`, then exactly one of `done` or `error`. Errors after the stream starts
+            arrive as an `error` event on this 200 response.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                ok:
+                  externalValue: ./examples/stream-ok.txt
+                failedMidStream:
+                  externalValue: ./examples/stream-error.txt
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          description: Throttled by the stage limit or the per-IP WAF rate limit; retry with backoff.
+        "503":
+          $ref: "#/components/responses/Error"
+        "504":
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    deviceCertificate:
+      type: mutualTLS
+      description: Jetson client certificate from the tenant pilot CA (see device enrollment in sse-events.v1.md).
+    userToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito access token for the person using the Jetson.
+  responses:
+    Error:
+      description: |
+        Refused before streaming. Authorizer refusals (401, 403 DEVICE_REVOKED) are JSON; refusals
+        from the agent service (400, 403 DATA_TIER_DENIED, 409, 503, 504) are a single SSE `error`
+        event with the same `code` and `message`. See errors.md.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+        text/event-stream:
+          schema:
+            type: string
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          enum: [DEVICE_REVOKED, USER_UNAUTHORIZED, DATA_TIER_DENIED, INVALID_REQUEST, DUPLICATE_REQUEST, MODEL_UNAVAILABLE, UPSTREAM_TIMEOUT, INTERNAL]
+        message:
+          type: string

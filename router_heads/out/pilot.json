@@ -1,0 +1,111 @@
+{
+  "quantized_linears": 150,
+  "unquantized_linears": 37,
+  "fold_check": {
+    "6": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9556316137313843,
+      "relerr_vs_base": 0.2846511900424957
+    },
+    "8": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9420246481895447,
+      "relerr_vs_base": 0.3276363015174866
+    },
+    "10": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9388751983642578,
+      "relerr_vs_base": 0.3329828083515167
+    },
+    "12": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9298668503761292,
+      "relerr_vs_base": 0.3669626712799072
+    },
+    "14": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9350055456161499,
+      "relerr_vs_base": 0.33022481203079224
+    },
+    "16": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9387699365615845,
+      "relerr_vs_base": 0.3328975737094879
+    },
+    "18": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9399811029434204,
+      "relerr_vs_base": 0.32860878109931946
+    },
+    "20": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9371362328529358,
+      "relerr_vs_base": 0.326609343290329
+    },
+    "22": {
+      "cos_vs_fakequant": 1.0,
+      "relerr_vs_fakequant": 0.0,
+      "cos_vs_base": 0.9250239729881287,
+      "relerr_vs_base": 0.37357425689697266
+    }
+  },
+  "fold_check_passed": true,
+  "early_stop_check": {
+    "6": [
+      1.0,
+      0.0
+    ],
+    "8": [
+      1.0,
+      0.0
+    ],
+    "10": [
+      1.0,
+      0.0
+    ],
+    "12": [
+      1.0,
+      0.0
+    ],
+    "14": [
+      1.0,
+      0.0
+    ],
+    "16": [
+      1.0,
+      0.0
+    ],
+    "18": [
+      1.0,
+      0.0
+    ],
+    "20": [
+      1.0,
+      0.0
+    ],
+    "22": [
+      1.0,
+      0.0
+    ]
+  },
+  "early_stop_check_passed": true,
+  "sdpa_backend": "SDPBackend.CUDNN_ATTENTION",
+  "token_budget": 524288,
+  "tok_s_per_gpu": 27785.023664437318,
+  "throughput": {
+    "131072": 24165.766838543288,
+    "262144": 21445.512867068246,
+    "524288": 27785.023664437318
+  },
+  "total_tokens": 9188153,
+  "projected_extract_min": 5.511454126610496,
+  "peak_gpu_gb": 85.5
+}

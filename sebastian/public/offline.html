@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Symphony</title>
+<style>
+  :root { --bg: #ffffed; --text: #141414; --muted: #5f5f56; --hi: #141414; --on-hi: #ffffed; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #141414; --text: #ffffed; --muted: #a3a396; --hi: #ffffed; --on-hi: #141414; } }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
+  body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; min-height: 100dvh; padding: 24px; box-sizing: border-box; }
+  main { max-width: 360px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  img { width: 56px; height: 56px; border-radius: 12px; }
+  h1 { font-size: 24px; line-height: 1.25; margin: 8px 0 0; }
+  p { margin: 0; color: var(--muted); }
+  button { margin-top: 8px; min-height: 44px; padding: 0 20px; border: 0; border-radius: 8px; background: var(--hi); color: var(--on-hi); font: inherit; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="">
+  <h1>Can't reach your Symphony</h1>
+  <p>Make sure this phone is on the same Wi-Fi as the box, and that the box is plugged in.</p>
+  <button type="button" onclick="location.reload()">Try again</button>
+</main>
+</body>
+</html>

@@ -1,0 +1,475 @@
+mock_provider "aws" {
+  override_during = plan
+
+  # Every vended account reports the same placeholder ID during plan.
+  mock_resource "aws_servicecatalog_provisioned_product" {
+    defaults = {
+      outputs = [{ key = "AccountId", value = "444444444444", description = "" }]
+    }
+  }
+}
+
+mock_provider "aws" {
+  alias           = "audit"
+  override_during = plan
+}
+
+override_data {
+  target = data.aws_caller_identity.current
+  values = { account_id = "111111111111" }
+}
+
+override_data {
+  target = data.aws_caller_identity.audit
+  values = { account_id = "333333333333" }
+}
+
+override_data {
+  target = data.aws_region.current
+  values = { region = "us-east-1" }
+}
+
+override_data {
+  target = data.terraform_remote_state.bootstrap
+  values = {
+    outputs = {
+      management_account_id  = "111111111111"
+      audit_account_id       = "333333333333"
+      log_archive_account_id = "222222222222"
+      organization_root_id   = "r-abcd"
+    }
+  }
+}
+
+override_data {
+  target = data.terraform_remote_state.landing_zone
+  values = { outputs = { landing_zone_arn = "arn:aws:controltower:us-east-1:111111111111:landingzone/EXAMPLE" } }
+}
+
+# --- ous ---
+run "creates_three_workload_ous_under_the_root" {
+  command = plan
+
+  assert {
+    condition     = toset([for ou in aws_organizations_organizational_unit.workload : ou.name]) == toset(["Infrastructure", "Customers", "Sandbox"])
+    error_message = "Infrastructure, Customers, and Sandbox OUs are required."
+  }
+
+  assert {
+    condition     = alltrue([for ou in aws_organizations_organizational_unit.workload : ou.parent_id == "r-abcd"])
+    error_message = "Workload OUs must sit directly under the root."
+  }
+}
+
+run "registers_every_workload_ou_with_control_tower" {
+  command = plan
+
+  assert {
+    condition     = length(aws_controltower_baseline.workload) == 3
+    error_message = "Each workload OU needs an AWSControlTowerBaseline."
+  }
+
+  assert {
+    condition     = alltrue([for b in aws_controltower_baseline.workload : one(b.parameters).value == var.identity_center_enabled_baseline_arn])
+    error_message = "Each baseline must reference the Identity Center enabled baseline."
+  }
+}
+
+run "refuses_to_run_before_the_landing_zone_exists" {
+  command = plan
+
+  override_data {
+    target = data.terraform_remote_state.landing_zone
+    values = { outputs = {} }
+  }
+
+  expect_failures = [terraform_data.account_guard]
+}
+
+run "refuses_the_wrong_audit_account" {
+  command = plan
+
+  override_data {
+    target = data.aws_caller_identity.audit
+    values = { account_id = "999999999999" }
+  }
+
+  expect_failures = [terraform_data.account_guard]
+}
+
+# --- scps ---
+run "denies_regions_outside_the_pilot_pair" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].Condition.StringNotEquals["aws:RequestedRegion"] == ["us-east-1", "us-east-2"]
+    error_message = "Only us-east-1 and us-east-2 may be allowed."
+  }
+
+  assert {
+    condition     = !contains(jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].NotAction, "bedrock:*")
+    error_message = "Bedrock must stay Region-restricted; it is not a global service."
+  }
+}
+
+run "protects_the_security_baseline" {
+  command = plan
+
+  assert {
+    condition     = toset([for s in jsondecode(aws_organizations_policy.scp["baseline-protection"].content).Statement : s.Sid]) == toset(["DenyLeavingOrganization", "DenyRootUser", "DenyLongLivedIamUserCredentials", "DenySecurityBaselineChanges", "DenyKmsKeyDeletion"])
+    error_message = "Baseline protection statements are missing or unexpected."
+  }
+}
+
+run "fits_the_scp_size_limit" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for p in aws_organizations_policy.scp : length(p.content) <= 5120])
+    error_message = "Each SCP must be at most 5,120 characters or AWS rejects it at apply time."
+  }
+}
+
+run "attaches_both_policies_to_every_workload_ou" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(aws_organizations_policy_attachment.scp)) == toset(["region-guardrail/infrastructure", "region-guardrail/customers", "region-guardrail/sandbox", "baseline-protection/infrastructure", "baseline-protection/customers", "baseline-protection/sandbox", "zero-data-retention/customers"])
+    error_message = "Region and baseline SCPs attach to every workload OU; zero data retention attaches to Customers."
+  }
+}
+
+# --- accounts ---
+run "vends_one_account_per_tenant" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(module.tenant_account)) == toset(["acme"])
+    error_message = "Each configured tenant needs exactly one vended account."
+  }
+
+  assert {
+    condition     = aws_servicecatalog_principal_portfolio_association.terraform.principal_arn == "arn:aws:iam::111111111111:role/SymphonyTerraform"
+    error_message = "The Terraform principal must be associated with the Account Factory portfolio."
+  }
+}
+
+run "publishes_tenant_account_ids_and_regions" {
+  command = plan
+
+  assert {
+    condition     = output.tenant_accounts["acme"].account_id == "444444444444"
+    error_message = "tenant_accounts must expose the vended account ID."
+  }
+
+  assert {
+    condition     = output.tenant_accounts["acme"].workload_region == "us-east-1"
+    error_message = "tenant_accounts must expose the tenant workload Region."
+  }
+}
+
+run "rejects_a_reused_account_email" {
+  command = plan
+
+  variables {
+    fixture_account = { email = "AWS+Shared@example.com" }
+  }
+
+  expect_failures = [var.tenants]
+}
+
+run "rejects_a_region_outside_the_pilot_pair" {
+  command = plan
+
+  variables {
+    tenants = {
+      acme = {
+        display_name       = "Acme Pilot"
+        account_email      = "aws+acme@example.com"
+        workload_region    = "us-west-2"
+        monthly_budget_usd = 250
+        billing_contacts   = ["billing@acme.example.com"]
+      }
+    }
+  }
+
+  expect_failures = [var.tenants]
+}
+
+run "rejects_an_invalid_tenant_id" {
+  command = plan
+
+  variables {
+    tenants = {
+      "Acme_Corp" = {
+        display_name       = "Acme Pilot"
+        account_email      = "aws+acme@example.com"
+        workload_region    = "us-east-1"
+        monthly_budget_usd = 250
+        billing_contacts   = ["billing@acme.example.com"]
+      }
+    }
+  }
+
+  expect_failures = [var.tenants]
+}
+
+# --- security services ---
+run "delegates_guardduty_to_audit_in_both_regions" {
+  command = plan
+
+  assert {
+    condition     = toset([for a in aws_guardduty_organization_admin_account.this : "${a.region}/${a.admin_account_id}"]) == toset(["us-east-1/333333333333", "us-east-2/333333333333"])
+    error_message = "GuardDuty must be delegated to the audit account in both governed Regions."
+  }
+
+  assert {
+    condition     = alltrue([for c in aws_guardduty_organization_configuration.this : c.auto_enable_organization_members == "ALL"])
+    error_message = "GuardDuty must auto-enable every member account."
+  }
+}
+
+run "delegates_security_hub_without_extra_standards" {
+  command = plan
+
+  assert {
+    condition     = toset([for a in aws_securityhub_organization_admin_account.this : "${a.region}/${a.admin_account_id}"]) == toset(["us-east-1/333333333333", "us-east-2/333333333333"])
+    error_message = "Security Hub must be delegated to the audit account in both governed Regions."
+  }
+
+  assert {
+    condition     = alltrue([for c in aws_securityhub_organization_configuration.this : c.auto_enable && c.auto_enable_standards == "NONE"])
+    error_message = "Security Hub must auto-enable accounts without enabling paid standards."
+  }
+}
+
+run "enables_trusted_access_for_both_services" {
+  command = plan
+
+  assert {
+    condition     = toset([for s in aws_organizations_aws_service_access.security : s.service_principal]) == toset(["guardduty.amazonaws.com", "securityhub.amazonaws.com"])
+    error_message = "GuardDuty and Security Hub need trusted access."
+  }
+}
+
+run "creates_finding_alerts_in_each_region" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(module.finding_alerts)) == toset(["us-east-1", "us-east-2"])
+    error_message = "Each governed Region needs a finding alert topic."
+  }
+}
+
+# --- identity center ---
+run "creates_the_four_permission_sets" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(aws_ssoadmin_permission_set.this)) == toset(["SymphonyPlatformAdmin", "SymphonySecurityAudit", "CustomerAdmin", "CustomerReadOnly"])
+    error_message = "Unexpected permission sets."
+  }
+
+  assert {
+    condition     = aws_ssoadmin_permission_set.this["SymphonyPlatformAdmin"].session_duration == "PT1H"
+    error_message = "Administrator sessions must be short."
+  }
+}
+
+run "gives_customers_only_their_own_account" {
+  command = plan
+
+  assert {
+    condition     = aws_ssoadmin_account_assignment.this["tenant-acme-admins/CustomerAdmin/tenant-acme"].target_id == "444444444444"
+    error_message = "Tenant admins must be assigned to their tenant account."
+  }
+
+  assert {
+    condition     = length([for key in keys(aws_ssoadmin_account_assignment.this) : key if strcontains(key, "/CustomerAdmin/")]) == 1
+    error_message = "CustomerAdmin must be assigned exactly once per tenant."
+  }
+}
+
+run "keeps_operators_out_of_management_and_security_accounts" {
+  command = plan
+
+  assert {
+    condition     = !contains(keys(aws_ssoadmin_account_assignment.this), "symphony-operators/SymphonyPlatformAdmin/audit") && !contains(keys(aws_ssoadmin_account_assignment.this), "symphony-operators/SymphonyPlatformAdmin/log-archive")
+    error_message = "Operators must not get administrator access to audit or log archive."
+  }
+
+  assert {
+    condition     = contains(keys(aws_ssoadmin_account_assignment.this), "symphony-security/SymphonySecurityAudit/audit")
+    error_message = "Security reviewers need read access to the audit account."
+  }
+}
+
+run "adds_users_to_their_groups" {
+  command = plan
+
+  variables {
+    identity_users = {
+      jdoe = { given_name = "Jordan", family_name = "Doe", email = "jordan@acme.example.com", groups = ["tenant-acme-readonly"] }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(aws_identitystore_group_membership.this)) == toset(["jdoe/tenant-acme-readonly"])
+    error_message = "Each user must join exactly its configured groups."
+  }
+}
+
+run "rejects_a_group_for_an_unknown_tenant" {
+  command = plan
+
+  variables {
+    identity_users = {
+      jdoe = { given_name = "Jordan", family_name = "Doe", email = "jordan@acme.example.com", groups = ["tenant-globex-admins"] }
+    }
+  }
+
+  expect_failures = [var.identity_users]
+}
+
+# --- budgets ---
+run "alerts_at_80_forecast_80_actual_and_100_actual" {
+  command = plan
+
+  assert {
+    condition = toset([for n in aws_budgets_budget.tenant["acme"].notification : "${n.notification_type}/${n.threshold}"]) == toset([
+      "FORECASTED/80", "ACTUAL/80", "ACTUAL/100",
+    ])
+    error_message = "Tenant budgets need the 80% forecast, 80% actual, and 100% actual alerts."
+  }
+
+  assert {
+    condition     = aws_budgets_budget.tenant["acme"].limit_amount == "250.00"
+    error_message = "The budget limit must equal the tenant's monthly amount."
+  }
+}
+
+run "filters_the_budget_to_the_tenant_account" {
+  command = plan
+
+  assert {
+    condition     = one(aws_budgets_budget.tenant["acme"].cost_filter).name == "LinkedAccount" && toset(one(aws_budgets_budget.tenant["acme"].cost_filter).values) == toset(["444444444444"])
+    error_message = "The budget must cover only the tenant's linked account."
+  }
+}
+
+run "notifies_billing_and_operations" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for n in aws_budgets_budget.tenant["acme"].notification : toset(n.subscriber_email_addresses) == toset(["billing@acme.example.com", "ops@example.com"])])
+    error_message = "Every alert must reach the customer billing contact and Symphony operations."
+  }
+}
+
+run "omits_the_delivery_test_budget_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(aws_budgets_budget.delivery_test) == 0
+    error_message = "The delivery test budget must be opt-in."
+  }
+}
+
+run "creates_the_delivery_test_budget_when_requested" {
+  command = plan
+
+  variables {
+    budget_delivery_test_amount_usd = 1
+  }
+
+  assert {
+    condition     = aws_budgets_budget.delivery_test[0].limit_amount == "1.00"
+    error_message = "The delivery test budget must use the requested amount."
+  }
+}
+
+run "rejects_a_tenant_without_billing_contacts" {
+  command = plan
+
+  variables {
+    tenants = {
+      acme = {
+        display_name       = "Acme Pilot"
+        account_email      = "aws+acme@example.com"
+        workload_region    = "us-east-1"
+        monthly_budget_usd = 250
+        billing_contacts   = []
+      }
+    }
+  }
+
+  expect_failures = [var.tenants]
+}
+
+# --- review fixes ---
+run "refuses_the_management_root_user" {
+  command = plan
+
+  override_data {
+    target = data.aws_caller_identity.current
+    values = { account_id = "111111111111", arn = "arn:aws:iam::111111111111:root" }
+  }
+
+  expect_failures = [terraform_data.account_guard]
+}
+
+run "enrolls_every_existing_account_in_security_hub" {
+  command = plan
+
+  assert {
+    condition = toset(keys(aws_securityhub_member.existing)) == toset(flatten([
+      for region in ["us-east-1", "us-east-2"] : [
+        for account in ["management", "log-archive", "shared-services", "fixture", "tenant-acme"] : "${region}/${account}"
+      ]
+    ]))
+    error_message = "Every non-audit account must be a Security Hub member in both governed Regions."
+  }
+
+  assert {
+    condition     = aws_securityhub_member.existing["us-east-2/management"].account_id == "111111111111"
+    error_message = "The management account must be enrolled with its own account ID."
+  }
+}
+
+run "enrolls_the_management_account_in_guardduty" {
+  command = plan
+
+  assert {
+    condition     = toset([for m in aws_guardduty_member.management : "${m.region}/${m.account_id}"]) == toset(["us-east-1/111111111111", "us-east-2/111111111111"])
+    error_message = "Organization auto-enable skips the management account; it must be added as a GuardDuty member."
+  }
+}
+
+# --- phase 3b scps ---
+run "allows_bedrock_inference_in_us_west_2_only" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[1].Condition.StringNotEquals["aws:RequestedRegion"] == ["us-east-1", "us-east-2", "us-west-2"]
+    error_message = "Bedrock inference may also run in us-west-2 for US cross-Region profiles, and nowhere else."
+  }
+
+  assert {
+    condition     = contains(jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].NotAction, "bedrock:InvokeModel") && !contains(jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].NotAction, "bedrock:*")
+    error_message = "Only Bedrock inference actions are exempt from the two-Region deny."
+  }
+}
+
+run "locks_customer_accounts_to_zero_data_retention" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_organizations_policy.scp["zero-data-retention"].content).Statement[0].Condition.StringNotEquals["bedrock:DataRetentionMode"] == "none"
+    error_message = "Any Bedrock retention mode other than none must be denied."
+  }
+
+  assert {
+    condition     = !strcontains(aws_organizations_policy.scp["zero-data-retention"].content, "ArnNotLike")
+    error_message = "No principal may be exempt from zero data retention."
+  }
+}

@@ -1,0 +1,46 @@
+import type { Metadata, Viewport } from "next"
+import type { ReactNode } from "react"
+import { AppShell } from "@/components/shell/AppShell"
+import "./globals.css"
+
+export const metadata: Metadata = {
+  title: { default: "Symphony", template: "%s · Symphony" },
+  description: "Private AI for small businesses",
+  applicationName: "Symphony",
+  // iPhone/iPad: open full screen from the Home Screen, named "Symphony".
+  appleWebApp: { capable: true, title: "Symphony", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Draw edge to edge; the shell pads for the notch and home bar.
+  viewportFit: "cover",
+  // Matches the top bar so the status bar blends in. ThemeToggle updates it.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f7e3" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1c1b" },
+  ],
+}
+
+// Applies a saved light/dark choice before first paint so the page never flashes.
+const themeScript = `try{var t=localStorage.getItem("symphony-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="dark"?"#1c1c1b":"#f7f7e3"})}}catch(e){}`
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&display=swap"
+        />
+      </head>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
+    </html>
+  )
+}

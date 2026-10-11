@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.demo.symphony-edge.link/schemas/request.v1.schema.json",
+  "title": "Symphony cloud request v1",
+  "description": "Body of POST /v1/requests. The tenant is never sent: it comes from the device certificate and user token.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "request_id", "conversation_id", "data_tier", "messages"],
+  "properties": {
+    "version": { "const": 1 },
+    "request_id": {
+      "description": "Unique per user for 24 hours. A retry with the same ID is rejected (409) so tools never run twice.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{7,63}$"
+    },
+    "conversation_id": {
+      "description": "Stable for one conversation; the same value continues the agent session.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{7,63}$"
+    },
+    "data_tier": {
+      "description": "Ceiling chosen by the Jetson router. local-only is always refused by the cloud.",
+      "enum": ["local-only", "private-cloud", "frontier-eligible"]
+    },
+    "deadline_ms": {
+      "description": "How long the agent may work before the request ends.",
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 300000,
+      "default": 120000
+    },
+    "model_preference": {
+      "description": "step-up selects the frontier model and requires data_tier frontier-eligible.",
+      "enum": ["default", "step-up"],
+      "default": "default"
+    },
+    "messages": {
+      "description": "Conversation turns, oldest first; the last one is the user's new message.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "text"],
+        "properties": {
+          "role": { "enum": ["user", "assistant"] },
+          "text": { "type": "string", "minLength": 1, "maxLength": 16000 }
+        }
+      }
+    }
+  }
+}
