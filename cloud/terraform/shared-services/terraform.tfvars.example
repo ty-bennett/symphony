@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (gitignored) and replace every value.
+shared_services_account_id = "555555555555"
+state_bucket               = "symphony-tfstate-111111111111"

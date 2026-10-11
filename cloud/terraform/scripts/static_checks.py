@@ -38,6 +38,7 @@ REQUIRED: list[tuple[str, str, int, str]] = [
     ("landing-zone/landing_zone.tf", PREVENT_DESTROY, 1, "The landing zone must not be destroyed."),
     ("organization/ous.tf", PREVENT_DESTROY, 1, "Workload OUs must not be destroyed."),
     ("modules/ct-account/main.tf", PREVENT_DESTROY, 1, "Vended accounts must not be terminated by Terraform."),
+    ("shared-services/main.tf", PREVENT_DESTROY, 1, "The artifact key must not be destroyed."),
 ]
 
 # Every root must refuse to plan against the wrong account or Region.
@@ -45,6 +46,7 @@ ROOTS: list[str] = [
     "bootstrap",
     "landing-zone",
     "organization",
+    "shared-services",
 ]
 
 
