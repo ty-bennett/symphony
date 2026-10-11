@@ -26,8 +26,6 @@ export type Settings = {
   spending: { limit: number; atLimit: "pause" | "device-only" }
   /** What "saved" is measured against: "open" (the open-cloud model), "typical", or a "provider/model". */
   savings: { compareWith: string }
-  /** Connected apps (through n8n): whether jobs may use them, and whether running an app action always asks first. */
-  apps: { enabled: boolean; askFirst: boolean }
 }
 
 export type RouteDecision = {
@@ -38,8 +36,6 @@ export type RouteDecision = {
   privateHits: string[]
   /** True when the job would send private information to the open cloud. */
   needsConsent: boolean
-  /** Connected apps the request mentions (their data counts as private). */
-  apps?: string[]
 }
 
 export type JobStatus = "needs-ok" | "working" | "done" | "undone"

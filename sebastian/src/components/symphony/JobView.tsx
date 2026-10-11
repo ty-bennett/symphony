@@ -12,8 +12,6 @@ import { initialAgentState, mergeSnapshot, normalizePermission, reduceEvent, sor
 import type { FileDiff, MessageWithParts, Part, RawPermission } from "@/lib/opencode/types"
 import { useDebounced, useEvents } from "@/lib/opencode/useEvents"
 import { formatCost, PLACES } from "@/lib/symphony/places"
-import { appOfTool, describeAppTool, N8N_SERVER } from "@/lib/symphony/apps"
-import type { AppsOverview } from "@/lib/symphony/apps-server"
 import { restoreRedactions } from "@/lib/symphony/routing"
 import { formatSaved } from "@/lib/symphony/savings"
 import type { Job, Rates } from "@/lib/symphony/types"
@@ -28,31 +26,7 @@ function textOf(m: MessageWithParts | undefined) {
     .join("\n\n")
 }
 
-type Names = Record<string, string>
-
-function workflowOf(part: Part | undefined): string | undefined {
-  const id = part?.state?.input?.workflowId
-  return typeof id === "string" ? id : undefined
-}
-
-const isAppTool = (tool?: string) => Boolean(tool && (tool.startsWith(`${N8N_SERVER}_`) || appOfTool(tool)))
-
-/** What an app action was given, e.g. to: jane@example.com */
-function appInputs(part: Part | undefined): string[] {
-  const own = part?.tool ? appOfTool(part.tool) : null
-  const inputs = part?.state?.input?.inputs as { webhookData?: { body?: unknown } } | undefined
-  const body = own ? part?.state?.input : (inputs?.webhookData?.body ?? inputs)
-  if (!body || typeof body !== "object") return []
-  return Object.entries(body as Record<string, unknown>)
-    .filter(([key]) => key !== "type")
-    .slice(0, 6)
-    .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`.slice(0, 400))
-}
-
-function stepLabel(part: Part, names: Names = {}): string {
-  const id = workflowOf(part)
-  const app = part.tool ? describeAppTool(part.tool, id ? names[id] : undefined) : null
-  if (app) return app
+function stepLabel(part: Part): string {
   const s = part.state
   if (s?.title) return s.title
   const input = s?.input ?? {}
@@ -74,8 +48,6 @@ export function JobView({ id }: { id: string }) {
   const [job, setJob] = useState<Job | null>(null)
   const [redactions, setRedactions] = useState<Record<string, string>>({})
   const [rates, setRates] = useState<Rates | null>(null)
-  const [names, setNames] = useState<Names>({})
-  const namesLoaded = useRef(false)
   const [state, setState] = useState<AgentState>(initialAgentState)
   const [error, setError] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
@@ -176,29 +148,7 @@ export function JobView({ id }: { id: string }) {
   const result = restoreRedactions(textOf(lastAssistant), redactions)
   const steps = assistant.flatMap((m) => m.parts).filter((p) => p.type === "tool")
   const failure = lastAssistant?.info.error
-  const usesApps = steps.some((p) => isAppTool(p.tool)) || Object.values(state.permissions).some((p) => isAppTool(p.kind))
-  useEffect(() => {
-    if (!usesApps || namesLoaded.current) return
-    namesLoaded.current = true
-    api<AppsOverview>("/api/symphony", "/apps")
-      .then((o) => {
-        const all = [...o.apps.flatMap((a) => [...a.ready, ...a.off]), ...o.other]
-        setNames(Object.fromEntries(all.map((w) => [w.id, w.name])))
-      })
-      .catch(() => {})
-  }, [usesApps])
-  const permissions = Object.values(state.permissions)
-    .filter((p) => p.sessionID === id)
-    .map((p) => {
-      if (!isAppTool(p.kind)) return p
-      const part = steps.find((s) => s.callID && s.callID === p.callID)
-      const wf = workflowOf(part)
-      return {
-        ...p,
-        title: describeAppTool(p.kind!, wf ? names[wf] : undefined) ?? p.title,
-        details: appInputs(part).map((d) => restoreRedactions(d, redactions)),
-      }
-    })
+  const permissions = Object.values(state.permissions).filter((p) => p.sessionID === id)
   const busy = job?.status === "working" || state.status[id] === "busy"
   const files = state.diff ?? []
 
@@ -266,8 +216,8 @@ export function JobView({ id }: { id: string }) {
                 {steps.map((p) => (
                   <li key={p.id}>
                     <StepIcon status={p.state?.status} />
-                    <span className={styles.stepText} title={stepLabel(p, names)}>
-                      {restoreRedactions(stepLabel(p, names), redactions)}
+                    <span className={styles.stepText} title={stepLabel(p)}>
+                      {restoreRedactions(stepLabel(p), redactions)}
                     </span>
                   </li>
                 ))}

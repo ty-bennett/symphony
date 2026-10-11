@@ -35,7 +35,6 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   spending: { limit: 40, atLimit: "pause" },
   savings: { compareWith: "open" },
-  apps: { enabled: true, askFirst: true },
 }
 
 /** Fill in anything missing from a stored or submitted settings object. */
@@ -74,10 +73,6 @@ export function normalizeSettings(input: unknown): Settings {
     spending: {
       limit: Number.isFinite(limit) && limit >= 0 ? Math.round(limit * 100) / 100 : d.spending.limit,
       atLimit: s.spending?.atLimit === "device-only" ? "device-only" : "pause",
-    },
-    apps: {
-      enabled: bool(s.apps?.enabled, true),
-      askFirst: bool(s.apps?.askFirst, true),
     },
     savings: {
       compareWith:

@@ -2,7 +2,6 @@
 // box. Until that is wired in, this keyword version makes the same decision
 // from the same inputs, so the rest of the app can be built and tested.
 // Replace routeTask() with a call to the JEV model; keep its return shape.
-import { appsMentioned } from "./apps"
 import type { Place, RouteDecision, Settings } from "./types"
 
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/
@@ -15,32 +14,21 @@ function includesAny(text: string, words: string[]) {
   return words.find((w) => text.includes(w))
 }
 
-/**
- * Keep-private categories a request touches. A request that mentions a
- * connected app (say Square) touches whatever that app brings into the job
- * (customers, money), because the agent will read it from there.
- */
-export function privateHits(text: string, settings: Settings, connectedApps: string[] = []): string[] {
+/** Keep-private categories a request touches. */
+export function privateHits(text: string, settings: Settings): string[] {
   const lower = text.toLowerCase()
-  const fromApps = new Set(appsMentioned(text, connectedApps).flatMap((a) => a.categories))
   const hits: string[] = []
   for (const c of settings.keepPrivate) {
     if (!c.on) continue
     const contact = c.id === "customers" && (EMAIL.test(text) || PHONE.test(text))
-    if (contact || fromApps.has(c.id) || includesAny(lower, c.keywords)) hits.push(c.label)
+    if (contact || includesAny(lower, c.keywords)) hits.push(c.label)
   }
   return hits
 }
 
-/** connectedApps: ids of apps that have actions set up (see apps.ts). */
-export function routeTask(text: string, settings: Settings, connectedApps: string[] = []): RouteDecision {
+export function routeTask(text: string, settings: Settings): RouteDecision {
   const lower = text.toLowerCase()
-  const usable = settings.apps.enabled ? connectedApps : []
-  const hits = privateHits(text, settings, usable)
-  const apps = appsMentioned(text, usable).map((a) => a.name)
-  // When the private part comes only from an app, say so ("reads ... from Square").
-  const fromAppOnly = apps.length > 0 && privateHits(text, settings).length === 0
-  const source = fromAppOnly ? ` from ${apps.join(" and ")}` : ""
+  const hits = privateHits(text, settings)
   const web = includesAny(lower, WEB)
   const big = text.length > 600 || Boolean(includesAny(lower, BIG))
   const first = hits[0]?.toLowerCase()
@@ -52,10 +40,10 @@ export function routeTask(text: string, settings: Settings, connectedApps: strin
     reason = "it needs to search the web"
   } else if (first && big) {
     place = "private"
-    reason = fromAppOnly ? `it's a big job that reads ${first}${source}` : `it's a big job that includes ${first}`
+    reason = `it's a big job that includes ${first}`
   } else if (first) {
     place = "device"
-    reason = fromAppOnly ? `it reads ${first}${source}` : `it includes ${first}`
+    reason = `it includes ${first}`
   } else if (big) {
     place = "open"
     reason = "it's a big job with nothing private in it"
@@ -76,7 +64,7 @@ export function routeTask(text: string, settings: Settings, connectedApps: strin
   }
 
   const needsConsent = place === "open" && (open.rule === "ask-always" || hits.length > 0)
-  return { place, reason, privateHits: hits, needsConsent, ...(apps.length ? { apps } : {}) }
+  return { place, reason, privateHits: hits, needsConsent }
 }
 
 /**

@@ -81,19 +81,9 @@ export type RawPermission = {
   pattern?: string | string[]
   resources?: string[]
   metadata?: Record<string, unknown>
-  tool?: { messageID?: string; callID?: string }
 }
 
-export type Permission = {
-  id: string
-  sessionID: string
-  title: string
-  details: string[]
-  /** opencode's permission name, e.g. "bash" or "n8n_execute_workflow". */
-  kind?: string
-  /** The tool call waiting on this approval, when opencode says which. */
-  callID?: string
-}
+export type Permission = { id: string; sessionID: string; title: string; details: string[] }
 
 export type ProviderSummary = {
   id: string

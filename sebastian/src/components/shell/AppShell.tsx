@@ -12,7 +12,6 @@ const nav: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Today", icon: "today" },
   { href: "/work", label: "Work", icon: "work" },
   { href: "/coding-agent", label: "Coding agent", icon: "code" },
-  { href: "/apps", label: "Connected apps", icon: "plug" },
   { href: "/privacy", label: "Privacy and spending", icon: "shield" },
 ]
 

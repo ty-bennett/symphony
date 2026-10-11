@@ -47,19 +47,18 @@ export function ConsentDialog({
   const redacted = redactContactInfo(text)
   const hasContact = redacted.text !== text
   const web = decision?.reason.includes("web")
-  const apps = decision?.apps?.length ? decision.apps.join(" and ") : null
   const options: { id: Option; title: string; detail: string }[] = []
   if (hasContact) {
     options.push({
       id: "redact",
       title: "Remove emails and phone numbers, then use the open cloud",
-      detail: `Names and other details are sent as written${apps ? `, and what ${apps} sends back isn't removed` : ""}. Removed details are put back when you read the result.`,
+      detail: "Names and other details are sent as written. Removed details are put back when you read the result.",
     })
   }
   options.push({
     id: "send",
     title: "Use the open cloud as written",
-    detail: `Everything in the request is sent${decision?.privateHits.length ? `, including ${decision.privateHits.join(" and ").toLowerCase()}` : ""}${apps ? `, and so is what ${apps} sends back` : ""}.`,
+    detail: `Everything in the request is sent${decision?.privateHits.length ? `, including ${decision.privateHits.join(" and ").toLowerCase()}` : ""}.`,
   })
   if (settings.places.private.enabled) {
     options.push({

@@ -1,8 +1,5 @@
 import { oc, parseModel, readPromptInput, sendPrompt, unwrap, withOc } from "@/lib/opencode/server"
 
-import { appContext, appGuardRules } from "@/lib/symphony/jobs"
-import { readSettings } from "@/lib/symphony/settings-store"
-
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
@@ -20,9 +17,7 @@ export const POST = withOc(async (req) => {
     typeof body.title === "string" && body.title.trim()
       ? body.title.trim().slice(0, 120)
       : input.text.trim().split("\n")[0].slice(0, 80)
-  const settings = await readSettings()
-  const permission = appGuardRules(settings, await appContext(settings), true)
-  const session = unwrap(await oc().session.create({ title, permission }))
+  const session = unwrap(await oc().session.create({ title }))
   await sendPrompt(session.id, input)
   return Response.json({ sessionId: session.id }, { status: 202 })
 })

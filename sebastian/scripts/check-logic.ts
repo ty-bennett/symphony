@@ -15,8 +15,6 @@ import type { MessageInfo, OcEvent, Part } from "../src/lib/opencode/types"
 import { permissionRules, spending, toJob } from "../src/lib/symphony/jobs"
 import { placeForProvider } from "../src/lib/symphony/places"
 import { redactContactInfo, restoreRedactions, routeTask } from "../src/lib/symphony/routing"
-import { readFileSync } from "node:fs"
-import { APPS, appForWorkflow, appOfTool, appPermissionRules, appServerRules, appsMentioned, describeAppTool, isReadTool } from "../src/lib/symphony/apps"
 import { formatSaved, ratesFromProviders, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "../src/lib/symphony/savings"
 import { customCategory, normalizeSettings } from "../src/lib/symphony/settings"
 
@@ -394,101 +392,6 @@ check("savings: priced from tokens against the open cloud, never invented", () =
   assert.equal(formatSaved(0.004), "under 1¢")
   assert.equal(formatSaved(-0.4), "−$0.40")
   assert.equal(normalizeSettings({}).savings.compareWith, "open")
-})
-
-check("connected apps: matching, routing and the n8n guard", () => {
-  const wf = (name: string, tags: string[] = [], description = "") => ({ name, tags, description })
-  assert.equal(appForWorkflow(wf("Square: today's sales"))?.id, "square")
-  assert.equal(appForWorkflow(wf("Daily totals", ["Square"]))?.id, "square", "a tag naming the app wins")
-  assert.equal(appForWorkflow(wf("Book a tasting", [], "Adds an event to Google Calendar"))?.id, "google-calendar")
-  assert.equal(appForWorkflow(wf("Squared numbers")), null, "whole words only")
-  assert.equal(appForWorkflow({ name: "Unread mail", tags: [], description: "", nodes: ["n8n-nodes-base.webhook", "n8n-nodes-base.gmail"] })?.id, "gmail", "found by its n8n node")
-  assert.deepEqual(appsMentioned("What did we sell on Square today?", ["square"]).map((a) => a.id), ["square"])
-  assert.deepEqual(appsMentioned("What did we sell on Square today?", []), [], "only apps with actions count")
-
-  // A request that uses Square touches customers and money, so it stays private.
-  const s = normalizeSettings({})
-  const d = routeTask("What did we sell on Square today?", s, ["square"])
-  assert.equal(d.place, "device")
-  assert.deepEqual(d.apps, ["Square"])
-  assert.equal(d.reason, "it reads customer contact info from Square")
-  assert.equal(routeTask("Email jo@example.com our Square totals", s, ["square"]).reason, "it includes customer contact info")
-  assert.deepEqual(d.privateHits, ["Customer contact info", "Bank and card details"])
-  assert.equal(routeTask("What did we sell on Square today?", s, []).apps, undefined)
-  const off = normalizeSettings({ apps: { enabled: false } })
-  assert.equal(routeTask("What did we sell on Square today?", off, ["square"]).apps, undefined, "apps switched off")
-  // Web + Square goes to the open cloud only with consent.
-  assert.equal(routeTask("Compare our Square prices with bakeries online", s, ["square"]).needsConsent, true)
-
-  // n8n tools: everything hidden unless allowed; running a workflow asks.
-  const evaluate = (rules: { permission: string; action: string }[], tool: string) => {
-    const match = (pat: string) => new RegExp(`^${pat.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(tool)
-    return rules.filter((r) => match(r.permission)).at(-1)?.action ?? "ask"
-  }
-  const on = appPermissionRules({ enabled: true, ask: true })
-  assert.equal(evaluate(on, "n8n_search_workflows"), "allow")
-  assert.equal(evaluate(on, "n8n_get_execution"), "allow")
-  assert.equal(evaluate(on, "n8n_execute_workflow"), "ask")
-  assert.equal(evaluate(on, "n8n_delete_workflow"), "deny")
-  assert.equal(evaluate(on, "n8n_list_credentials"), "deny")
-  assert.equal(evaluate(on, "n8n_install_community_node"), "deny")
-  assert.equal(evaluate(on, "bash"), "ask", "other tools untouched")
-  assert.equal(evaluate(appPermissionRules({ enabled: true, ask: false }), "n8n_execute_workflow"), "allow")
-  assert.equal(evaluate(appPermissionRules({ enabled: false, ask: true }), "n8n_search_workflows"), "deny")
-  assert.equal(describeAppTool("n8n_execute_workflow", "Square: today's sales"), "Run “Square: today's sales”")
-  assert.equal(describeAppTool("bash"), null)
-})
-
-check("app tools: reading runs, everything else asks; workflow files are well formed", () => {
-  const evaluate = (rules: { permission: string; action: string }[], tool: string) => {
-    const match = (pat: string) => new RegExp(`^${pat.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(tool)
-    return rules.filter((r) => match(r.permission)).at(-1)?.action ?? "ask"
-  }
-  const on = appServerRules(["gmail", "quickbooks"], { enabled: true, ask: true })
-  assert.equal(evaluate(on, "gmail_search_emails"), "allow")
-  assert.equal(evaluate(on, "gmail_read_email"), "allow")
-  assert.equal(evaluate(on, "gmail_send_email"), "ask")
-  assert.equal(evaluate(on, "gmail_delete_email"), "ask")
-  assert.equal(evaluate(on, "gmail_create_draft"), "ask")
-  assert.equal(evaluate(on, "gmail_listen_to_everything"), "ask", "prefix must be a whole word")
-  assert.equal(evaluate(on, "quickbooks_list_invoices"), "allow")
-  assert.equal(evaluate(on, "quickbooks_create_invoice"), "ask")
-  assert.equal(evaluate(on, "bash"), "ask", "other tools untouched")
-  assert.equal(evaluate(appServerRules(["gmail"], { enabled: true, ask: false }), "gmail_send_email"), "allow")
-  assert.equal(evaluate(appServerRules(["gmail"], { enabled: false, ask: true }), "gmail_search_emails"), "deny")
-  assert.equal(isReadTool("list"), true)
-  assert.equal(isReadTool("listen"), false)
-  assert.equal(appOfTool("google-calendar_list_events")?.app.id, "google-calendar")
-  assert.equal(describeAppTool("gmail_send_email"), "Gmail: Send email")
-
-  for (const app of APPS.filter((a) => a.workflow)) {
-    const wf = JSON.parse(readFileSync(`public${app.workflow}`, "utf8")) as {
-      nodes: { name: string; type: string; typeVersion: number; parameters: Record<string, unknown> }[]
-      connections: Record<string, { ai_tool?: { node: string; type: string }[][] }>
-    }
-    const trigger = wf.nodes.find((n) => n.type === "@n8n/n8n-nodes-langchain.mcpTrigger")
-    assert.ok(trigger, `${app.id}: has an MCP Server Trigger`)
-    assert.equal(trigger!.parameters.authentication, "bearerAuth", `${app.id}: trigger asks for a token`)
-    const tools = wf.nodes.filter((n) => n !== trigger)
-    assert.ok(tools.length >= 4, `${app.id}: has tools`)
-    const fromAI = new Map<string, string>()
-    for (const t of tools) {
-      assert.match(t.name, /^[a-z][a-z_]*$/, `${app.id}: tool name ${t.name}`)
-      assert.ok(t.type.endsWith("Tool"), `${app.id}: ${t.name} is a tool node`)
-      assert.equal(t.parameters.descriptionType, "manual")
-      assert.ok(String(t.parameters.toolDescription).length > 10, `${app.id}: ${t.name} has a description`)
-      assert.equal(wf.connections[t.name]?.ai_tool?.[0]?.[0]?.node, trigger!.name, `${app.id}: ${t.name} is attached to the trigger`)
-      // $fromAI keys must be described the same way everywhere in a node.
-      fromAI.clear()
-      for (const m of JSON.stringify(t.parameters).matchAll(/\$fromAI\('([^']+)', '((?:[^'\\]|\\.)*)'/g)) {
-        const prev = fromAI.get(m[1])
-        assert.ok(prev === undefined || prev === m[2], `${app.id}: ${t.name} uses ${m[1]} with two descriptions`)
-        fromAI.set(m[1], m[2])
-      }
-    }
-    // Reading tools exist and so do writing ones.
-    assert.ok(tools.some((t) => isReadTool(t.name)) && tools.some((t) => !isReadTool(t.name)), `${app.id}: reads and writes`)
-  }
 })
 
 check("check-with-me-first maps to opencode permission rules", () => {
