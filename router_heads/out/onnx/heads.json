@@ -1,0 +1,35 @@
+{
+  "manifest_sha256": "c3f1cc3fa0a36c9378e773374db75697fc879c0152a34bad1cd9959c62aa8522",
+  "chat_template_sha256": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80",
+  "L_d": 10,
+  "device_max_prompt_tokens": 8192,
+  "base_repo": "Qwen/Qwen3.5-2B",
+  "base_revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+  "version_id": "331d32a75ad0a62a",
+  "d_model": 2048,
+  "onnx_opset": 17,
+  "deploy": {
+    "tensorrt_edgellm": "0.11.0",
+    "jetpack": "6.2",
+    "tensorrt": "10.3",
+    "onnx_opset": 17
+  },
+  "input": {
+    "name": "hidden",
+    "shape": [
+      2048
+    ],
+    "dtype": "float16",
+    "source": "output of decoder layer L_d (residual stream, 0-based) at the last prompt token (end of the assistant-start prefix, thinking off)"
+  },
+  "output": {
+    "name": "d",
+    "shape": [],
+    "dtype": "float16",
+    "meaning": "standardized IRT difficulty; higher = harder"
+  },
+  "files": {
+    "difficulty.onnx": "cbd5b01408861152a8ef92022fb6e870514c14da40af396fb0610b5413495fd4"
+  },
+  "onnx_check_max_abs_err": 0.0005104541778564453
+}

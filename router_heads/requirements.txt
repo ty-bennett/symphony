@@ -1,0 +1,28 @@
+# Python 3.12. GPU node: NVIDIA HGX B200 (sm_100), CUDA 13.0 driver stack.
+# Core pins match tensorrt-edgellm[tools]==0.11.0 (torch 2.13.0, transformers 5.14.1, modelopt 0.45.0, onnx 1.19.0)
+# so the Stage 0 checkpoint is produced by the same toolchain Edge-LLM exports with.
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch==2.13.0+cu130
+transformers==5.14.1
+tokenizers==0.22.2
+safetensors==0.8.0
+huggingface-hub==1.33.0
+nvidia-modelopt==0.45.0
+tensorrt-edgellm[tools]==0.11.0
+
+# Qwen3.5 Gated DeltaNet fast kernels (transformers falls back to slow torch code without them; we abort instead).
+flash-linear-attention==0.5.2
+fla-core==0.5.2
+# causal-conv1d ships as sdist only: install separately on the GPU node with
+#   TORCH_CUDA_ARCH_LIST="10.0" pip install --no-build-isolation causal-conv1d==1.7.0
+
+onnx==1.19.0
+onnxscript==0.7.1
+onnxruntime==1.31.0
+
+numpy==2.2.6
+pandas==3.0.6
+pyarrow==26.0.0
+scipy==1.18.1
+scikit-learn==1.9.1
+pyyaml==6.0.3

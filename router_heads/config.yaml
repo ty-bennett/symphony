@@ -1,0 +1,60 @@
+# Single config for the router-heads pipeline. Paths are relative to this file's directory.
+
+backbone:
+  base_repo: Qwen/Qwen3.5-2B          # LLM part only (vision tower never built); swap back: Qwen/Qwen3.5-4B + its SHA
+  base_revision: 15852e8c16360a2fea060d615a32b45270f8a8fc   # Qwen3.5-4B: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  text_only: true
+  enable_thinking: false
+  quantization: int4_awq               # Edge-LLM / ModelOpt recipe name; never changed after Stage 0
+  calib_samples: 512                   # Edge-LLM default; drawn from LLMRouterBench train items
+  calib_max_length: 512                # Edge-LLM default
+  calib_batch_size: 16                 # Edge-LLM default for int4_awq
+
+device_max_prompt_tokens: 8192
+layer_tolerance: 0.01                  # shallowest layer within this of the best val Spearman
+seed: 0
+
+# Target deployment stack (recorded in the head sidecar; pins the export toolchain).
+deploy:
+  tensorrt_edgellm: "0.11.0"
+  jetpack: "6.2"
+  tensorrt: "10.3"
+  onnx_opset: 17
+
+paths:
+  lrb_root: data/raw/bench-release     # extracted NPULH/LLMRouterBench bench-release.tar.gz
+  data: data                           # Stage A outputs
+  quant: /mnt/nvme/router/quant        # Stage 0: restorable state + Edge-LLM checkpoint + manifest
+  feats: /mnt/nvme/router/feats        # extraction shards (local NVMe)
+  out: out                             # pilot/sweep/train/eval reports, heads, onnx
+
+datasets:
+  lrb_repo: NPULH/LLMRouterBench
+  lrb_revision: 0e5af1b84bf73437a01a1849c0f1d2468baa93fc
+
+labels:
+  exclude_models: [openrouter]         # router log in the release, not a model
+  score_threshold: 0.5                 # correct = score >= threshold (arenahard ties = 0.5 count as correct)
+  irt_steps: 3000
+  irt_lr: 0.05
+  split_frac: [0.8, 0.1, 0.1]
+  min_shared_items: 500
+  auc_models: [Qwen3-8B, glm-4.6, gpt-5]   # gpt-5 is the release's name for GPT-5-medium
+
+extract:
+  token_budget: 262144                 # tokens per batch; pilot.py tunes it and writes out/pilot.json
+  pilot_prompts: 3000
+  pilot_budgets: [131072, 262144, 524288]
+  max_extract_minutes: 30
+  num_shards: 8
+  log_every: 20
+
+train:
+  feature_noise_rel_std: 0.0
+  mlp_hidden: 256
+  mlp_dropout: 0.1
+  mlp_epochs: 200
+  mlp_lr: 1.0e-3
+  mlp_weight_decay: 1.0e-2
+  mlp_patience: 20
+  ridge_alphas: [0.1, 1, 10, 100, 1000, 10000]

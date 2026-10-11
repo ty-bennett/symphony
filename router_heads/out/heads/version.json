@@ -1,0 +1,9 @@
+{
+  "manifest_sha256": "c3f1cc3fa0a36c9378e773374db75697fc879c0152a34bad1cd9959c62aa8522",
+  "chat_template_sha256": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80",
+  "L_d": 10,
+  "device_max_prompt_tokens": 8192,
+  "base_repo": "Qwen/Qwen3.5-2B",
+  "base_revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+  "version_id": "331d32a75ad0a62a"
+}

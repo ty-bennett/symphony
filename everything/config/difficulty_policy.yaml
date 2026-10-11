@@ -1,0 +1,4 @@
+# Standardized IRT difficulty; this is NOT a probability threshold.
+# Starting cutoff only: select a production cutoff using your local/cloud evals.
+local_max_difficulty: 0.0
+cloud_route: PRIVATE_AWS

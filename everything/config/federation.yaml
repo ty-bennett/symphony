@@ -1,0 +1,31 @@
+enabled: false
+adapter: simulation
+production: false
+secure_aggregation_required: true
+federate_complexity: true
+federate_sensitivity: true
+feature_mode: PRECOMPUTED_FEATURES
+local_epochs: 2
+learning_rate: 0.001
+batch_size: 16
+optimizer: adamw
+max_examples_per_round: 1000
+minimum_examples_per_round: 2
+complexity_loss_weight: 1.0
+sensitivity_loss_weight: 1.0
+complexity_class_weights: [1.0, 1.0, 1.0]
+sensitivity_class_weights: [1.0, 2.0]
+gradient_clip_norm: 1.0
+max_update_norm: 1.0
+proximal_mu: 0.0
+random_seed: 42
+privacy:
+  differential_privacy_enabled: false
+  max_grad_norm: null
+  noise_multiplier: null
+  target_delta: null
+validation:
+  minimum_complexity_accuracy: 0.70
+  minimum_sensitivity_recall: 0.98
+  maximum_sensitive_false_negative_rate: 0.02
+  minimum_examples: 2
