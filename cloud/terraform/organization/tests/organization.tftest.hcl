@@ -330,3 +330,78 @@ run "rejects_a_group_for_an_unknown_tenant" {
 
   expect_failures = [var.identity_users]
 }
+
+# --- budgets ---
+run "alerts_at_80_forecast_80_actual_and_100_actual" {
+  command = plan
+
+  assert {
+    condition = toset([for n in aws_budgets_budget.tenant["acme"].notification : "${n.notification_type}/${n.threshold}"]) == toset([
+      "FORECASTED/80", "ACTUAL/80", "ACTUAL/100",
+    ])
+    error_message = "Tenant budgets need the 80% forecast, 80% actual, and 100% actual alerts."
+  }
+
+  assert {
+    condition     = aws_budgets_budget.tenant["acme"].limit_amount == "250.00"
+    error_message = "The budget limit must equal the tenant's monthly amount."
+  }
+}
+
+run "filters_the_budget_to_the_tenant_account" {
+  command = plan
+
+  assert {
+    condition     = one(aws_budgets_budget.tenant["acme"].cost_filter).name == "LinkedAccount" && toset(one(aws_budgets_budget.tenant["acme"].cost_filter).values) == toset(["444444444444"])
+    error_message = "The budget must cover only the tenant's linked account."
+  }
+}
+
+run "notifies_billing_and_operations" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for n in aws_budgets_budget.tenant["acme"].notification : toset(n.subscriber_email_addresses) == toset(["billing@acme.example.com", "ops@example.com"])])
+    error_message = "Every alert must reach the customer billing contact and Symphony operations."
+  }
+}
+
+run "omits_the_delivery_test_budget_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(aws_budgets_budget.delivery_test) == 0
+    error_message = "The delivery test budget must be opt-in."
+  }
+}
+
+run "creates_the_delivery_test_budget_when_requested" {
+  command = plan
+
+  variables {
+    budget_delivery_test_amount_usd = 1
+  }
+
+  assert {
+    condition     = aws_budgets_budget.delivery_test[0].limit_amount == "1.00"
+    error_message = "The delivery test budget must use the requested amount."
+  }
+}
+
+run "rejects_a_tenant_without_billing_contacts" {
+  command = plan
+
+  variables {
+    tenants = {
+      acme = {
+        display_name       = "Acme Pilot"
+        account_email      = "aws+acme@example.com"
+        workload_region    = "us-east-1"
+        monthly_budget_usd = 250
+        billing_contacts   = []
+      }
+    }
+  }
+
+  expect_failures = [var.tenants]
+}

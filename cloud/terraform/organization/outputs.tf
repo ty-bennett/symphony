@@ -32,3 +32,8 @@ output "permission_set_arns" {
   description = "Symphony Identity Center permission set ARNs keyed by name."
   value       = { for name, ps in aws_ssoadmin_permission_set.this : name => ps.arn }
 }
+
+output "tenant_budget_names" {
+  description = "AWS Budgets names keyed by tenant ID."
+  value       = { for id, budget in aws_budgets_budget.tenant : id => budget.name }
+}

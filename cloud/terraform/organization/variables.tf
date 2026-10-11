@@ -122,6 +122,16 @@ variable "tenants" {
   }
 
   validation {
+    condition     = alltrue([for t in var.tenants : t.monthly_budget_usd > 0])
+    error_message = "Each tenant needs a positive monthly_budget_usd."
+  }
+
+  validation {
+    condition     = alltrue([for t in var.tenants : length(t.billing_contacts) >= 1 && length(distinct(concat(t.billing_contacts, var.operations_contacts))) <= 10])
+    error_message = "Each tenant needs at least one billing contact, and at most 10 budget recipients including operations contacts."
+  }
+
+  validation {
     condition = length(distinct([
       for email in concat(
         [var.shared_services_account.email, var.fixture_account.email],
@@ -183,4 +193,20 @@ variable "identity_users" {
     ]))
     error_message = "Every identity user group must be symphony-operators, symphony-security, or tenant-<id>-admins/readonly for a configured tenant."
   }
+}
+
+variable "operations_contacts" {
+  description = "Symphony operations email addresses copied on every tenant budget alert."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.operations_contacts) >= 1
+    error_message = "At least one operations contact is required."
+  }
+}
+
+variable "budget_delivery_test_amount_usd" {
+  description = "Set to a tiny amount (for example 1) to create a fixture-account budget that proves alert delivery; null removes it."
+  type        = number
+  default     = null
 }
