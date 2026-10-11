@@ -1,0 +1,48 @@
+name: services-offline
+
+on:
+  pull_request:
+    paths:
+      - "cloud/services/**"
+      - "cloud/tools/**"
+      - "cloud/schemas/**"
+      - ".github/workflows/services-offline.yml"
+  push:
+    branches: [main]
+    paths:
+      - "cloud/services/**"
+      - "cloud/tools/**"
+      - "cloud/schemas/**"
+      - ".github/workflows/services-offline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ingress:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloud/services/ingress
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: uvx ruff@0.15.1 check cloud/services cloud/tools
+      - name: Agent services
+        working-directory: cloud/services/agent
+        run: uv run --no-project --python 3.12 --with 'boto3>=1.43.111' --with 'cryptography>=46' python -m unittest discover -s tests
+      - name: Tools
+        working-directory: cloud
+        run: uv run --no-project --python 3.12 --with 'boto3>=1.43.111' python -m unittest discover -s tools -t .
