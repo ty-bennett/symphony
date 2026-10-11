@@ -24,8 +24,9 @@ async function recall(deps, userSub, question, audit) {
     const facts = await withTimeout(deps.recallFacts(userSub, question), MEMORY_TIMEOUT_MS);
     if (facts === null) audit.memory = "timeout";
     return facts ?? [];
-  } catch {
+  } catch (error) {
     audit.memory = "error";
+    audit.memory_error = error?.name ?? "Error";
     return [];
   }
 }
@@ -64,15 +65,15 @@ export async function handle({ body, auth, write, deps, config }) {
     const question = request.messages.at(-1).text;
     const facts = await recall(deps, auth.userSub, question, audit);
     audit.memory_facts = facts.length;
+    // Facts go in this request's system prompt (base prompt + facts), never in the user's
+    // message: conversation events feed memory extraction, so facts there get re-stored.
     const memory = factsBlock(facts);
-    const messages = request.messages.map((m, i) => ({
-      role: m.role,
-      content: [{ text: i === request.messages.length - 1 && memory ? `${memory}\n\n${m.text}` : m.text }],
-    }));
+    const systemPrompt = memory && config.systemPrompt ? [{ text: config.systemPrompt }, { text: memory }] : undefined;
+    const messages = request.messages.map((m) => ({ role: m.role, content: [{ text: m.text }] }));
     write(sse("meta", { request_id: request.requestId, route, model: modelId }));
     const tools = [];
     let firstToken = null;
-    for await (const event of deps.invokeHarness({ actorId: auth.userSub, sessionId: sessionId(auth.tenantId, auth.userSub, request.conversationId), modelId, messages, timeoutSeconds: Math.ceil(request.deadlineMs / 1000) })) {
+    for await (const event of deps.invokeHarness({ actorId: auth.userSub, sessionId: sessionId(auth.tenantId, auth.userSub, request.conversationId), modelId, messages, systemPrompt, timeoutSeconds: Math.ceil(request.deadlineMs / 1000) })) {
       const tool = event.contentBlockStart?.start?.toolUse?.name;
       if (tool) {
         tools.push(tool);

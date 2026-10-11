@@ -28,7 +28,7 @@ export const handler = async (event) => {
     return { principalId: result.principalId, policyDocument: policy("Allow", event.methodArn), context: result.context };
   } catch (error) {
     // Deny with a reason the gateway response maps to DEVICE_REVOKED / USER_UNAUTHORIZED.
-    console.log(JSON.stringify({ type: "symphony.ingress.denied", reason: error.code ?? "INTERNAL" }));
+    console.log(JSON.stringify({ type: "symphony.ingress.denied", reason: error.code ?? "INTERNAL", ...(error.detail ?? {}), ...(error.code ? {} : { error: error.name }) }));
     if (error.code === "USER_UNAUTHORIZED") throw new Error("Unauthorized");
     return { principalId: "denied", policyDocument: policy("Deny", event.methodArn), context: { reason: error.code ?? "DEVICE_REVOKED" } };
   }

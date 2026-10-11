@@ -6,7 +6,7 @@ import { handle } from "./core.mjs";
 const env = process.env;
 const agentcore = new BedrockAgentCoreClient({});
 const dynamodb = new DynamoDBClient({});
-const config = { tenantId: env.TENANT_ID, models: { default: env.DEFAULT_MODEL_ID, stepUp: env.STEP_UP_MODEL_ID } };
+const config = { tenantId: env.TENANT_ID, models: { default: env.DEFAULT_MODEL_ID, stepUp: env.STEP_UP_MODEL_ID }, systemPrompt: env.SYSTEM_PROMPT };
 const ERROR_STATUS = { DATA_TIER_DENIED: 403, USER_UNAUTHORIZED: 401, INVALID_REQUEST: 400, DUPLICATE_REQUEST: 409, MODEL_UNAVAILABLE: 503, UPSTREAM_TIMEOUT: 504 };
 
 const deps = {
@@ -33,13 +33,14 @@ const deps = {
     }));
     return (out.memoryRecordSummaries ?? []).map((r) => r.content?.text).filter(Boolean);
   },
-  invokeHarness: async function* ({ actorId, sessionId, modelId, messages, timeoutSeconds }) {
+  invokeHarness: async function* ({ actorId, sessionId, modelId, messages, systemPrompt, timeoutSeconds }) {
     const out = await agentcore.send(new InvokeHarnessCommand({
       harnessArn: env.HARNESS_ARN,
       runtimeSessionId: sessionId,
       actorId,
       messages,
       timeoutSeconds,
+      ...(systemPrompt ? { systemPrompt } : {}),
       ...(modelId === env.DEFAULT_MODEL_ID ? {} : { model: { bedrockModelConfig: { modelId } } }),
     }));
     for await (const event of out.stream) yield event;

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { handle, factsBlock } from "../src/core.mjs";
 import { authorize } from "../src/authorize.mjs";
 
-const config = { tenantId: "demo", models: { default: "kimi", stepUp: "opus" } };
+const config = { tenantId: "demo", models: { default: "kimi", stepUp: "opus" }, systemPrompt: "You are Symphony." };
 const auth = { tenantId: "demo", deviceId: "jetson-01", userSub: "user-123" };
 const body = JSON.stringify({ version: 1, request_id: "req-00000001", conversation_id: "conv-0000001", data_tier: "private-cloud", messages: [{ role: "user", text: "What is our PTO policy?" }] });
 
@@ -41,7 +41,11 @@ test("streams meta, tool, tokens, and done; injects memory; audits without text"
   assert.match(out, /event: done\n/);
   assert.equal(d.calls.invoke[0].actorId, "user-123");
   assert.equal(d.calls.invoke[0].modelId, "kimi");
-  assert.match(d.calls.invoke[0].messages[0].content[0].text, /Known facts about this user[\s\S]*tables[\s\S]*PTO policy/);
+  // Facts ride in the per-request system prompt, never in the user's message, so memory
+  // extraction does not re-store them (observed live: injected facts were re-extracted).
+  assert.deepEqual(d.calls.invoke[0].messages, [{ role: "user", content: [{ text: "What is our PTO policy?" }] }]);
+  assert.equal(d.calls.invoke[0].systemPrompt[0].text, "You are Symphony.");
+  assert.match(d.calls.invoke[0].systemPrompt[1].text, /^Known facts about this user[\s\S]*tables/);
   const logged = JSON.stringify(d.calls.logs[0]);
   assert.ok(!logged.includes("PTO") && !logged.includes("1.5 days") && !logged.includes("user-123"));
   assert.equal(audit.memory_facts, 1);
@@ -123,10 +127,31 @@ test("maps upstream throttling and timeouts to stable codes", async () => {
 });
 
 test("continues without facts when memory recall fails", async () => {
-  const d = deps({ recallFacts: async () => { throw new Error("memory down"); } });
+  const d = deps({ recallFacts: async () => { const e = new Error("secret detail"); e.name = "AccessDeniedException"; throw e; } });
   const { out, audit } = await run(d);
   assert.match(out, /event: done\n/);
   assert.equal(audit.memory_facts, 0);
   assert.equal(audit.memory, "error");
+  assert.equal(audit.memory_error, "AccessDeniedException");
+  assert.ok(!JSON.stringify(audit).includes("secret detail"));
+  assert.equal(d.calls.invoke[0].systemPrompt, undefined);
   assert.doesNotMatch(d.calls.invoke[0].messages[0].content[0].text, /Known facts/);
+});
+
+test("denials carry the serial for operators but never the token", async () => {
+  const error = await authorize({
+    clientCert: { serialNumber: "0A:1B" },
+    authorization: "Bearer secret-token",
+    tenantId: "demo",
+    deps: { getDevice: async () => null, verifyToken: async () => ({ sub: "u" }), now: () => 0 },
+  }).catch((e) => e);
+  assert.equal(error.code, "DEVICE_REVOKED");
+  assert.deepEqual(error.detail, { serial: "a1b", has_cert: true, registered: false });
+  assert.ok(!JSON.stringify(error.detail).includes("secret-token"));
+});
+
+test("matches API Gateway's decimal serial to the registry's hex (observed live)", async () => {
+  const { normalizeSerial } = await import("../src/authorize.mjs");
+  assert.equal(normalizeSerial("458237401760167982303825506377863675654501280832"), "50441364c2eb2d6f1420cff52f572c140737ac40");
+  assert.equal(normalizeSerial("00:0A:1B:2C"), "a1b2c");
 });
