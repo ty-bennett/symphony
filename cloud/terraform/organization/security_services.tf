@@ -103,3 +103,45 @@ module "finding_alerts" {
   region            = each.value
   subscriber_emails = var.security_contacts
 }
+
+# Security Hub LOCAL auto-enable covers only accounts that join after it is set,
+# and GuardDuty auto-enable never covers the management account. Enroll every
+# non-audit account explicitly so their findings reach the audit alert topics.
+locals {
+  security_member_accounts = merge(
+    {
+      management  = var.management_account_id
+      log-archive = local.bootstrap.log_archive_account_id
+    },
+    local.workload_account_ids,
+  )
+
+  security_hub_memberships = {
+    for pair in setproduct(local.security_regions, keys(local.security_member_accounts)) :
+    "${pair[0]}/${pair[1]}" => { region = pair[0], account = pair[1] }
+  }
+}
+
+resource "aws_securityhub_member" "existing" {
+  provider = aws.audit
+  for_each = local.security_hub_memberships
+
+  region     = each.value.region
+  account_id = local.security_member_accounts[each.value.account]
+  invite     = false
+
+  depends_on = [aws_securityhub_organization_configuration.this, aws_securityhub_account.management]
+}
+
+resource "aws_guardduty_member" "management" {
+  provider = aws.audit
+  for_each = local.security_regions
+
+  region      = each.value
+  detector_id = aws_guardduty_detector.audit[each.key].id
+  account_id  = var.management_account_id
+  email       = var.management_account_email
+  invite      = false
+
+  depends_on = [aws_guardduty_organization_configuration.this, aws_guardduty_detector.management]
+}

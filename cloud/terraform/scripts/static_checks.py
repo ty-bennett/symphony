@@ -54,10 +54,16 @@ ROOTS: list[str] = [
 ]
 
 
-def scanned_files() -> list[Path]:
+def strip_comments(text: str) -> str:
+    """Remove HCL comments so a commented-out invariant does not count as present."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"(#|//).*$", "", text, flags=re.M)
+
+
+def scanned_files(root: Path = ROOT) -> list[Path]:
     return sorted(
         path
-        for path in ROOT.rglob("*")
+        for path in root.rglob("*")
         if path.is_file()
         and ".terraform" not in path.parts
         and (
@@ -67,10 +73,10 @@ def scanned_files() -> list[Path]:
     )
 
 
-def main() -> int:
+def main(root: Path = ROOT) -> int:
     errors: list[str] = []
-    for path in scanned_files():
-        rel = path.relative_to(ROOT)
+    for path in scanned_files(root):
+        rel = path.relative_to(root)
         text = path.read_text(encoding="utf-8")
         for match in ACCOUNT_ID.finditer(text):
             if not PLACEHOLDER_ACCOUNT.match(match.group(0)):
@@ -80,14 +86,15 @@ def main() -> int:
             if needle in text:
                 errors.append(f"{rel}: contains {needle!r}. {reason}")
     for rel, pattern, minimum, reason in REQUIRED:
-        path = ROOT / rel
-        found = len(re.findall(pattern, path.read_text(encoding="utf-8"))) if path.is_file() else 0
+        path = root / rel
+        found = len(re.findall(pattern, strip_comments(path.read_text(encoding="utf-8")))) if path.is_file() else 0
         if found < minimum:
             errors.append(f"{rel}: found {found} of /{pattern}/, need {minimum}. {reason}")
-    for root in ROOTS:
-        guard = ROOT / root / "guard.tf"
-        if not guard.is_file() or 'resource "terraform_data" "account_guard"' not in guard.read_text(encoding="utf-8"):
-            errors.append(f"{root}/guard.tf: missing terraform_data.account_guard.")
+    for name in ROOTS:
+        root_dir = root / name
+        guard = root_dir / "guard.tf"
+        if not guard.is_file() or 'resource "terraform_data" "account_guard"' not in strip_comments(guard.read_text(encoding="utf-8")):
+            errors.append(f"{name}/guard.tf: missing terraform_data.account_guard.")
     for error in errors:
         print(error, file=sys.stderr)
     print(f"static checks: {len(errors)} violation(s)")

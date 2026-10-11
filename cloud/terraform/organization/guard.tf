@@ -17,6 +17,11 @@ resource "terraform_data" "account_guard" {
     }
 
     precondition {
+      condition     = !endswith(data.aws_caller_identity.current.arn, ":root")
+      error_message = "The management account root user cannot assume AWSControlTowerExecution. Use an administrator IAM role or Identity Center session (see the runbook)."
+    }
+
+    precondition {
       condition     = data.aws_region.current.region == local.home_region
       error_message = "The organization root must run in us-east-1."
     }

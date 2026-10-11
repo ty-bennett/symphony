@@ -26,4 +26,5 @@ for dir in "${dirs[@]}"; do
   fi
 done
 
+python3 -m unittest discover -s scripts -p "test_*.py"
 python3 scripts/static_checks.py

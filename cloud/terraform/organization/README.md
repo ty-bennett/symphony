@@ -14,6 +14,7 @@ Builds the governed organization around the landing zone: workload OUs and their
 | Variable | Notes |
 | --- | --- |
 | `management_account_id`, `audit_account_id`, `state_bucket` | Must match bootstrap state |
+| `management_account_email` | Recorded on the management account's GuardDuty membership |
 | `controltower_baseline_arn`, `controltower_baseline_version`, `identity_center_enabled_baseline_arn` | From `aws controltower list-baselines` / `list-enabled-baselines` |
 | `account_factory_portfolio_id`, `account_factory_principal`, `account_factory_sso_user` | Account Factory access and the initial SSO user per vended account |
 | `shared_services_account`, `fixture_account`, `tenants` | Every account email must be unique; tenant Regions limited to `us-east-1`/`us-east-2` |

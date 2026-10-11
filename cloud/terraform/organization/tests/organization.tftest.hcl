@@ -405,3 +405,42 @@ run "rejects_a_tenant_without_billing_contacts" {
 
   expect_failures = [var.tenants]
 }
+
+# --- review fixes ---
+run "refuses_the_management_root_user" {
+  command = plan
+
+  override_data {
+    target = data.aws_caller_identity.current
+    values = { account_id = "111111111111", arn = "arn:aws:iam::111111111111:root" }
+  }
+
+  expect_failures = [terraform_data.account_guard]
+}
+
+run "enrolls_every_existing_account_in_security_hub" {
+  command = plan
+
+  assert {
+    condition = toset(keys(aws_securityhub_member.existing)) == toset(flatten([
+      for region in ["us-east-1", "us-east-2"] : [
+        for account in ["management", "log-archive", "shared-services", "fixture", "tenant-acme"] : "${region}/${account}"
+      ]
+    ]))
+    error_message = "Every non-audit account must be a Security Hub member in both governed Regions."
+  }
+
+  assert {
+    condition     = aws_securityhub_member.existing["us-east-2/management"].account_id == "111111111111"
+    error_message = "The management account must be enrolled with its own account ID."
+  }
+}
+
+run "enrolls_the_management_account_in_guardduty" {
+  command = plan
+
+  assert {
+    condition     = toset([for m in aws_guardduty_member.management : "${m.region}/${m.account_id}"]) == toset(["us-east-1/111111111111", "us-east-2/111111111111"])
+    error_message = "Organization auto-enable skips the management account; it must be added as a GuardDuty member."
+  }
+}

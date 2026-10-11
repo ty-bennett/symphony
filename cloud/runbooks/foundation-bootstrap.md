@@ -20,6 +20,7 @@ cloud/terraform/scripts/check.sh          # must pass before any plan
 
 ```sh
 aws sts get-caller-identity --query Account --output text            # = management_account_id
+aws sts get-caller-identity --query Arn --output text                # must NOT end in ":root"
 aws organizations describe-organization                              # expect AWSOrganizationsNotInUseException
 aws controltower list-landing-zones --region us-east-1               # expect "landingZones": []
 aws iam get-policy --policy-arn arn:aws:iam::aws:policy/service-role/AWSControlTowerServiceRolePolicy --query Policy.Arn
@@ -27,6 +28,8 @@ aws iam get-policy --policy-arn arn:aws:iam::aws:policy/service-role/AWSControlT
 ```
 
 If an Organization or landing zone already exists, stop: the start-from-scratch assumption in `PLAN.md` is false.
+
+Run every root as an administrator IAM role or IAM user with MFA in the management account, never as the root user. STS refuses `AssumeRole` from root, so the organization root (its `aws.audit` provider) and every member-account root would fail, and the organization guard rejects a root caller. After the landing zone exists you can switch to an Identity Center `AWSAdministratorAccess` session (`aws configure sso`).
 
 ## 3. Bootstrap (local state, then migrate)
 
@@ -98,6 +101,15 @@ terraform apply org.tfplan                           # account vending takes 20-
 ```
 
 If an apply fails with a Service Catalog "operation in progress" error while accounts are vending, wait for the running provisioning to finish in the Service Catalog console, then run `terraform plan` and `apply` again.
+
+### Recovering a failed Account Factory provisioning
+
+If a vended account ends in `ERROR` or `TAINTED` (reused email, account quota, transient Control Tower error), Terraform marks `module.<account>.aws_servicecatalog_provisioned_product.this` tainted and the next plan fails on `prevent_destroy`. Do not remove `prevent_destroy`.
+
+1. Inspect it: `aws servicecatalog describe-provisioned-product --name symphony-<name>` and the record's `RecordErrors` (`aws servicecatalog describe-record --id <last-record-id>`).
+2. Fix the cause (for example a unique email in `terraform.tfvars`).
+3. If the account was created and is `ACTIVE` in Organizations, clear the taint: `terraform untaint 'module.<account>.aws_servicecatalog_provisioned_product.this'` and re-plan; Terraform updates the product in place.
+4. If no account was created, terminate the failed product in Service Catalog (`aws servicecatalog terminate-provisioned-product --provisioned-product-name symphony-<name>`), then `terraform state rm 'module.<account>.aws_servicecatalog_provisioned_product.this'` and re-plan to provision it again.
 
 Manual steps after the apply:
 

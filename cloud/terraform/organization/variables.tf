@@ -8,6 +8,16 @@ variable "management_account_id" {
   }
 }
 
+variable "management_account_email" {
+  description = "Root email of the management account, recorded on its GuardDuty membership."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", var.management_account_email))
+    error_message = "management_account_email must be an email address."
+  }
+}
+
 variable "audit_account_id" {
   description = "AWS account ID of the audit account (from bootstrap outputs)."
   type        = string
