@@ -1,0 +1,997 @@
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/modelopt/torch/__init__.py:51: UserWarning: transformers 5.14.1 is not tested with current version of modelopt and may cause issues. Please install recommended version with `pip install -U nvidia-modelopt[hf]` if working with HF models.
+  _warnings.warn(
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/320 [00:00<?, ?it/s]Loading weights:  27%|██▋       | 87/320 [00:00<00:00, 869.66it/s]Loading weights:  82%|████████▏ | 263/320 [00:00<00:00, 1392.85it/s]Loading weights: 100%|██████████| 320/320 [00:00<00:00, 1416.97it/s]
+int4 excludes (not 64-aligned): 36
+Registered <class 'transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5Attention'> to _QuantAttention for KV Cache quantization
+Inserted 642 quantizers
+awq_lite: Caching activation statistics...
+Calibrating:   0%|          | 0/32 [00:00<?, ?it/s]Calibrating:   3%|▎         | 1/32 [00:37<19:07, 37.00s/it]Calibrating:   9%|▉         | 3/32 [00:37<04:40,  9.66s/it]Calibrating:  16%|█▌        | 5/32 [00:37<02:08,  4.74s/it]Calibrating:  22%|██▏       | 7/32 [00:37<01:09,  2.78s/it]Calibrating:  28%|██▊       | 9/32 [00:37<00:40,  1.77s/it]Calibrating:  34%|███▍      | 11/32 [00:37<00:24,  1.19s/it]Calibrating:  41%|████      | 13/32 [00:38<00:15,  1.21it/s]Calibrating:  44%|████▍     | 14/32 [00:38<00:12,  1.46it/s]Calibrating:  47%|████▋     | 15/32 [00:38<00:09,  1.79it/s]Calibrating:  50%|█████     | 16/32 [00:38<00:07,  2.21it/s]Calibrating:  53%|█████▎    | 17/32 [00:38<00:05,  2.75it/s]Calibrating:  56%|█████▋    | 18/32 [00:38<00:04,  3.39it/s]Calibrating:  59%|█████▉    | 19/32 [00:38<00:03,  4.13it/s]Calibrating:  62%|██████▎   | 20/32 [00:38<00:02,  4.94it/s]Calibrating:  66%|██████▌   | 21/32 [00:39<00:01,  5.77it/s]Calibrating:  69%|██████▉   | 22/32 [00:39<00:01,  6.57it/s]Calibrating:  72%|███████▏  | 23/32 [00:39<00:01,  7.29it/s]Calibrating:  75%|███████▌  | 24/32 [00:39<00:01,  7.90it/s]Calibrating:  78%|███████▊  | 25/32 [00:39<00:00,  8.40it/s]Calibrating:  81%|████████▏ | 26/32 [00:39<00:00,  8.78it/s]Calibrating:  84%|████████▍ | 27/32 [00:39<00:00,  9.07it/s]Calibrating:  88%|████████▊ | 28/32 [00:39<00:00,  9.29it/s]Calibrating:  91%|█████████ | 29/32 [00:39<00:00,  9.46it/s]Calibrating:  94%|█████████▍| 30/32 [00:39<00:00,  9.55it/s]Calibrating:  97%|█████████▋| 31/32 [00:40<00:00,  9.63it/s]Calibrating: 100%|██████████| 32/32 [00:40<00:00,  9.69it/s]Calibrating: 100%|██████████| 32/32 [00:40<00:00,  1.25s/it]
+awq_lite: Searching parameters...
+Calibrating:   0%|          | 0/32 [00:00<?, ?it/s]Loading extension modelopt_cuda_ext...
+Loaded extension modelopt_cuda_ext in 39.6 seconds
+Calibrating:   3%|▎         | 1/32 [00:40<21:06, 40.85s/it]Calibrating:   6%|▋         | 2/32 [00:42<08:47, 17.57s/it]Calibrating:   9%|▉         | 3/32 [00:43<04:53, 10.13s/it]Calibrating:  12%|█▎        | 4/32 [00:44<03:05,  6.63s/it]Calibrating:  16%|█▌        | 5/32 [00:45<02:06,  4.70s/it]Calibrating:  19%|█▉        | 6/32 [00:47<01:31,  3.53s/it]Calibrating:  22%|██▏       | 7/32 [00:48<01:09,  2.79s/it]Calibrating:  25%|██▌       | 8/32 [00:49<00:55,  2.31s/it]Calibrating:  28%|██▊       | 9/32 [00:51<00:45,  1.98s/it]Calibrating:  31%|███▏      | 10/32 [00:52<00:38,  1.76s/it]Calibrating:  34%|███▍      | 11/32 [00:53<00:33,  1.61s/it]Calibrating:  38%|███▊      | 12/32 [00:54<00:30,  1.51s/it]Calibrating:  41%|████      | 13/32 [00:56<00:27,  1.44s/it]Calibrating:  44%|████▍     | 14/32 [00:57<00:24,  1.39s/it]Calibrating:  47%|████▋     | 15/32 [00:58<00:22,  1.35s/it]Calibrating:  50%|█████     | 16/32 [00:59<00:21,  1.33s/it]Calibrating:  53%|█████▎    | 17/32 [01:01<00:19,  1.31s/it]Calibrating:  56%|█████▋    | 18/32 [01:02<00:18,  1.30s/it]Calibrating:  59%|█████▉    | 19/32 [01:03<00:16,  1.29s/it]Calibrating:  62%|██████▎   | 20/32 [01:05<00:15,  1.29s/it]Calibrating:  66%|██████▌   | 21/32 [01:06<00:14,  1.28s/it]Calibrating:  69%|██████▉   | 22/32 [01:07<00:12,  1.28s/it]Calibrating:  72%|███████▏  | 23/32 [01:08<00:11,  1.28s/it]Calibrating:  75%|███████▌  | 24/32 [01:10<00:10,  1.28s/it]Calibrating:  78%|███████▊  | 25/32 [01:11<00:08,  1.28s/it]Calibrating:  81%|████████▏ | 26/32 [01:12<00:07,  1.28s/it]Calibrating:  84%|████████▍ | 27/32 [01:13<00:06,  1.27s/it]Calibrating:  88%|████████▊ | 28/32 [01:15<00:05,  1.27s/it]Calibrating:  91%|█████████ | 29/32 [01:16<00:03,  1.27s/it]Calibrating:  94%|█████████▍| 30/32 [01:17<00:02,  1.27s/it]Calibrating:  97%|█████████▋| 31/32 [01:19<00:01,  1.27s/it]Calibrating: 100%|██████████| 32/32 [01:20<00:00,  1.27s/it]Calibrating: 100%|██████████| 32/32 [01:20<00:00,  2.51s/it]
+model.embed_tokens.weight_quantizer                                              TensorQuantizer(disabled)
+model.embed_tokens.input_quantizer                                               HardDisabledTensorQuantizer(disabled)
+model.embed_tokens.output_quantizer                                              TensorQuantizer(disabled)
+model.layers.0.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.0.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.0.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.0.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.0.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.0.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.45e-03, 3.97e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.0.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[0.00e+00, 2.97e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.0.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.40e-03, 4.18e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.0.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.0.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.0.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.0.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.0.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.09e-03, 1.60e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.0.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.0.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.0.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.97e-03, 1.41e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.0.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.0.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.0.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.73e-03, 9.50e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.1.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.1.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.1.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.1.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.1.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.1.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.90e-03, 9.66e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.1.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.81e-03, 3.99e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.1.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.38e-03, 1.96e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.1.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.1.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.1.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.1.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.1.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.90e-03, 1.62e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.1.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.1.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.1.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.42e-03, 1.18e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.1.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.1.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.1.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.63e-03, 4.98e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.2.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.2.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.2.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.2.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.2.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.2.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.69e-03, 5.85e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.2.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.27e-03, 2.81e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.2.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.96e-03, 1.98e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.2.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.2.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.2.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.2.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.2.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.06e-03, 1.46e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.2.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.2.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.2.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.07e-03, 1.94e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.2.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.2.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.2.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.22e-03, 7.22e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.3.self_attn.q_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.3.self_attn.q_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.3.self_attn.q_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.83e-03, 3.14e-01](65536) calibrator=MaxCalibrator quant)
+model.layers.3.self_attn.k_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.3.self_attn.k_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.3.self_attn.k_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.33e-03, 1.24e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.3.self_attn.v_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.3.self_attn.v_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.3.self_attn.v_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.49e-03, 1.40e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.3.self_attn.o_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.3.self_attn.o_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.3.self_attn.o_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.57e-03, 7.96e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.3.self_attn.q_bmm_quantizer                                         TensorQuantizer(disabled)
+model.layers.3.self_attn.k_bmm_quantizer                                         TensorQuantizer(disabled)
+model.layers.3.self_attn.v_bmm_quantizer                                         TensorQuantizer(disabled)
+model.layers.3.self_attn.softmax_quantizer                                       TensorQuantizer(disabled)
+model.layers.3.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.3.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.3.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.55e-03, 1.76e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.3.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.3.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.3.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.09e-03, 1.24e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.3.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.3.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.3.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.68e-03, 6.55e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.4.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.4.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.4.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.4.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.4.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.4.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.71e-03, 5.69e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.4.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.29e-03, 3.08e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.4.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.75e-03, 1.68e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.4.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.4.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.4.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.4.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.4.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.72e-03, 2.09e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.4.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.4.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.4.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.68e-03, 9.53e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.4.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.4.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.4.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.76e-03, 4.44e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.5.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.5.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.5.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.5.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.5.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.5.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.53e-03, 2.61e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.5.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.05e-02, 3.27e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.5.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.05e-03, 1.80e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.5.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.5.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.5.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.5.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.5.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.09e-03, 1.37e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.5.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.5.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.5.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.31e-03, 8.26e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.5.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.5.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.5.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.43e-03, 2.76e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.6.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.6.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.6.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.6.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.6.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.6.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.55e-03, 5.50e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.6.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.18e-03, 2.97e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.6.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.50e-03, 1.74e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.6.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.6.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.6.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.6.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.6.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.36e-03, 2.03e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.6.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.6.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.6.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.72e-03, 1.04e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.6.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.6.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.6.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.03e-03, 5.14e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.7.self_attn.q_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.7.self_attn.q_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.7.self_attn.q_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.55e-03, 2.77e-01](65536) calibrator=MaxCalibrator quant)
+model.layers.7.self_attn.k_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.7.self_attn.k_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.7.self_attn.k_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.93e-03, 1.19e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.7.self_attn.v_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.7.self_attn.v_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.7.self_attn.v_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.69e-03, 2.03e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.7.self_attn.o_proj.input_quantizer                                  TensorQuantizer(disabled)
+model.layers.7.self_attn.o_proj.output_quantizer                                 TensorQuantizer(disabled)
+model.layers.7.self_attn.o_proj.weight_quantizer                                 TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.11e-03, 4.31e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.7.self_attn.q_bmm_quantizer                                         TensorQuantizer(disabled)
+model.layers.7.self_attn.k_bmm_quantizer                                         TensorQuantizer(disabled)
+model.layers.7.self_attn.v_bmm_quantizer                                         TensorQuantizer(disabled)
+model.layers.7.self_attn.softmax_quantizer                                       TensorQuantizer(disabled)
+model.layers.7.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.7.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.7.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.69e-03, 2.63e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.7.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.7.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.7.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.74e-03, 1.04e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.7.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.7.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.7.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.87e-03, 4.47e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.8.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.8.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.8.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.8.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.8.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.8.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.52e-03, 3.10e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.8.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.54e-03, 2.42e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.8.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.86e-03, 2.19e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.8.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.8.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.8.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.8.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.8.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.46e-03, 2.13e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.8.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.8.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.8.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.80e-03, 7.64e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.8.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.8.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.8.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.69e-03, 2.74e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.9.linear_attn.conv1d.input_quantizer                                TensorQuantizer(disabled)
+model.layers.9.linear_attn.conv1d.output_quantizer                               TensorQuantizer(disabled)
+model.layers.9.linear_attn.conv1d.weight_quantizer                               TensorQuantizer(disabled)
+model.layers.9.linear_attn.out_proj.input_quantizer                              TensorQuantizer(disabled)
+model.layers.9.linear_attn.out_proj.output_quantizer                             TensorQuantizer(disabled)
+model.layers.9.linear_attn.out_proj.weight_quantizer                             TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.64e-03, 4.88e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.9.linear_attn.in_proj_qkv.input_quantizer                           TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_qkv.output_quantizer                          TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_qkv.weight_quantizer                          TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.95e-03, 3.50e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.9.linear_attn.in_proj_z.input_quantizer                             TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_z.output_quantizer                            TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_z.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.10e-03, 2.23e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.9.linear_attn.in_proj_b.input_quantizer                             TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_b.output_quantizer                            TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_b.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_a.input_quantizer                             TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_a.output_quantizer                            TensorQuantizer(disabled)
+model.layers.9.linear_attn.in_proj_a.weight_quantizer                            TensorQuantizer(disabled)
+model.layers.9.mlp.gate_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.9.mlp.gate_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.9.mlp.gate_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.98e-03, 1.78e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.9.mlp.up_proj.input_quantizer                                       TensorQuantizer(disabled)
+model.layers.9.mlp.up_proj.output_quantizer                                      TensorQuantizer(disabled)
+model.layers.9.mlp.up_proj.weight_quantizer                                      TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.73e-03, 7.37e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.9.mlp.down_proj.input_quantizer                                     TensorQuantizer(disabled)
+model.layers.9.mlp.down_proj.output_quantizer                                    TensorQuantizer(disabled)
+model.layers.9.mlp.down_proj.weight_quantizer                                    TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.27e-03, 2.37e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.10.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.10.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.10.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.10.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.10.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.10.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.76e-03, 5.26e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.10.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.79e-03, 2.91e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.10.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.39e-03, 1.73e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.10.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.10.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.10.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.10.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.10.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.55e-03, 1.61e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.10.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.10.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.10.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.58e-03, 1.14e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.10.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.10.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.10.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.53e-03, 3.77e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.11.self_attn.q_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.11.self_attn.q_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.11.self_attn.q_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.57e-03, 2.69e-01](65536) calibrator=MaxCalibrator quant)
+model.layers.11.self_attn.k_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.11.self_attn.k_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.11.self_attn.k_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.02e-03, 1.47e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.11.self_attn.v_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.11.self_attn.v_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.11.self_attn.v_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.37e-03, 2.06e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.11.self_attn.o_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.11.self_attn.o_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.11.self_attn.o_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.50e-03, 4.10e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.11.self_attn.q_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.11.self_attn.k_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.11.self_attn.v_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.11.self_attn.softmax_quantizer                                      TensorQuantizer(disabled)
+model.layers.11.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.11.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.11.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.30e-03, 1.54e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.11.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.11.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.11.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.80e-03, 7.38e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.11.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.11.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.11.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.41e-03, 4.32e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.12.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.12.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.12.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.12.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.12.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.12.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.21e-03, 7.37e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.12.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.67e-03, 2.18e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.12.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.13e-03, 2.24e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.12.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.12.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.12.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.12.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.12.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.23e-03, 2.76e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.12.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.12.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.12.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.77e-03, 8.95e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.12.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.12.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.12.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.80e-03, 2.70e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.13.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.13.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.13.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.13.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.13.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.13.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.66e-03, 6.32e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.13.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.01e-02, 2.33e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.13.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.23e-03, 1.77e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.13.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.13.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.13.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.13.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.13.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.24e-03, 1.95e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.13.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.13.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.13.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.81e-03, 7.74e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.13.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.13.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.13.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.84e-03, 3.96e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.14.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.14.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.14.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.14.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.14.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.14.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.88e-03, 8.14e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.14.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.92e-03, 4.60e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.14.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.34e-03, 1.71e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.14.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.14.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.14.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.14.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.14.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.83e-03, 2.37e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.14.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.14.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.14.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.37e-03, 1.15e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.14.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.14.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.14.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.44e-03, 6.95e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.15.self_attn.q_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.15.self_attn.q_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.15.self_attn.q_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.11e-03, 1.68e-01](65536) calibrator=MaxCalibrator quant)
+model.layers.15.self_attn.k_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.15.self_attn.k_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.15.self_attn.k_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.48e-03, 1.27e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.15.self_attn.v_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.15.self_attn.v_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.15.self_attn.v_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.85e-03, 3.38e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.15.self_attn.o_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.15.self_attn.o_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.15.self_attn.o_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.99e-03, 5.32e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.15.self_attn.q_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.15.self_attn.k_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.15.self_attn.v_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.15.self_attn.softmax_quantizer                                      TensorQuantizer(disabled)
+model.layers.15.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.15.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.15.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.82e-03, 2.26e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.15.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.15.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.15.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[2.22e-03, 1.21e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.15.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.15.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.15.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.60e-03, 3.28e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.16.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.16.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.16.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.16.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.16.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.16.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.15e-03, 7.49e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.16.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.11e-03, 3.43e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.16.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.52e-03, 1.72e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.16.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.16.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.16.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.16.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.16.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.39e-03, 2.50e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.16.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.16.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.16.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.58e-03, 1.01e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.16.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.16.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.16.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.69e-03, 9.85e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.17.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.17.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.17.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.17.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.17.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.17.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.45e-03, 5.82e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.17.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.88e-03, 4.33e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.17.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.92e-03, 1.39e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.17.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.17.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.17.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.17.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.17.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.07e-03, 3.31e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.17.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.17.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.17.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.31e-03, 1.30e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.17.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.17.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.17.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.93e-03, 5.08e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.18.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.18.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.18.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.18.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.18.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.18.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.29e-03, 7.84e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.18.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.51e-03, 2.55e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.18.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.53e-03, 2.49e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.18.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.18.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.18.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.18.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.18.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.16e-03, 2.26e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.18.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.18.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.18.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.28e-03, 1.37e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.18.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.18.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.18.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.18e-03, 1.15e+00](98304) calibrator=MaxCalibrator quant)
+model.layers.19.self_attn.q_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.19.self_attn.q_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.19.self_attn.q_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.63e-03, 1.91e-01](65536) calibrator=MaxCalibrator quant)
+model.layers.19.self_attn.k_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.19.self_attn.k_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.19.self_attn.k_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.76e-03, 1.17e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.19.self_attn.v_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.19.self_attn.v_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.19.self_attn.v_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.07e-02, 3.73e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.19.self_attn.o_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.19.self_attn.o_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.19.self_attn.o_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.72e-03, 7.51e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.19.self_attn.q_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.19.self_attn.k_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.19.self_attn.v_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.19.self_attn.softmax_quantizer                                      TensorQuantizer(disabled)
+model.layers.19.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.19.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.19.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.81e-03, 3.05e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.19.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.19.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.19.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.12e-03, 9.17e-02](98304) calibrator=MaxCalibrator quant)
+model.layers.19.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.19.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.19.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.41e-03, 9.52e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.20.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.20.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.20.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.20.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.20.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.20.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.51e-03, 8.70e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.20.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.16e-02, 2.66e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.20.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.82e-03, 2.19e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.20.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.20.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.20.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.20.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.20.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.61e-03, 1.99e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.20.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.20.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.20.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.89e-03, 1.02e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.20.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.20.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.20.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.79e-03, 7.84e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.21.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.21.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.21.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.21.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.21.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.21.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.62e-03, 6.12e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.21.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.12e-02, 3.02e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.21.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.39e-03, 2.03e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.21.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.21.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.21.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.21.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.21.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[9.30e-03, 3.78e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.21.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.21.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.21.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.51e-03, 1.79e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.21.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.21.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.21.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.71e-03, 3.92e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.22.linear_attn.conv1d.input_quantizer                               TensorQuantizer(disabled)
+model.layers.22.linear_attn.conv1d.output_quantizer                              TensorQuantizer(disabled)
+model.layers.22.linear_attn.conv1d.weight_quantizer                              TensorQuantizer(disabled)
+model.layers.22.linear_attn.out_proj.input_quantizer                             TensorQuantizer(disabled)
+model.layers.22.linear_attn.out_proj.output_quantizer                            TensorQuantizer(disabled)
+model.layers.22.linear_attn.out_proj.weight_quantizer                            TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.38e-03, 1.38e+00](32768) calibrator=MaxCalibrator quant)
+model.layers.22.linear_attn.in_proj_qkv.input_quantizer                          TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_qkv.output_quantizer                         TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_qkv.weight_quantizer                         TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.71e-03, 3.15e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.22.linear_attn.in_proj_z.input_quantizer                            TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_z.output_quantizer                           TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_z.weight_quantizer                           TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.28e-03, 2.63e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.22.linear_attn.in_proj_b.input_quantizer                            TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_b.output_quantizer                           TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_b.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_a.input_quantizer                            TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_a.output_quantizer                           TensorQuantizer(disabled)
+model.layers.22.linear_attn.in_proj_a.weight_quantizer                           TensorQuantizer(disabled)
+model.layers.22.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.22.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.22.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[8.83e-03, 4.05e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.22.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.22.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.22.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.06e-03, 1.23e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.22.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.22.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.22.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[5.21e-03, 7.16e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.23.self_attn.q_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.23.self_attn.q_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.23.self_attn.q_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[3.14e-03, 2.90e-01](65536) calibrator=MaxCalibrator quant)
+model.layers.23.self_attn.k_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.23.self_attn.k_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.23.self_attn.k_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[4.14e-03, 8.41e-02](8192) calibrator=MaxCalibrator quant)
+model.layers.23.self_attn.v_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.23.self_attn.v_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.23.self_attn.v_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.82e-02, 3.60e-01](8192) calibrator=MaxCalibrator quant)
+model.layers.23.self_attn.o_proj.input_quantizer                                 TensorQuantizer(disabled)
+model.layers.23.self_attn.o_proj.output_quantizer                                TensorQuantizer(disabled)
+model.layers.23.self_attn.o_proj.weight_quantizer                                TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[1.34e-02, 5.78e-01](32768) calibrator=MaxCalibrator quant)
+model.layers.23.self_attn.q_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.23.self_attn.k_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.23.self_attn.v_bmm_quantizer                                        TensorQuantizer(disabled)
+model.layers.23.self_attn.softmax_quantizer                                      TensorQuantizer(disabled)
+model.layers.23.mlp.gate_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.23.mlp.gate_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.23.mlp.gate_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.64e-03, 3.20e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.23.mlp.up_proj.input_quantizer                                      TensorQuantizer(disabled)
+model.layers.23.mlp.up_proj.output_quantizer                                     TensorQuantizer(disabled)
+model.layers.23.mlp.up_proj.weight_quantizer                                     TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[6.41e-03, 3.98e-01](98304) calibrator=MaxCalibrator quant)
+model.layers.23.mlp.down_proj.input_quantizer                                    TensorQuantizer(disabled)
+model.layers.23.mlp.down_proj.output_quantizer                                   TensorQuantizer(disabled)
+model.layers.23.mlp.down_proj.weight_quantizer                                   TensorQuantizer(4 bit fake block_sizes={-1: 128, 'type': 'static'}, amax=[7.05e-03, 1.99e+00](98304) calibrator=MaxCalibrator quant)
+lm_head.input_quantizer                                                          TensorQuantizer(disabled)
+lm_head.output_quantizer                                                         TensorQuantizer(disabled)
+lm_head.weight_quantizer                                                         TensorQuantizer(disabled)
+642 TensorQuantizers found in model
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[WAR] Skipping requantize_resmooth_fused_llm_layers for this model (ModelOpt bug workaround)
+Found tied weight: 'lm_head.weight' is tied to 'model.embed_tokens.weight'. Removing duplicate 'lm_head.weight' from the exported state dict.
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.14s/it]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.14s/it]
+manifest sha256: c3f1cc3fa0a36c9378e773374db75697fc879c0152a34bad1cd9959c62aa8522
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/320 [00:00<?, ?it/s]Loading weights:  31%|███▏      | 100/320 [00:00<00:00, 985.77it/s]Loading weights:  70%|███████   | 225/320 [00:00<00:00, 1128.17it/s]Loading weights: 100%|██████████| 320/320 [00:00<00:00, 1153.42it/s]
+L=24, candidate layers=[6, 8, 10, 12, 14, 16, 18, 20, 22]
+/root/symphony/router_heads/common.py:197: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  ids[i, :len(s)] = torch.as_tensor(s, dtype=torch.long)
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/modelopt/torch/__init__.py:51: UserWarning: transformers 5.14.1 is not tested with current version of modelopt and may cause issues. Please install recommended version with `pip install -U nvidia-modelopt[hf]` if working with HF models.
+  _warnings.warn(
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/320 [00:00<?, ?it/s]Loading weights:   2%|▎         | 8/320 [00:00<00:04, 75.47it/s]Loading weights:  53%|█████▎    | 170/320 [00:00<00:00, 931.59it/s]Loading weights: 100%|██████████| 320/320 [00:00<00:00, 1088.67it/s]
+Registered <class 'transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5Attention'> to _QuantAttention for KV Cache quantization
+Inserted 642 quantizers
+ModelOpt quant config: 150 quantized linears, 37 unquantized
+Loading extension modelopt_cuda_ext...
+Loaded extension modelopt_cuda_ext in 0.0 seconds
+  L 6 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.955632 relerr=2.85e-01
+  L 8 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.942025 relerr=3.28e-01
+  L10 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.938875 relerr=3.33e-01
+  L12 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.929867 relerr=3.67e-01
+  L14 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.935006 relerr=3.30e-01
+  L16 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.938770 relerr=3.33e-01
+  L18 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.939981 relerr=3.29e-01
+  L20 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.937136 relerr=3.27e-01
+  L22 folded~fakequant cos=1.000000 relerr=0.00e+00 | folded~base cos=0.925024 relerr=3.74e-01
+early-stop check: ok (min cos 1.0000000)
+SDPA backend: SDPBackend.CUDNN_ATTENTION
+  budget 131072: 24,166 tok/s
+  budget 262144: 21,446 tok/s
+  budget 524288: 27,785 tok/s
+chosen budget 524288: 27,785 tok/s/GPU -> projected extract 5.5 min on 1 GPUs for 9,188,153 tokens
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.0628238733545459e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 4.365480776868935e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L 6 difficulty val Spearman 0.7172
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.258508852686191e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 4.695261068832224e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L 8 difficulty val Spearman 0.7383
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 9.9789412288942e-09.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 7.152598158199908e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L10 difficulty val Spearman 0.7486
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.5483546889072386e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 6.920333106563703e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L12 difficulty val Spearman 0.7579
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.7119746448533988e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.547279258166782e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L14 difficulty val Spearman 0.7495
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 3.131340164941321e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 7.294579518202227e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L16 difficulty val Spearman 0.7398
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.0815084766923064e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 7.81644473590859e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L18 difficulty val Spearman 0.7471
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 3.788979441310403e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 8.285592656420704e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L20 difficulty val Spearman 0.7568
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 2.3848730990039257e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:227: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 9.384273624846173e-08.
+  return linalg.solve(A, Xy, assume_a="pos", overwrite_a=True).T
+  L22 difficulty val Spearman 0.7475
+provisional L_d=10 (best 12), top3_d=[10, 12, 20]
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/modelopt/torch/__init__.py:51: UserWarning: transformers 5.14.1 is not tested with current version of modelopt and may cause issues. Please install recommended version with `pip install -U nvidia-modelopt[hf]` if working with HF models.
+  _warnings.warn(
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/320 [00:00<?, ?it/s]Loading weights:  39%|███▉      | 126/320 [00:00<00:00, 1246.47it/s]Loading weights:  78%|███████▊  | 251/320 [00:00<00:00, 1204.70it/s]Loading weights: 100%|██████████| 320/320 [00:00<00:00, 1205.30it/s]
+Registered <class 'transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5Attention'> to _QuantAttention for KV Cache quantization
+Inserted 642 quantizers
+Loading extension modelopt_cuda_ext...
+Loaded extension modelopt_cuda_ext in 0.0 seconds
+shard 0: 23874 prompts, 9,188,153 tokens, layers [10, 12, 20], budget 524288, SDPA SDPBackend.CUDNN_ATTENTION
+/root/symphony/router_heads/common.py:197: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  ids[i, :len(s)] = torch.as_tensor(s, dtype=torch.long)
+[shard 0] batch 0/21 88,526 tok 7,768 tok/s
+Traceback (most recent call last):
+  File "/root/symphony/router_heads/extract.py", line 99, in <module>
+    main()
+  File "/root/symphony/router_heads/extract.py", line 72, in main
+    h = prefill(tm, layers, ids, mask, prompt_ids=item_ids[r])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/common.py", line 160, in prefill
+    tm(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 1040, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 262, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 1212, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/modeling_layers.py", line 110, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 788, in forward
+    hidden_states = self.linear_attn(
+                    ^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/integrations/accelerate.py", line 941, in wrapped
+    output = forward_func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/transformers/models/qwen3_5/modeling_qwen3_5.py", line 539, in forward
+    core_attn_out, last_recurrent_state = self.chunk_gated_delta_rule(
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1446, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/backends/__init__.py", line 214, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1446, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/gated_delta_rule/chunk.py", line 567, in chunk_gated_delta_rule
+    o, final_state = ChunkGatedDeltaRuleFunction.apply(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/autograd/function.py", line 625, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/utils/_decorators.py", line 152, in wrapper
+    return fn(*processed_args, **processed_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/amp/autocast_mode.py", line 481, in decorate_fwd
+    return fwd(*args, **kwargs)  # pyrefly: ignore [not-callable]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/gated_delta_rule/chunk.py", line 292, in forward
+    g, o, A, final_state, initial_state, g_input = chunk_gated_delta_rule_fwd(
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/gated_delta_rule/chunk.py", line 63, in chunk_gated_delta_rule_fwd
+    g = chunk_local_cumsum(
+        ^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/utils/_decorators.py", line 152, in wrapper
+    return fn(*processed_args, **processed_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1446, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/backends/__init__.py", line 214, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/utils/cumsum.py", line 460, in chunk_local_cumsum
+    return chunk_local_cumsum_scalar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/utils/cumsum.py", line 283, in chunk_local_cumsum_scalar
+    chunk_local_cumsum_scalar_kernel[grid](
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/jit.py", line 370, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/autotuner.py", line 459, in run
+    return self.fn.run(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/fla/ops/utils/cache.py", line 378, in run
+    return super().run(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/autotuner.py", line 238, in run
+    used_cached_result = self.check_disk_cache(key, pruned_configs, benchmark)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/autotuner.py", line 202, in check_disk_cache
+    bench_fn()
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/autotuner.py", line 229, in benchmark
+    timings = {config: self._bench(*args, config=config, **kwargs) for config in pruned_configs}
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/autotuner.py", line 164, in _bench
+    return self.do_bench(kernel_call, quantiles=(0.5, 0.2, 0.8))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/testing.py", line 149, in do_bench
+    fn()
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/autotuner.py", line 150, in kernel_call
+    self.fn.run(
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/runtime/jit.py", line 761, in run
+    kernel.run(grid_0, grid_1, grid_2, stream, kernel.function, kernel.packed_metadata, launch_metadata,
+  File "/root/symphony/router_heads/.venv/lib/python3.12/site-packages/triton/backends/nvidia/driver.py", line 328, in __call__
+    self.launch(gridX, gridY, gridZ, stream, function, self.launch_cooperative_grid, self.launch_pdl,
+RuntimeError: Triton Error [CUDA]: invalid argument
+/root/symphony/router_heads/.venv/lib/python3.12/site-packages/modelopt/torch/__init__.py:51: UserWarning: transformers 5.14.1 is not tested with current version of modelopt and may cause issues. Please install recommended version with `pip install -U nvidia-modelopt[hf]` if working with HF models.
+  _warnings.warn(
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/320 [00:00<?, ?it/s]Loading weights:  32%|███▎      | 104/320 [00:00<00:00, 1029.14it/s]Loading weights:  79%|███████▉  | 252/320 [00:00<00:00, 1290.08it/s]Loading weights: 100%|██████████| 320/320 [00:00<00:00, 1265.81it/s]
+Registered <class 'transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5Attention'> to _QuantAttention for KV Cache quantization
+Inserted 642 quantizers
+Loading extension modelopt_cuda_ext...
+Loaded extension modelopt_cuda_ext in 0.0 seconds
+shard 0: 23874 prompts, 9,188,153 tokens, layers [10, 12, 20], budget 524288, SDPA SDPBackend.CUDNN_ATTENTION
+/root/symphony/router_heads/common.py:197: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  ids[i, :len(s)] = torch.as_tensor(s, dtype=torch.long)
+[shard 0] batch 0/32 158,662 tok 11,689 tok/s
+[shard 0] batch 20/32 8,150,981 tok 43,230 tok/s
+{'shard': 0, 'd_model': 2048, 'layers': [10, 12, 20], 'n_prompts': 23874, 'tokens_processed': 9188153, 'seconds': 293.8, 'tok_s': 31275.891893632408, 'peak_gpu_gb': 59.5, 'bytes': 293554704}
+  L10: ridge val Spearman 0.7554
+  L12: ridge val Spearman 0.7554
+  L20: ridge val Spearman 0.7579
+L_d=10: ridge val Spearman 0.7554, MLP 0.7614
+  LODO aime: MLP Spearman 0.453, ridge 0.417
+  LODO arc-agi: MLP Spearman 0.399, ridge 0.393
+  LODO arcc: MLP Spearman 0.143, ridge 0.126
+  LODO arenahard: MLP Spearman 0.111, ridge 0.053
+  LODO bbh: MLP Spearman 0.109, ridge 0.296
+  LODO emorynlp: MLP Spearman 0.056, ridge 0.054
+  LODO finqa: MLP Spearman 0.184, ridge 0.200
+  LODO gpqa: MLP Spearman 0.229, ridge 0.241
+  LODO hle: MLP Spearman 0.141, ridge 0.128
+  LODO humaneval: MLP Spearman 0.170, ridge 0.034
+  LODO kandk: MLP Spearman 0.473, ridge 0.315
+  LODO korbench: MLP Spearman 0.550, ridge 0.540
+  LODO livecodebench: MLP Spearman 0.553, ridge 0.646
+  LODO livemathbench: MLP Spearman 0.534, ridge 0.574
+  LODO math500: MLP Spearman 0.636, ridge 0.627
+  LODO mathbench: MLP Spearman 0.189, ridge 0.254
+  LODO mbpp: MLP Spearman 0.367, ridge 0.384
+  LODO medqa: MLP Spearman 0.221, ridge 0.193
+  LODO meld: MLP Spearman 0.100, ridge 0.106
+  LODO mmlupro: MLP Spearman 0.233, ridge 0.254
+  LODO simpleqa: MLP Spearman 0.196, ridge 0.191
+  LODO swe-bench: MLP Spearman 0.133, ridge 0.097
+  LODO tau2: MLP Spearman -0.003, ridge 0.047
+  LODO winogrande: MLP Spearman 0.000, ridge 0.007
+# Difficulty head evaluation
+
+## Difficulty (test)
+
+| head | Spearman | Pearson | RMSE | within-dataset Spearman |
+|---|---|---|---|---|
+| mlp | 0.750 | 0.751 | 0.662 | 0.393 |
+| ridge | 0.751 | 0.752 | 0.656 | 0.351 |
+
+MLP - ridge Spearman: -0.001 (under 0.02: the MLP adds little over ridge)
+Leave-one-dataset-out mean Spearman: MLP 0.257, ridge 0.257
+Correctness AUC from -d: Qwen3-8B 0.739, glm-4.6 0.830, gpt-5 0.800
+
+## Layers
+
+L_d=10 (best 20, cost 0.003 Spearman), prefill needed for routing: 0.458 of 24 layers
+
+## Coverage (LLMRouterBench items excluded by the length cap)
+
+- aime: 0/60 (0.0%)
+- arc-agi: 28/400 (7.0%)
+- arcc: 0/1170 (0.0%)
+- arenahard: 1/750 (0.1%)
+- bbh: 0/1080 (0.0%)
+- emorynlp: 0/696 (0.0%)
+- finqa: 0/1138 (0.0%)
+- gpqa: 0/198 (0.0%)
+- hle: 4/2158 (0.2%)
+- humaneval: 0/164 (0.0%)
+- kandk: 0/700 (0.0%)
+- korbench: 0/1210 (0.0%)
+- livecodebench: 0/1055 (0.0%)
+- livemathbench: 0/121 (0.0%)
+- math500: 0/500 (0.0%)
+- mathbench: 0/150 (0.0%)
+- mbpp: 0/970 (0.0%)
+- medqa: 0/1273 (0.0%)
+- meld: 0/1231 (0.0%)
+- mmlupro: 0/2964 (0.0%)
+- simpleqa: 0/4326 (0.0%)
+- swe-bench: 341/500 (68.2%)
+- tau2: 0/167 (0.0%)
+- winogrande: 0/1267 (0.0%)
+
+## Timing
+
+```
+{
+ "quantize": {
+  "step": "quantize",
+  "time": "2026-10-11 09:47:21",
+  "seconds": 141.2,
+  "quantize_seconds": 134.2,
+  "peak_gpu_gb": 8.3
+ },
+ "pilot_features": {
+  "step": "pilot_features",
+  "time": "2026-10-11 09:52:04",
+  "seconds": 49.7
+ },
+ "pilot": {
+  "step": "pilot",
+  "time": "2026-10-11 09:52:04",
+  "seconds": 279.9,
+  "tok_s_per_gpu": 27785,
+  "peak_gpu_gb": 85.5
+ },
+ "train": {
+  "step": "train",
+  "time": "2026-10-11 10:01:12",
+  "seconds": 7.2,
+  "peak_gpu_gb": 0.5
+ },
+ "extract": {
+  "wall_seconds": 293.8,
+  "total_tokens": 9188153,
+  "tok_s_total": 31273.495575221237,
+  "tok_s_per_gpu": [
+   31276
+  ],
+  "peak_gpu_gb": 59.5,
+  "storage_gb": 0.3
+ }
+}
+```
+/root/symphony/router_heads/export_onnx.py:37: DeprecationWarning: You are using the legacy TorchScript-based ONNX export. Starting in PyTorch 2.9, the new torch.export-based ONNX exporter has become the default. Learn more about the new export logic: https://docs.pytorch.org/docs/stable/onnx_export.html. For exporting control flow: https://pytorch.org/tutorials/beginner/onnx/export_control_flow_model_to_onnx_tutorial.html
+  torch.onnx.export(DifficultyGraph(h).half().eval(), (torch.as_tensor(x).half(),), str(f), opset_version=OPSET,
+ONNX Runtime vs PyTorch: max abs err 5.10e-04

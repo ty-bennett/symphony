@@ -1,0 +1,5 @@
+{"step": "quantize", "time": "2026-10-11 09:47:21", "seconds": 141.2, "quantize_seconds": 134.2, "peak_gpu_gb": 8.3}
+{"step": "pilot_features", "time": "2026-10-11 09:52:04", "seconds": 49.7}
+{"step": "pilot", "time": "2026-10-11 09:52:04", "seconds": 279.9, "tok_s_per_gpu": 27785, "peak_gpu_gb": 85.5}
+{"step": "extract_shard_0", "time": "2026-10-11 10:01:00", "seconds": 293.8, "tok_s": 31275.891893632408, "tokens_processed": 9188153, "peak_gpu_gb": 59.5, "bytes": 293554704}
+{"step": "train", "time": "2026-10-11 10:01:12", "seconds": 7.2, "peak_gpu_gb": 0.5}
