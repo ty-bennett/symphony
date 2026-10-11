@@ -17,26 +17,49 @@ locals {
     "support:*", "trustedadvisor:*", "waf-regional:*", "waf:*", "wafv2:*", "wellarchitected:*",
   ]
 
+  # US-only cross-Region inference profiles (us.*) also route to us-west-2.
+  bedrock_inference_actions = [
+    "bedrock:Converse",
+    "bedrock:ConverseStream",
+    "bedrock:InvokeModel",
+    "bedrock:InvokeModelWithResponseStream",
+  ]
+  bedrock_inference_regions = concat(local.allowed_regions, ["us-west-2"])
+
   service_control_policies = {
     region-guardrail = {
-      description = "Deny regional services outside us-east-1 and us-east-2."
+      description = "Deny regional services outside us-east-1 and us-east-2 (Bedrock inference also us-west-2)."
+      ous         = keys(local.workload_ous)
       document = {
         Version = "2012-10-17"
-        Statement = [{
-          Sid       = "DenyOutsideApprovedRegions"
-          Effect    = "Deny"
-          NotAction = local.global_service_actions
-          Resource  = "*"
-          Condition = {
-            StringNotEquals = { "aws:RequestedRegion" = local.allowed_regions }
-            ArnNotLike      = { "aws:PrincipalARN" = [local.controltower_execution_role] }
-          }
-        }]
+        Statement = [
+          {
+            Sid       = "DenyOutsideApprovedRegions"
+            Effect    = "Deny"
+            NotAction = concat(local.global_service_actions, local.bedrock_inference_actions)
+            Resource  = "*"
+            Condition = {
+              StringNotEquals = { "aws:RequestedRegion" = local.allowed_regions }
+              ArnNotLike      = { "aws:PrincipalARN" = [local.controltower_execution_role] }
+            }
+          },
+          {
+            Sid      = "DenyBedrockInferenceOutsideUS"
+            Effect   = "Deny"
+            Action   = local.bedrock_inference_actions
+            Resource = "*"
+            Condition = {
+              StringNotEquals = { "aws:RequestedRegion" = local.bedrock_inference_regions }
+              ArnNotLike      = { "aws:PrincipalARN" = [local.controltower_execution_role] }
+            }
+          },
+        ]
       }
     }
 
     baseline-protection = {
       description = "Protect organization membership, security services, and keys."
+      ous         = keys(local.workload_ous)
       document = {
         Version = "2012-10-17"
         Statement = [
@@ -88,12 +111,39 @@ locals {
         ]
       }
     }
+
+    # Customer accounts must keep Bedrock data retention at "none" (zero data
+    # retention). No principal is exempt, so retention can only ever be set to none.
+    zero-data-retention = {
+      description = "Customer accounts may only set Bedrock data retention to none."
+      ous         = ["customers"]
+      document = {
+        Version = "2012-10-17"
+        Statement = [
+          {
+            Sid       = "DenyBedrockRetentionOtherThanNone"
+            Effect    = "Deny"
+            Action    = "bedrock:PutAccountDataRetention"
+            Resource  = "*"
+            Condition = { StringNotEquals = { "bedrock:DataRetentionMode" = "none" } }
+          },
+          {
+            Sid       = "DenyMantleRetentionOtherThanNone"
+            Effect    = "Deny"
+            Action    = ["bedrock-mantle:PutAccountDataRetention", "bedrock-mantle:CreateProject", "bedrock-mantle:UpdateProject"]
+            Resource  = "*"
+            Condition = { StringNotEquals = { "bedrock-mantle:DataRetentionMode" = "none" } }
+          },
+        ]
+      }
+    }
   }
 
-  scp_attachments = {
-    for pair in setproduct(keys(local.service_control_policies), keys(local.workload_ous)) :
-    "${pair[0]}/${pair[1]}" => { policy = pair[0], ou = pair[1] }
-  }
+  scp_attachments = merge([
+    for name, policy in local.service_control_policies : {
+      for ou in policy.ous : "${name}/${ou}" => { policy = name, ou = ou }
+    }
+  ]...)
 }
 
 resource "aws_organizations_policy" "scp" {

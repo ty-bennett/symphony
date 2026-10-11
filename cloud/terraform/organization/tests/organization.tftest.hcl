@@ -134,8 +134,8 @@ run "attaches_both_policies_to_every_workload_ou" {
   command = plan
 
   assert {
-    condition     = toset(keys(aws_organizations_policy_attachment.scp)) == toset(["region-guardrail/infrastructure", "region-guardrail/customers", "region-guardrail/sandbox", "baseline-protection/infrastructure", "baseline-protection/customers", "baseline-protection/sandbox"])
-    error_message = "Both SCPs must be attached to Infrastructure, Customers, and Sandbox."
+    condition     = toset(keys(aws_organizations_policy_attachment.scp)) == toset(["region-guardrail/infrastructure", "region-guardrail/customers", "region-guardrail/sandbox", "baseline-protection/infrastructure", "baseline-protection/customers", "baseline-protection/sandbox", "zero-data-retention/customers"])
+    error_message = "Region and baseline SCPs attach to every workload OU; zero data retention attaches to Customers."
   }
 }
 
@@ -442,5 +442,34 @@ run "enrolls_the_management_account_in_guardduty" {
   assert {
     condition     = toset([for m in aws_guardduty_member.management : "${m.region}/${m.account_id}"]) == toset(["us-east-1/111111111111", "us-east-2/111111111111"])
     error_message = "Organization auto-enable skips the management account; it must be added as a GuardDuty member."
+  }
+}
+
+# --- phase 3b scps ---
+run "allows_bedrock_inference_in_us_west_2_only" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[1].Condition.StringNotEquals["aws:RequestedRegion"] == ["us-east-1", "us-east-2", "us-west-2"]
+    error_message = "Bedrock inference may also run in us-west-2 for US cross-Region profiles, and nowhere else."
+  }
+
+  assert {
+    condition     = contains(jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].NotAction, "bedrock:InvokeModel") && !contains(jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].NotAction, "bedrock:*")
+    error_message = "Only Bedrock inference actions are exempt from the two-Region deny."
+  }
+}
+
+run "locks_customer_accounts_to_zero_data_retention" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_organizations_policy.scp["zero-data-retention"].content).Statement[0].Condition.StringNotEquals["bedrock:DataRetentionMode"] == "none"
+    error_message = "Any Bedrock retention mode other than none must be denied."
+  }
+
+  assert {
+    condition     = !strcontains(aws_organizations_policy.scp["zero-data-retention"].content, "ArnNotLike")
+    error_message = "No principal may be exempt from zero data retention."
   }
 }
