@@ -53,6 +53,26 @@ def render_events(events: Iterable[dict[str, Any]], out: TextIO) -> dict[str, An
     return summary
 
 
+def invoke_request(
+    harness_arn: str,
+    session_id: str,
+    prompt: str,
+    user: str | None = None,
+    model_id: str | None = None,
+) -> dict[str, Any]:
+    """Build InvokeHarness arguments; actorId scopes memory, model overrides the default."""
+    request: dict[str, Any] = {
+        "harnessArn": harness_arn,
+        "runtimeSessionId": session_id,
+        "messages": [{"role": "user", "content": [{"text": prompt}]}],
+    }
+    if user:
+        request["actorId"] = user
+    if model_id:
+        request["model"] = {"bedrockModelConfig": {"modelId": model_id}}
+    return request
+
+
 def harness_client(region: str, assume_role_arn: str | None) -> Any:
     import boto3
 
@@ -78,13 +98,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--session-id", default=None, help="Reuse to continue a conversation"
     )
+    parser.add_argument("--user", help="End-user ID; scopes memory to this actor")
+    parser.add_argument(
+        "--model-id", help="Override the harness model (must be in its IAM allowlist)"
+    )
     args = parser.parse_args(argv)
 
     client = harness_client(args.region, args.assume_role_arn)
+    session_id = args.session_id or new_session_id()
+    print(f"[session] {session_id}")
     response = client.invoke_harness(
-        harnessArn=args.harness_arn,
-        runtimeSessionId=args.session_id or new_session_id(),
-        messages=[{"role": "user", "content": [{"text": args.prompt}]}],
+        **invoke_request(
+            args.harness_arn, session_id, args.prompt, args.user, args.model_id
+        )
     )
     summary = render_events(response["stream"], sys.stdout)
     print(

@@ -39,6 +39,27 @@ class RenderEventsTest(unittest.TestCase):
         self.assertIn("[error] boom", out.getvalue())
         self.assertEqual(summary["errors"], ["boom"])
 
+    def test_request_scopes_memory_and_overrides_model_only_when_asked(self):
+        plain = invoke_demo.invoke_request("arn:h", "s" * 40, "hi")
+        self.assertNotIn("actorId", plain)
+        self.assertNotIn("model", plain)
+        full = invoke_demo.invoke_request(
+            "arn:h",
+            "s" * 40,
+            "hi",
+            user="ty",
+            model_id="us.anthropic.claude-opus-4-5-20251101-v1:0",
+        )
+        self.assertEqual(full["actorId"], "ty")
+        self.assertEqual(
+            full["model"],
+            {
+                "bedrockModelConfig": {
+                    "modelId": "us.anthropic.claude-opus-4-5-20251101-v1:0"
+                }
+            },
+        )
+
     def test_session_ids_meet_the_minimum_length(self):
         self.assertGreaterEqual(len(invoke_demo.new_session_id()), 33)
 
