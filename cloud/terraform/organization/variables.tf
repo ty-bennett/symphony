@@ -141,3 +141,46 @@ variable "security_contacts" {
     error_message = "At least one security contact is required."
   }
 }
+
+variable "identity_center_instance_arn" {
+  description = "Identity Center instance ARN (aws sso-admin list-instances)."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws:sso:::instance/ssoins-[a-f0-9]{16}$", var.identity_center_instance_arn))
+    error_message = "identity_center_instance_arn must be an Identity Center instance ARN."
+  }
+}
+
+variable "identity_store_id" {
+  description = "Identity store ID of the Identity Center instance (aws sso-admin list-instances)."
+  type        = string
+
+  validation {
+    condition     = can(regex("^d-[a-z0-9]{10}$", var.identity_store_id))
+    error_message = "identity_store_id must look like d-1234567890."
+  }
+}
+
+variable "identity_users" {
+  description = "Identity Center users keyed by a stable handle. Groups: symphony-operators, symphony-security, tenant-<id>-admins, tenant-<id>-readonly."
+  type = map(object({
+    given_name  = string
+    family_name = string
+    email       = string
+    groups      = list(string)
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue(flatten([
+      for user in var.identity_users : [
+        for group in user.groups : contains(concat(
+          ["symphony-operators", "symphony-security"],
+          flatten([for id in keys(var.tenants) : ["tenant-${id}-admins", "tenant-${id}-readonly"]]),
+        ), group)
+      ]
+    ]))
+    error_message = "Every identity user group must be symphony-operators, symphony-security, or tenant-<id>-admins/readonly for a configured tenant."
+  }
+}

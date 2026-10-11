@@ -22,3 +22,6 @@ tenants = {
 }
 
 security_contacts = ["security@example.com"]
+
+identity_center_instance_arn = "arn:aws:sso:::instance/ssoins-1111111111111111"
+identity_store_id            = "d-1111111111"

@@ -260,3 +260,73 @@ run "creates_finding_alerts_in_each_region" {
     error_message = "Each governed Region needs a finding alert topic."
   }
 }
+
+# --- identity center ---
+run "creates_the_four_permission_sets" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(aws_ssoadmin_permission_set.this)) == toset(["SymphonyPlatformAdmin", "SymphonySecurityAudit", "CustomerAdmin", "CustomerReadOnly"])
+    error_message = "Unexpected permission sets."
+  }
+
+  assert {
+    condition     = aws_ssoadmin_permission_set.this["SymphonyPlatformAdmin"].session_duration == "PT1H"
+    error_message = "Administrator sessions must be short."
+  }
+}
+
+run "gives_customers_only_their_own_account" {
+  command = plan
+
+  assert {
+    condition     = aws_ssoadmin_account_assignment.this["tenant-acme-admins/CustomerAdmin/tenant-acme"].target_id == "444444444444"
+    error_message = "Tenant admins must be assigned to their tenant account."
+  }
+
+  assert {
+    condition     = length([for key in keys(aws_ssoadmin_account_assignment.this) : key if strcontains(key, "/CustomerAdmin/")]) == 1
+    error_message = "CustomerAdmin must be assigned exactly once per tenant."
+  }
+}
+
+run "keeps_operators_out_of_management_and_security_accounts" {
+  command = plan
+
+  assert {
+    condition     = !contains(keys(aws_ssoadmin_account_assignment.this), "symphony-operators/SymphonyPlatformAdmin/audit") && !contains(keys(aws_ssoadmin_account_assignment.this), "symphony-operators/SymphonyPlatformAdmin/log-archive")
+    error_message = "Operators must not get administrator access to audit or log archive."
+  }
+
+  assert {
+    condition     = contains(keys(aws_ssoadmin_account_assignment.this), "symphony-security/SymphonySecurityAudit/audit")
+    error_message = "Security reviewers need read access to the audit account."
+  }
+}
+
+run "adds_users_to_their_groups" {
+  command = plan
+
+  variables {
+    identity_users = {
+      jdoe = { given_name = "Jordan", family_name = "Doe", email = "jordan@acme.example.com", groups = ["tenant-acme-readonly"] }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(aws_identitystore_group_membership.this)) == toset(["jdoe/tenant-acme-readonly"])
+    error_message = "Each user must join exactly its configured groups."
+  }
+}
+
+run "rejects_a_group_for_an_unknown_tenant" {
+  command = plan
+
+  variables {
+    identity_users = {
+      jdoe = { given_name = "Jordan", family_name = "Doe", email = "jordan@acme.example.com", groups = ["tenant-globex-admins"] }
+    }
+  }
+
+  expect_failures = [var.identity_users]
+}
