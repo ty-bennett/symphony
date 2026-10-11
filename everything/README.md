@@ -1,15 +1,74 @@
 # Shared-prefill edge router
 
-Python LOCAL/on-premise backend for privacy-aware LLM routing. One frozen causal
-transformer supplies both routing features and the cache for local generation.
-PRIVATE_AWS and FRONTIER return structured handoffs; neither has a network client.
-On-device federation trains and replaces **only the small decision heads**.
+Python LOCAL/on-premise backend for privacy-aware LLM routing. The preferred
+configuration now uses **your trained difficulty regression head on Qwen3.5-2B**
+to choose **LOCAL or PRIVATE_AWS**. AWS hosts the cloud/frontier models; there is
+no separate frontier/Snowflake destination in this configuration. No training
+is required, and cloud execution remains a structured handoff, not a network call.
+
+## Current setup: Qwen3.5-2B + your difficulty head
+
+For a small **Orin Nano functional and memory test**, after provisioning the
+exact export, run from the repository root:
+
+```bash
+python everything/scripts/test_qwen35_router_jetson.py \
+  --checkpoint /absolute/path/to/quant \
+  --exercise-local --show-response --output orin-router-test.json
+```
+
+It prints resident backbone/LM-head/difficulty-head memory, shared/tied-weight
+accounting, cache size and overall inference peak. No ablation, downloads or AWS
+calls. `--exercise-local` explicitly tests local generation even when the router
+recommends AWS. Details: [small device test](docs/qwen35_difficulty.md#small-orin-nano-functional--memory-test).
+
+The head at `../router_heads/out/heads/difficulty.pt` consumes the last prompt
+token's **layer-10 residual state**. One full backbone prefill also produces the
+final normalized state and complete attention/GDN cache. LOCAL uses that final
+state for its first-token LM logits and reuses the existing cache for subsequent
+single-token decoding. No second prompt prefill or second backbone is loaded.
+
+Provision `manifest.json` and the entire `edgellm_ckpt/` directory from the
+[model weights link in router_heads/README.md](../router_heads/README.md).
+The default location is `everything/models/qwen35-2b-router-awq/quant/`.
+**Do not substitute the older QuantTrio AWQ smoke-test checkpoint.**
+`modelopt_state.pth` is not needed for this inference path.
+
+```bash
+# From the repo root, using your configured Python environment:
+python everything/scripts/test_model.py --doctor
+python everything/scripts/test_model.py --checkpoint /absolute/path/to/quant
+
+# Start the API using the new default Qwen profile:
+cd everything
+PYTHONPATH=src bash scripts/run_server.sh
+```
+
+`config/difficulty_policy.yaml` selects LOCAL when `score <= local_max_difficulty`,
+otherwise PRIVATE_AWS. The output is standardized IRT difficulty, **not a
+probability**. The default cutoff `0.0` is an unvalidated starting setting; choose
+a production threshold from local/cloud evaluations. There is no learned
+sensitivity head in this artifact. Scanner flags and trusted metadata remain
+authoritative, UNKNOWN is treated as SENSITIVE, and this policy never emits FRONTIER.
+
+The approved export is **W4A16 AWQ**, not INT8: packed INT4 linears with FP16
+activations and FP16 embeddings/tied LM head/excluded modules. The initial
+PyTorch reader retains packed weights and dequantizes bounded tiles for matmul;
+**it is not an optimized TensorRT INT4 runtime**. Orin performance/fit still needs
+measurement. See the [full integration guide](docs/qwen35_difficulty.md) for
+artifact compatibility, API examples, precision/memory limitations, testing,
+head swapping, and benchmark commands.
+
+The rest of this README retains the **legacy Gemma/Strands classification and
+head-only federation documentation**. Those paths are opt-in; their old
+complexity/sensitivity trainer is not used by the new regression setup.
 
 ## Qwen3.5-2B AWQ Orin Nano smoke test
 
 A separate, opt-in [Jetson smoke test](docs/qwen35_awq_jetson.md) checks whether a
 real **INT4 AWQ / FP16-activation** Qwen3.5-2B text model loads and generates on
-your device. It does not change the Gemma/Strands router or require training.
+your device. It is separate from the trained difficulty router and does not
+exercise shared-prefill regression or require training.
 Start with read-only diagnostics on the Jetson:
 
 ```bash
@@ -23,7 +82,7 @@ weight download/build/run commands, smaller-context retries, memory/throughput
 reports, and the experimental AWQ builder caveat. No CPU/FP16 fallback, remote
 inference, decision-head training, or vision engine is used.
 
-## Test the model interactively or with a dataset
+## Legacy Gemma/Strands tests and classification documentation
 
 From the repository root, the tester works with the existing virtual environment;
 its wrapper locates source/config files without requiring an editable reinstall:
@@ -35,12 +94,14 @@ its wrapper locates source/config files without requiring an editable reinstall:
 # Try the interface immediately, entirely offline. NOT a real Gemma quality test.
 .venv/bin/python everything/scripts/test_model.py --demo
 
-# Actual INT8 Gemma/Strands, after provisioning your approved exported artifact.
+# Legacy INT8 Gemma/Strands, after provisioning your approved exported artifact.
 .venv/bin/python everything/scripts/test_model.py \
+  --profile .env.gemma4-strands.example \
   --checkpoint /absolute/path/to/gemma4-strands-sq-int8
 ```
 
-The real-model tester defaults to the repository's Gemma 4/Strands profile.
+The real-model tester now defaults to the Qwen difficulty profile. The legacy
+Gemma 4/Strands tests below require `--profile .env.gemma4-strands.example`.
 `--profile PATH` selects another **literal** env profile (never shell-executed).
 Profile values override environment settings; explicit CLI flags override those.
 Model/config paths inside the profile are resolved relative to `everything/`;

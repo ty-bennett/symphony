@@ -146,7 +146,16 @@ def test_doctor_reports_missing_gpu_and_artifact_without_loading_model(monkeypat
     monkeypatch.setattr(
         app, "build_orchestrator", lambda *args: pytest.fail("Doctor must not load a model")
     )
-    code = main(["--doctor", "--checkpoint", "/nonexistent/approved-int8-artifact"], PROJECT)
+    code = main(
+        [
+            "--doctor",
+            "--profile",
+            str(PROJECT.parent / ".env.gemma4-strands.example"),
+            "--checkpoint",
+            "/nonexistent/approved-int8-artifact",
+        ],
+        PROJECT,
+    )
     report = json.loads(capsys.readouterr().out)
     assert code == 2
     assert {item["code"] for item in report["blockers"]} == {

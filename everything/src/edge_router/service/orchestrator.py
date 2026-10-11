@@ -6,6 +6,7 @@ from edge_router.model.backend import SharedBackboneBackend
 from edge_router.model.memory import synchronize
 from edge_router.observability.logging import log_event
 from edge_router.observability.metrics import InMemoryMetrics, Metrics
+from edge_router.routing.difficulty_policy import DifficultyRoutingPolicy
 from edge_router.routing.policy import RoutingPolicy
 from edge_router.routing.security_scanner import SecurityScanner
 from edge_router.schemas import (
@@ -13,6 +14,7 @@ from edge_router.schemas import (
     ChatResult,
     DecisionRequest,
     DecisionResult,
+    DifficultyPrediction,
     GenerationOptions,
     Route,
     StreamEvent,
@@ -24,7 +26,7 @@ class Orchestrator:
     def __init__(
         self,
         backend: SharedBackboneBackend,
-        policy: RoutingPolicy,
+        policy: RoutingPolicy | DifficultyRoutingPolicy,
         scanner: SecurityScanner | None = None,
         remote: RemoteExecutor | None = None,
         metrics: Metrics | None = None,
@@ -49,12 +51,23 @@ class Orchestrator:
         synchronize()
         prefill_ms = (perf_counter() - start) * 1000
         start = perf_counter()
-        complexity, sensitivity = self.backend.classify(context, snapshot)
-        choice = self.policy.decide(complexity, sensitivity, flags, request.security_context)
+        prediction = self.backend.classify(context, snapshot)
+        complexity, sensitivity, difficulty = None, None, None
+        if isinstance(prediction, DifficultyPrediction):
+            if not isinstance(self.policy, DifficultyRoutingPolicy):
+                raise TypeError("Regression heads require a difficulty routing policy")
+            difficulty = prediction
+            choice = self.policy.decide(difficulty, flags, request.security_context)
+        else:
+            if not isinstance(self.policy, RoutingPolicy):
+                raise TypeError("Classifier heads require a classification routing policy")
+            complexity, sensitivity = prediction
+            choice = self.policy.decide(complexity, sensitivity, flags, request.security_context)
         result = DecisionResult(
             request_id=request_id,
             complexity=complexity,
             sensitivity=sensitivity,
+            difficulty=difficulty,
             resolved_sensitivity=choice.resolved_sensitivity,
             route=choice.route,
             policy_reason=choice.reason,
@@ -132,10 +145,17 @@ class Orchestrator:
         fields = {
             "request_id": decision.request_id,
             "route": decision.route.value,
-            "complexity": decision.complexity.label.value,
-            "complexity_confidence": decision.complexity.confidence,
-            "sensitivity": decision.sensitivity.label.value,
-            "sensitivity_confidence": decision.sensitivity.confidence,
+            "complexity": decision.complexity.label.value if decision.complexity else None,
+            "complexity_confidence": decision.complexity.confidence
+            if decision.complexity
+            else None,
+            "sensitivity": decision.sensitivity.label.value if decision.sensitivity else None,
+            "sensitivity_confidence": decision.sensitivity.confidence
+            if decision.sensitivity
+            else None,
+            "difficulty_score": decision.difficulty.score if decision.difficulty else None,
+            "resolved_sensitivity": decision.resolved_sensitivity.value,
+            "decision_model_version": decision.decision_model_version,
             "prompt_tokens": decision.prompt_tokens,
             "generated_tokens": generated,
             "prefill_ms": decision.timing_ms["prefill"],

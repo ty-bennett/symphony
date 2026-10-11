@@ -17,6 +17,9 @@ class Settings(StrictModel):
     quantized_model_path: str | None = None
     decision_checkpoint: str | None = None
     policy_config: str = "config/routing_policy.yaml"
+    difficulty_checkpoint: str = "../router_heads/out/heads/difficulty.pt"
+    difficulty_policy_config: str = "config/difficulty_policy.yaml"
+    awq_dequant_chunk_rows: int = Field(default=256, ge=2)
     max_context_tokens: int = Field(default=2048, ge=2)
     default_max_new_tokens: int = Field(default=128, ge=1)
     log_level: str = "INFO"

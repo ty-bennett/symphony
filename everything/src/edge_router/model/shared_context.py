@@ -13,6 +13,7 @@ class PrefillContext:
     prompt_length: int
     metadata: dict[str, Any] = field(default_factory=dict)
     consumed: bool = False
+    decision_hidden_state: torch.Tensor | None = None
 
 
 @dataclass

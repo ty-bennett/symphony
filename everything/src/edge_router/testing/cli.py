@@ -102,6 +102,8 @@ def make_settings(args, project: Path) -> tuple[Settings, dict]:
         "strands_prompt_config",
         "quantized_model_path",
         "decision_checkpoint",
+        "difficulty_checkpoint",
+        "difficulty_policy_config",
     ]:
         value = getattr(settings, name)
         if value and not Path(value).is_absolute():
@@ -136,10 +138,16 @@ def display_event(event: StreamEvent, show_response: bool = True):
         )
         for name in ["complexity", "sensitivity"]:
             prediction = getattr(decision, name)
+            if prediction is None:
+                continue
             probabilities = ", ".join(
                 f"{label.value}={value:.3f}" for label, value in prediction.probabilities.items()
             )
             print(f"{name.capitalize()}: {prediction.label.value} ({probabilities})")
+        if decision.difficulty:
+            print(
+                f"Difficulty: {decision.difficulty.score:.4f} (layer {decision.difficulty.layer}; not a probability)"
+            )
         print(f"Policy: {decision.policy_reason}")
         if show_response and decision.route.value == "LOCAL":
             print("Local response: ", end="", flush=True)
@@ -147,7 +155,7 @@ def display_event(event: StreamEvent, show_response: bool = True):
         print(event.data["text"], end="", flush=True)
     elif event.event == "complete":
         if event.data["status"] == "HANDOFF_REQUIRED":
-            print("HANDOFF_REQUIRED: no AWS/Snowflake request was sent.")
+            print("HANDOFF_REQUIRED: no remote request was sent.")
         else:
             print()
 
@@ -179,7 +187,9 @@ def save_report(path: Path, report: dict) -> None:
 
 def main(argv: list[str] | None = None, project_root: Path | None = None) -> int:
     project = (project_root or Path.cwd()).resolve()
-    default_profile = project.parent / ".env.gemma4-strands.example"
+    default_profile = project / ".env.qwen35-difficulty.example"
+    if not default_profile.is_file():
+        default_profile = project.parent / ".env.gemma4-strands.example"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--profile", type=Path, default=default_profile if default_profile.is_file() else None
@@ -194,7 +204,7 @@ def main(argv: list[str] | None = None, project_root: Path | None = None) -> int
     )
     parser.add_argument("--device", help="Explicit device override, e.g. cpu or cuda:0")
     parser.add_argument(
-        "--checkpoint", type=Path, help="Approved local SmoothQuant artifact directory"
+        "--checkpoint", type=Path, help="Approved local quantized artifact directory (Qwen: quant/)"
     )
     parser.add_argument(
         "--unquantized",
@@ -280,6 +290,10 @@ def main(argv: list[str] | None = None, project_root: Path | None = None) -> int
             if env in thresholds
         }
         if updates:
+            if not isinstance(service.policy, RoutingPolicy):
+                raise ValueError(
+                    "Classifier probability thresholds do not apply to regression routing"
+                )
             service.policy = RoutingPolicy(
                 type(service.policy.config).model_validate(
                     {**service.policy.config.model_dump(), **updates}

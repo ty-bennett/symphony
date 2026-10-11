@@ -12,6 +12,19 @@ from edge_router.service.orchestrator import Orchestrator
 
 
 def build_orchestrator(settings: Settings) -> Orchestrator:
+    if settings.model_backend == "qwen35_difficulty":
+        from edge_router.model.qwen35_difficulty_backend import build_qwen35_difficulty_backend
+        from edge_router.routing.difficulty_policy import (
+            DifficultyPolicyConfig,
+            DifficultyRoutingPolicy,
+        )
+
+        return Orchestrator(
+            build_qwen35_difficulty_backend(settings),
+            DifficultyRoutingPolicy(DifficultyPolicyConfig.load(settings.difficulty_policy_config)),
+            default_max_new_tokens=settings.default_max_new_tokens,
+            unsafe_content_logging=settings.unsafe_content_logging,
+        )
     if settings.model_backend == "tiny":
         from edge_router.model.tiny_backend import TinyBackend
 

@@ -41,6 +41,59 @@ def readiness(settings: Settings, allow_download: bool = False) -> dict:
         warnings.append(
             "OFFLINE DEMO only: no meaningful language-model accuracy or Jetson performance."
         )
+    elif settings.model_backend == "qwen35_difficulty":
+        from edge_router.model.difficulty_head import load_difficulty_head
+        from edge_router.model.quantization.modelopt_awq import validate_export
+        from edge_router.routing.difficulty_policy import DifficultyPolicyConfig
+
+        try:
+            snapshot = load_difficulty_head(settings.difficulty_checkpoint)
+            info["decision_model_version"] = snapshot.version
+            info["decision_layer"] = snapshot.heads.layer
+            if (
+                settings.quantization != "modelopt_awq_int4"
+                or settings.dtype != "float16"
+                or settings.model_id != snapshot.heads.identity["base_repo"]
+                or settings.model_revision != snapshot.heads.identity["base_revision"]
+                or settings.max_context_tokens > snapshot.heads.identity["device_max_prompt_tokens"]
+                or settings.decision_checkpoint
+                or settings.federation_enabled
+            ):
+                raise ValueError("Incompatible configuration")
+            DifficultyPolicyConfig.load(settings.difficulty_policy_config)
+        except (OSError, ValueError, KeyError, TypeError, RuntimeError):
+            blockers.append(
+                {
+                    "code": "DIFFICULTY_HEAD_CONFIG_MISMATCH",
+                    "action": "Use the trained difficulty.pt + version.json and matching Qwen FP16/AWQ profile; disable legacy federation/checkpoints.",
+                }
+            )
+            snapshot = None
+        if not settings.quantized_model_path:
+            blockers.append(
+                {
+                    "code": "QUANTIZED_CHECKPOINT_MISSING",
+                    "action": "Download quant/ from router_heads/README.md; point --checkpoint to the folder containing manifest.json and edgellm_ckpt/.",
+                }
+            )
+        elif snapshot is not None:
+            try:
+                directory = validate_export(
+                    Path(settings.quantized_model_path), snapshot.heads.identity, verify_files=False
+                )
+                info["quantized_artifact_bytes"] = sum(
+                    p.stat().st_size for p in directory.rglob("*") if p.is_file()
+                )
+            except (OSError, ValueError, KeyError, TypeError):
+                blockers.append(
+                    {
+                        "code": "QUANTIZED_CHECKPOINT_MISSING_OR_INCOMPATIBLE",
+                        "action": "Provision the complete, exact quant/ export linked in router_heads/README.md (not QuantTrio AWQ).",
+                    }
+                )
+        warnings.append(
+            "Packed AWQ reference matmuls, not a fused TensorRT engine. Doctor checks manifest identity/file presence; full file hashes are checked on load. No downloads are performed."
+        )
     elif settings.quantization == "smoothquant_int8":
         directory = Path(settings.quantized_model_path or "")
         required = [

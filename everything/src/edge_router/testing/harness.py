@@ -32,6 +32,7 @@ class EvaluationCase(StrictModel):
     complexity: Complexity | None = None
     sensitivity: Sensitivity | None = None
     route: Route | None = None
+    difficulty: float | None = Field(default=None, allow_inf_nan=False)
 
 
 @dataclass
@@ -160,13 +161,15 @@ def classification_metrics(truth: list[str], predictions: list[str], labels: lis
 
 
 def summarize(cases: list[EvaluationCase], outcomes: list[TestOutcome], model_info: dict) -> dict:
-    complexity_pairs, sensitivity_pairs = [], []
+    complexity_pairs, sensitivity_pairs, difficulty_errors = [], [], []
     route_correct, route_count, sensitive_frontier, deterministic_violations = 0, 0, 0, 0
     for case, outcome in zip(cases, outcomes, strict=True):
         decision = outcome.decision
-        if case.complexity is not None:
+        if case.difficulty is not None and decision.difficulty is not None:
+            difficulty_errors.append(decision.difficulty.score - case.difficulty)
+        if case.complexity is not None and decision.complexity is not None:
             complexity_pairs.append((case.complexity.value, decision.complexity.label.value))
-        if case.sensitivity is not None:
+        if case.sensitivity is not None and decision.sensitivity is not None:
             sensitivity_pairs.append((case.sensitivity.value, decision.sensitivity.label.value))
         if case.route is not None:
             route_count += 1
@@ -210,6 +213,15 @@ def summarize(cases: list[EvaluationCase], outcomes: list[TestOutcome], model_in
         "requests": len(outcomes),
         "complexity": complexity,
         "sensitivity": sensitivity,
+        "difficulty": {
+            "labelled_examples": len(difficulty_errors),
+            "rmse": math.sqrt(statistics.mean(e * e for e in difficulty_errors))
+            if difficulty_errors
+            else None,
+            "mae": statistics.mean(abs(e) for e in difficulty_errors)
+            if difficulty_errors
+            else None,
+        },
         "routing": {
             "labelled_examples": route_count,
             "accuracy": route_correct / route_count if route_count else None,

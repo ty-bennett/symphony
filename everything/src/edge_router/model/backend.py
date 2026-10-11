@@ -6,6 +6,7 @@ from edge_router.model.decision_heads import DecisionHeadManager, HeadSnapshot
 from edge_router.model.shared_context import GeneratedToken, Instrumentation, PrefillContext
 from edge_router.schemas import (
     ComplexityPrediction,
+    DifficultyPrediction,
     GenerationOptions,
     Message,
     SensitivityPrediction,
@@ -22,7 +23,7 @@ class SharedBackboneBackend(Protocol):
 
     def classify(
         self, context: PrefillContext, snapshot: HeadSnapshot
-    ) -> tuple[ComplexityPrediction, SensitivityPrediction]: ...
+    ) -> tuple[ComplexityPrediction, SensitivityPrediction] | DifficultyPrediction: ...
 
     def decode_from_prefill(
         self, context: PrefillContext, options: GenerationOptions

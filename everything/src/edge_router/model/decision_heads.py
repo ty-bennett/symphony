@@ -1,6 +1,7 @@
 import copy
 import threading
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import torch
 from torch import nn
@@ -11,6 +12,9 @@ from edge_router.schemas import (
     Sensitivity,
     SensitivityPrediction,
 )
+
+if TYPE_CHECKING:
+    from edge_router.model.difficulty_head import DifficultyHead
 
 
 class DecisionHeads(nn.Module):
@@ -67,7 +71,7 @@ class DecisionHeads(nn.Module):
 
 @dataclass(frozen=True)
 class HeadSnapshot:
-    heads: DecisionHeads
+    heads: "DecisionHeads | DifficultyHead"
     version: str
     complexity_temperature: float = 1.0
     sensitivity_temperature: float = 1.0
@@ -94,8 +98,10 @@ class DecisionHeadManager:
         ):
             raise ValueError("Calibration temperatures must be finite and positive")
         heads = snapshot.heads.isolated_copy()
-        if not all(torch.isfinite(p).all() for p in heads.parameters()):
+        if not all(torch.isfinite(p).all() for p in heads.state_dict().values()):
             raise ValueError("Decision heads contain non-finite parameters")
+        if hasattr(heads, "validate_for_serving"):
+            heads.validate_for_serving()
         heads.float().eval().requires_grad_(False)
         return HeadSnapshot(
             heads,
@@ -116,6 +122,10 @@ class DecisionHeadManager:
             actual = prepared.heads.state_dict()
             if (
                 prepared.heads.architecture_version != self._active.heads.architecture_version
+                or getattr(prepared.heads, "identity", None)
+                != getattr(self._active.heads, "identity", None)
+                or getattr(prepared.heads, "layer", None)
+                != getattr(self._active.heads, "layer", None)
                 or set(actual) != set(expected)
                 or any(actual[name].shape != expected[name].shape for name in actual)
             ):

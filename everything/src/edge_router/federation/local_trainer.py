@@ -12,7 +12,7 @@ from edge_router.federation.feature_extractor import (
 from edge_router.federation.models import FeatureMode, FederatedUpdate, FederationConfig
 from edge_router.federation.update_builder import build_update, validate_update
 from edge_router.feedback.models import LocalExample
-from edge_router.model.decision_heads import HeadSnapshot
+from edge_router.model.decision_heads import DecisionHeads, HeadSnapshot
 from edge_router.model.memory import synchronize
 
 
@@ -37,6 +37,8 @@ class FederatedLocalTrainer:
         features: list[LocalFeature] | None = None,
     ) -> TrainingResult:
         config = self.config
+        if not isinstance(approved.heads, DecisionHeads):
+            raise ValueError("Legacy classification federation cannot train difficulty regression heads")
         config.privacy.ensure_supported()
         backend = self.extractor.backend
         # Explicitly assert the freeze rather than repairing an unsafe setup silently.

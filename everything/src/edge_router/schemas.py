@@ -68,10 +68,19 @@ class SensitivityPrediction(StrictModel):
     confidence: float
 
 
+class DifficultyPrediction(StrictModel):
+    """Standardized IRT difficulty, not a probability or classifier confidence."""
+
+    score: float = Field(allow_inf_nan=False)
+    layer: int = Field(ge=0)
+    target: Literal["standardized_irt_difficulty"] = "standardized_irt_difficulty"
+
+
 class DecisionResult(StrictModel):
     request_id: str
-    complexity: ComplexityPrediction
-    sensitivity: SensitivityPrediction
+    complexity: ComplexityPrediction | None = None
+    sensitivity: SensitivityPrediction | None = None
+    difficulty: DifficultyPrediction | None = None
     resolved_sensitivity: Sensitivity
     route: Route
     policy_reason: str
