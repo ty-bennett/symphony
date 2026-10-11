@@ -45,8 +45,8 @@ run "governs_only_the_two_pilot_regions" {
   command = plan
 
   assert {
-    condition     = jsondecode(aws_controltower_landing_zone.this.manifest_json).governedRegions == ["us-east-1", "us-east-2"]
-    error_message = "Governed Regions must be exactly us-east-1 and us-east-2."
+    condition     = jsondecode(aws_controltower_landing_zone.this.manifest_json).governedRegions == ["us-east-2", "us-east-1"]
+    error_message = "Governed Regions must be exactly us-east-1 and us-east-2, in the order Control Tower returns them (otherwise every plan shows drift)."
   }
 }
 

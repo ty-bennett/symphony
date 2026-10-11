@@ -143,5 +143,10 @@ resource "aws_guardduty_member" "management" {
   email       = var.management_account_email
   invite      = false
 
+  lifecycle {
+    # GuardDuty does not return email for organization members and reports invite = true.
+    ignore_changes = [email, invite]
+  }
+
   depends_on = [aws_guardduty_organization_configuration.this, aws_guardduty_detector.management]
 }

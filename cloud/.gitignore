@@ -13,3 +13,4 @@ __pycache__/
 backend.hcl
 *_override.tf
 crash.log
+.terraform-offline/

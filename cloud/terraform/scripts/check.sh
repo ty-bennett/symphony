@@ -5,6 +5,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Keep offline checks out of each root's .terraform/, which may be initialized
+# against the real S3 backend for deploys.
+export TF_DATA_DIR=.terraform-offline
+
 terraform fmt -check -recursive
 
 dirs=()

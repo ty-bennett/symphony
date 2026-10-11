@@ -4,6 +4,7 @@ variables {
   management_account_id     = "111111111111"
   log_archive_account_email = "aws+log-archive@example.com"
   audit_account_email       = "aws+audit@example.com"
+  existing_organization_id  = null # keep tests independent of a local terraform.tfvars
 }
 
 override_data {

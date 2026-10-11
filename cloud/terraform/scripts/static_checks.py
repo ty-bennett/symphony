@@ -40,6 +40,12 @@ REQUIRED: list[tuple[str, str, int, str]] = [
     ("modules/ct-account/main.tf", PREVENT_DESTROY, 1, "Vended accounts must not be terminated by Terraform."),
     ("shared-services/main.tf", PREVENT_DESTROY, 1, "The artifact key must not be destroyed."),
     ("tenant-baseline/main.tf", PREVENT_DESTROY, 3, "Tenant key, device registry, and user pool must not be destroyed."),
+    (
+        "organization/security_services.tf",
+        r"ignore_changes\s*=\s*\[email,\s*invite\]",
+        1,
+        "GuardDuty does not return email or invite for organization members; without this every plan replaces the membership.",
+    ),
 ]
 
 # Every root must refuse to plan against the wrong account or Region.
@@ -65,7 +71,7 @@ def scanned_files(root: Path = ROOT) -> list[Path]:
         path
         for path in root.rglob("*")
         if path.is_file()
-        and ".terraform" not in path.parts
+        and ".terraform" not in path.parts and ".terraform-offline" not in path.parts
         and (
             path.name.endswith(SCANNED_SUFFIXES)
             or (path.name == "terraform.tfvars" and path.parent.name == "tests")
