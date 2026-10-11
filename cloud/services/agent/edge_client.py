@@ -14,10 +14,14 @@ from cloud/schemas. Test users' passwords stay in ~/.symphony/test-users/.
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
+import hmac
 import http.client
 import json
 import secrets
 import ssl
+import struct
 import sys
 import time
 import uuid
@@ -123,15 +127,76 @@ def make_user(cognito: Any, pool_id: str, username: str) -> dict[str, str]:
     return {a["Name"]: a["Value"] for a in user["UserAttributes"]}
 
 
-def access_token(cognito: Any, pool_id: str, client_id: str, username: str) -> str:
-    password = json.loads((USERS_DIR / f"{username}.json").read_text())["password"]
+def totp(secret: str, *, at: float | None = None, step: int = 30) -> str:
+    """RFC 6238 six-digit code (what an authenticator app shows)."""
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
+    counter = int((time.time() if at is None else at) // step)
+    digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    offset = digest[-1] & 0x0F
+    code = (
+        struct.unpack(">I", digest[offset : offset + 4])[0] & 0x7FFFFFFF
+    ) % 1_000_000
+    return f"{code:06d}"
+
+
+def access_token(
+    cognito: Any,
+    pool_id: str,
+    client_id: str,
+    username: str,
+    *,
+    users_dir: Path = USERS_DIR,
+    now: float | None = None,
+) -> str:
+    """Sign in a test user; the pool requires TOTP MFA, enrolled on first sign-in.
+
+    Tokens are cached until a minute before expiry: Cognito rejects a reused TOTP code.
+    """
+    now = time.time() if now is None else now
+    path = users_dir / f"{username}.json"
+    record = json.loads(path.read_text())
+    if record.get("access_token") and record.get("expires_at", 0) - 60 > now:
+        return record["access_token"]
     result = cognito.admin_initiate_auth(
         UserPoolId=pool_id,
         ClientId=client_id,
         AuthFlow="ADMIN_USER_PASSWORD_AUTH",
-        AuthParameters={"USERNAME": username, "PASSWORD": password},
+        AuthParameters={"USERNAME": username, "PASSWORD": record["password"]},
     )
-    return result["AuthenticationResult"]["AccessToken"]
+    challenge = result.get("ChallengeName")
+    if challenge == "MFA_SETUP":
+        secret = cognito.associate_software_token(Session=result["Session"])
+        record["totp_secret"] = secret["SecretCode"]
+        path.write_text(json.dumps(record))
+        path.chmod(0o600)
+        verified = cognito.verify_software_token(
+            Session=secret["Session"], UserCode=totp(record["totp_secret"])
+        )
+        result = cognito.admin_respond_to_auth_challenge(
+            UserPoolId=pool_id,
+            ClientId=client_id,
+            ChallengeName="MFA_SETUP",
+            Session=verified["Session"],
+            ChallengeResponses={"USERNAME": username},
+        )
+    elif challenge == "SOFTWARE_TOKEN_MFA":
+        result = cognito.admin_respond_to_auth_challenge(
+            UserPoolId=pool_id,
+            ClientId=client_id,
+            ChallengeName="SOFTWARE_TOKEN_MFA",
+            Session=result["Session"],
+            ChallengeResponses={
+                "USERNAME": username,
+                "SOFTWARE_TOKEN_MFA_CODE": totp(record["totp_secret"]),
+            },
+        )
+    elif challenge:
+        raise RuntimeError(f"unsupported sign-in challenge {challenge}")
+    auth = result["AuthenticationResult"]
+    record.update(access_token=auth["AccessToken"], expires_at=now + auth["ExpiresIn"])
+    path.write_text(json.dumps(record))
+    path.chmod(0o600)
+    return auth["AccessToken"]
 
 
 def post(
