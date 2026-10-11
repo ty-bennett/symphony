@@ -10,3 +10,7 @@ artifacts/
 !examples/*.jsonl
 !everything/examples/test_cases.jsonl
 !.env.example
+
+# Node dependencies (any package)
+node_modules/
+.DS_Store
