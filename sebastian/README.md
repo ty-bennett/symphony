@@ -181,11 +181,19 @@ browser (tab) → /api/oc/* (this app) → opencode serve (http://127.0.0.1:4096
 
 ### Run it
 
-1. In the repository you want the agent to work on, start opencode:
+1. Start opencode **1.18.35**, the version this app is built against, pointed
+   at the repository you want the agent to work on:
 
    ```sh
-   opencode serve --port 4096
+   npm install            # once; installs the pinned opencode too
+   npm run opencode -- /path/to/the/repository
    ```
+
+   This runs the pinned opencode from `node_modules` on port 4096, with its own
+   data folder in `.symphony/opencode`. Don't use a global `opencode serve`
+   from Homebrew or the installer: opencode **v2** moved its API under `/api`,
+   requires a login, and changed its database. The app then gets opencode's web
+   page instead of its API, and nothing loads.
 
    To get an approval card before every edit or shell command, add this to
    that repository's `opencode.json`:
