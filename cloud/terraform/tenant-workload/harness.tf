@@ -160,8 +160,11 @@ resource "aws_bedrockagentcore_harness" "agent" {
   }
 
   # Prompts, memory facts, and answers must never land in telemetry (spans or OTel log events).
+  # The managed runtime ignores the capture flag alone (observed live), so OTel log
+  # events, which carry message content, are not exported at all; spans still are.
   environment_variables = {
     OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT = "false"
+    OTEL_LOGS_EXPORTER                                 = "none"
   }
 
   system_prompt {

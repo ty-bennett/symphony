@@ -386,4 +386,9 @@ run "telemetry_never_captures_prompt_or_answer_text" {
     condition     = aws_bedrockagentcore_harness.agent.environment_variables["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"] == "false"
     error_message = "GenAI content capture must be off (observed live: runtime logs held prompts, memory facts, and answers)."
   }
+
+  assert {
+    condition     = aws_bedrockagentcore_harness.agent.environment_variables["OTEL_LOGS_EXPORTER"] == "none"
+    error_message = "The managed runtime ignores the capture flag, so OTel log events (which carry message content) are not exported; spans still are."
+  }
 }
