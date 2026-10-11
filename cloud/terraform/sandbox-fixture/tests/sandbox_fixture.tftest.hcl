@@ -81,6 +81,11 @@ run "grants_the_knowledge_base_only_approved_docs" {
 run "grants_nothing_by_default" {
   command = plan
 
+  # Pinned so a local terraform.tfvars (real reader roles) cannot change what this tests.
+  variables {
+    knowledge_base_reader_role_arns = []
+  }
+
   assert {
     condition     = length(jsondecode(aws_kms_key.documents.policy).Statement) == 1
     error_message = "Without reader roles, the fixture key trusts only its own account."

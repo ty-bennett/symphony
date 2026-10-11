@@ -46,7 +46,7 @@ export function Thread({
       <EmptyState title="Start a coding session">
         <p>
           Describe what you want changed in the repository. The agent plans, edits and runs commands there, and asks before
-          anything you've set to require approval.
+          anything you&rsquo;ve set to require approval.
         </p>
       </EmptyState>
     )
