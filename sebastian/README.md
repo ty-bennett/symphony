@@ -39,7 +39,7 @@ page:
 | QuickBooks for Symphony | list_invoices, get_invoice, create_invoice, send_invoice, list_customers, get_customer, create_customer, list_items, list_payments, list_bills |
 | Square for Symphony | get_sales, search_customers, list_items, list_locations, create_customer, create_payment_link (HTTP Request tools + a Square access token) |
 
-Set up per app: import the file in n8n, sign in to the app in its tools (for
+Set up per app: in n8n create a new workflow and use ⋯ › Import from File (or paste the file's contents onto the canvas), sign in to the app in its tools (for
 Mailchimp also pick the audience), set **Bearer Auth** with a token of your
 choice on "Symphony connects here", activate, and paste the trigger's
 **Production URL** and the token into Connected apps. Symphony lists the

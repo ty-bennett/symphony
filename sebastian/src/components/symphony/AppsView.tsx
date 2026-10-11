@@ -367,7 +367,8 @@ function AppRow({
                     <a href={app.workflow} download>
                       Download “{app.name} for Symphony”
                     </a>{" "}
-                    and import it in n8n (Workflows › ⋯ › Import from file).
+                    . In n8n, create a new workflow, then use the ⋯ menu at the top right › Import from File (or open the file, copy
+                    everything and paste it onto the empty canvas). Save it.
                   </li>
                 ) : (
                   <li>
