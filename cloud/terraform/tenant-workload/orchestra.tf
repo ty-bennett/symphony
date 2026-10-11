@@ -63,6 +63,18 @@ resource "aws_iam_role_policy" "chat" {
         Resource = local.allowed_model_arns
       },
       {
+        Sid      = "SearchTenantDocuments"
+        Effect   = "Allow"
+        Action   = "bedrock:Retrieve"
+        Resource = aws_bedrockagent_knowledge_base.documents.arn
+      },
+      {
+        Sid      = "UseTenantAgentTools"
+        Effect   = "Allow"
+        Action   = ["bedrock-agentcore:InvokeHarness", "bedrock-agentcore:InvokeAgentRuntime"]
+        Resource = [aws_bedrockagentcore_harness.agent.arn, "${aws_bedrockagentcore_harness.agent.arn}/*"]
+      },
+      {
         Sid      = "WriteOwnLogs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
@@ -114,9 +126,11 @@ resource "aws_lambda_function" "chat" {
 
   environment {
     variables = {
-      TENANT_ID        = var.tenant_id
-      DEFAULT_MODEL_ID = var.model_id
-      STEP_UP_MODEL_ID = var.step_up_model_id
+      TENANT_ID         = var.tenant_id
+      DEFAULT_MODEL_ID  = var.model_id
+      STEP_UP_MODEL_ID  = var.step_up_model_id
+      KNOWLEDGE_BASE_ID = aws_bedrockagent_knowledge_base.documents.id
+      HARNESS_ARN       = aws_bedrockagentcore_harness.agent.arn
     }
   }
 

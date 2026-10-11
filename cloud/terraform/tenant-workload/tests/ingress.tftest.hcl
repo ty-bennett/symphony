@@ -444,8 +444,18 @@ run "orchestra_model_endpoint_streams_behind_the_same_authorizer" {
   }
 
   assert {
-    condition     = length(jsondecode(aws_iam_role_policy.chat.policy).Statement) == 2
-    error_message = "The chat role may call models and write its logs; nothing else."
+    condition     = [for st in jsondecode(aws_iam_role_policy.chat.policy).Statement : st.Sid] == ["InvokeAllowlistedModels", "SearchTenantDocuments", "UseTenantAgentTools", "WriteOwnLogs"]
+    error_message = "The chat role may call models, search the tenant knowledge base, use the tenant agent's tools, and log; nothing else."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.chat.policy).Statement[1].Resource == "arn:aws:bedrock:us-east-2:444444444444:knowledge-base/KBABC12345" && jsondecode(aws_iam_role_policy.chat.policy).Statement[2].Action == ["bedrock-agentcore:InvokeHarness", "bedrock-agentcore:InvokeAgentRuntime"]
+    error_message = "Orchestra's cloud tools are pinned to this tenant's knowledge base and harness."
+  }
+
+  assert {
+    condition     = aws_lambda_function.chat.environment[0].variables.KNOWLEDGE_BASE_ID == "KBABC12345"
+    error_message = "The chat Lambda searches the tenant knowledge base."
   }
 }
 

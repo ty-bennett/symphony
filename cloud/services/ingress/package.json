@@ -9,6 +9,7 @@
     "build": "esbuild src/ingress.mjs src/authorizer.mjs src/chat-lambda.mjs src/admin-lambda.mjs --bundle --platform=node --target=node22 --format=esm --outdir=dist --out-extension:.js=.mjs \"--banner:js=import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\""
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.1149.0",
     "@aws-sdk/client-bedrock-agentcore": "^3.900.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1149.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.1149.0",
