@@ -1,3 +1,11 @@
+# Adopt a pre-existing Organization instead of creating one. Existing OUs,
+# accounts, and policies stay untouched; Terraform manages only what it declares.
+import {
+  for_each = var.existing_organization_id == null ? toset([]) : toset([var.existing_organization_id])
+  to       = aws_organizations_organization.this
+  id       = each.value
+}
+
 resource "aws_organizations_organization" "this" {
   feature_set          = "ALL"
   enabled_policy_types = ["SERVICE_CONTROL_POLICY"]

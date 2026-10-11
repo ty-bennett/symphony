@@ -8,6 +8,17 @@ variable "management_account_id" {
   }
 }
 
+variable "existing_organization_id" {
+  description = "Set to adopt an Organization that already exists in the management account (o-...); null creates a new one."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.existing_organization_id == null || can(regex("^o-[a-z0-9]{10,32}$", var.existing_organization_id))
+    error_message = "existing_organization_id must look like o-abc1234567."
+  }
+}
+
 variable "security_ou_name" {
   description = "Name of the OU that holds the Control Tower service integration accounts."
   type        = string

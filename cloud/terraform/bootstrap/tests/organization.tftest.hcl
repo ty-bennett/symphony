@@ -97,3 +97,26 @@ run "rejects_reused_account_emails" {
 
   expect_failures = [var.audit_account_email]
 }
+
+run "adopts_an_existing_organization" {
+  command = plan
+
+  variables {
+    existing_organization_id = "o-r2xq6g9vo2"
+  }
+
+  assert {
+    condition     = aws_organizations_organization.this.feature_set == "ALL"
+    error_message = "An adopted organization must still require all features."
+  }
+}
+
+run "rejects_a_malformed_organization_id" {
+  command = plan
+
+  variables {
+    existing_organization_id = "r-abcd"
+  }
+
+  expect_failures = [var.existing_organization_id]
+}

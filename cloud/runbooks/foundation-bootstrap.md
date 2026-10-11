@@ -27,7 +27,7 @@ aws iam get-policy --policy-arn arn:aws:iam::aws:policy/service-role/AWSControlT
 aws iam get-policy --policy-arn arn:aws:iam::aws:policy/service-role/AWSControlTowerCloudTrailRolePolicy --query Policy.Arn
 ```
 
-If an Organization or landing zone already exists, stop: the start-from-scratch assumption in `PLAN.md` is false.
+If a landing zone already exists, stop. If an Organization already exists in this management account and you intend to adopt it, set `existing_organization_id` in `bootstrap/terraform.tfvars`; the bootstrap plan must then show `1 to import` and no destroys. Existing OUs and accounts stay ungoverned unless you register them later.
 
 Run every root as an administrator IAM role or IAM user with MFA in the management account, never as the root user. STS refuses `AssumeRole` from root, so the organization root (its `aws.audit` provider) and every member-account root would fail, and the organization guard rejects a root caller. After the landing zone exists you can switch to an Identity Center `AWSAdministratorAccess` session (`aws configure sso`).
 

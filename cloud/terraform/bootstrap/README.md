@@ -16,6 +16,7 @@ Creates what must exist before Control Tower: the Terraform state backend, the A
 | `management_account_id` | 12 digits; the provider and guard refuse any other account |
 | `log_archive_account_email`, `audit_account_email` | Unique; must differ from each other |
 | `log_archive_account_name`, `audit_account_name`, `security_ou_name` | Defaults: `Log Archive`, `Audit`, `Security` |
+| `existing_organization_id` | Optional. Adopts an Organization that already exists (import) instead of creating one |
 
 ## Outputs
 
