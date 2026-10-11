@@ -33,8 +33,24 @@ resource "aws_kms_key" "tenant_data" {
         Resource  = "*"
         Condition = {
           ArnLike = {
-            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${var.workload_region}:${var.tenant_account_id}:log-group:/symphony/${var.tenant_id}/*"
+            "kms:EncryptionContext:aws:logs:arn" = [
+              "arn:aws:logs:${var.workload_region}:${var.tenant_account_id}:log-group:/symphony/${var.tenant_id}/*",
+              "arn:aws:logs:${var.workload_region}:${var.tenant_account_id}:log-group:aws/spans",
+              "arn:aws:logs:${var.workload_region}:${var.tenant_account_id}:log-group:/aws/bedrock-agentcore/*",
+            ]
           }
+        }
+      },
+      {
+        Sid       = "AllowS3VectorsIndexing"
+        Effect    = "Allow"
+        Principal = { Service = "indexing.s3vectors.amazonaws.com" }
+        Action    = "kms:Decrypt"
+        Resource  = "*"
+        Condition = {
+          ArnLike                    = { "aws:SourceArn" = "arn:aws:s3vectors:${var.workload_region}:${var.tenant_account_id}:bucket/*" }
+          StringEquals               = { "aws:SourceAccount" = var.tenant_account_id }
+          "ForAnyValue:StringEquals" = { "kms:EncryptionContextKeys" = ["aws:s3vectors:arn", "aws:s3vectors:resource-id"] }
         }
       },
     ]

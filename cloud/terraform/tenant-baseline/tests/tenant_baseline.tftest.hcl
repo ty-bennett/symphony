@@ -35,6 +35,16 @@ run "encrypts_tenant_data_with_a_rotating_key" {
   }
 
   assert {
+    condition     = contains(jsondecode(aws_kms_key.tenant_data.policy).Statement[1].Condition.ArnLike["kms:EncryptionContext:aws:logs:arn"], "arn:aws:logs:us-east-2:444444444444:log-group:aws/spans")
+    error_message = "AgentCore trace spans must be encryptable with the tenant key."
+  }
+
+  assert {
+    condition     = jsondecode(aws_kms_key.tenant_data.policy).Statement[2].Principal.Service == "indexing.s3vectors.amazonaws.com" && jsondecode(aws_kms_key.tenant_data.policy).Statement[2].Condition.StringEquals["aws:SourceAccount"] == "444444444444"
+    error_message = "S3 Vectors may use the tenant key only for this account's vector buckets."
+  }
+
+  assert {
     condition     = aws_kms_alias.tenant_data.name == "alias/symphony/acme/data"
     error_message = "The key alias must include the tenant ID."
   }
