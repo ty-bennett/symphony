@@ -7,7 +7,7 @@ Stands in for a customer's existing AWS account so the Phase 3 S3 connector can 
 | Account / Region | Integration fixture account (Sandbox OU) via `AWSControlTowerExecution`, `us-east-1` |
 | State key | `symphony/sandbox-fixture.tfstate` |
 | Apply order | After `organization` |
-| Inputs | `fixture_account_id`, `state_bucket` |
+| Inputs | `fixture_account_id`, `state_bucket`, `knowledge_base_reader_role_arns` (optional; tenant KB roles allowed to read `approved-docs/` and decrypt via S3) |
 | Outputs | `documents_bucket_name`, `approved_prefix`, `forbidden_prefix`, `documents_kms_key_arn` |
 | Cost-bearing resources | One KMS key and a few KB of S3 storage |
 

@@ -28,6 +28,7 @@ run "uploads_approved_and_forbidden_synthetic_documents" {
       "approved-docs/welcome.txt",
       "approved-docs/handbook/pto-policy.md",
       "approved-docs/inventory.csv",
+      "approved-docs/sales-2026-q3.csv",
       "forbidden-docs/acquisition-plan.txt",
     ])
     error_message = "Fixture objects must match the files under fixtures/."
@@ -62,4 +63,26 @@ run "refuses_a_tenant_account" {
   }
 
   expect_failures = [terraform_data.account_guard]
+}
+
+run "grants_the_knowledge_base_only_approved_docs" {
+  command = plan
+
+  variables {
+    knowledge_base_reader_role_arns = ["arn:aws:iam::444444444444:role/symphony-acme-knowledge-base"]
+  }
+
+  assert {
+    condition     = strcontains(jsonencode(jsondecode(aws_kms_key.documents.policy).Statement[1]), "kms:ViaService") && jsondecode(aws_kms_key.documents.policy).Statement[1].Action == "kms:Decrypt"
+    error_message = "The knowledge base may only decrypt through S3."
+  }
+}
+
+run "grants_nothing_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(jsondecode(aws_kms_key.documents.policy).Statement) == 1
+    error_message = "Without reader roles, the fixture key trusts only its own account."
+  }
 }

@@ -1,0 +1,61 @@
+region,product,month,revenue_usd
+East,Blue widget,2026-07,7000
+East,Blue widget,2026-08,4250
+East,Blue widget,2026-09,8250
+East,Red widget,2026-07,12250
+East,Red widget,2026-08,2750
+East,Red widget,2026-09,3000
+East,Green widget,2026-07,15000
+East,Green widget,2026-08,10500
+East,Green widget,2026-09,3500
+East,Widget care plan,2026-07,7750
+East,Widget care plan,2026-08,11250
+East,Widget care plan,2026-09,2750
+East,Install service,2026-07,10000
+East,Install service,2026-08,5250
+East,Install service,2026-09,2500
+West,Blue widget,2026-07,3250
+West,Blue widget,2026-08,8750
+West,Blue widget,2026-09,8500
+West,Red widget,2026-07,3000
+West,Red widget,2026-08,5750
+West,Red widget,2026-09,3250
+West,Green widget,2026-07,10750
+West,Green widget,2026-08,8750
+West,Green widget,2026-09,2750
+West,Widget care plan,2026-07,15000
+West,Widget care plan,2026-08,11000
+West,Widget care plan,2026-09,3750
+West,Install service,2026-07,5500
+West,Install service,2026-08,12000
+West,Install service,2026-09,12000
+Central,Blue widget,2026-07,11250
+Central,Blue widget,2026-08,2750
+Central,Blue widget,2026-09,11000
+Central,Red widget,2026-07,11250
+Central,Red widget,2026-08,8250
+Central,Red widget,2026-09,2750
+Central,Green widget,2026-07,5500
+Central,Green widget,2026-08,2500
+Central,Green widget,2026-09,10750
+Central,Widget care plan,2026-07,4000
+Central,Widget care plan,2026-08,6500
+Central,Widget care plan,2026-09,8500
+Central,Install service,2026-07,4250
+Central,Install service,2026-08,10500
+Central,Install service,2026-09,3750
+South,Blue widget,2026-07,11000
+South,Blue widget,2026-08,6750
+South,Blue widget,2026-09,10750
+South,Red widget,2026-07,15000
+South,Red widget,2026-08,12750
+South,Red widget,2026-09,4750
+South,Green widget,2026-07,3500
+South,Green widget,2026-08,11250
+South,Green widget,2026-09,11000
+South,Widget care plan,2026-07,12000
+South,Widget care plan,2026-08,5000
+South,Widget care plan,2026-09,7750
+South,Install service,2026-07,3500
+South,Install service,2026-08,10750
+South,Install service,2026-09,13250

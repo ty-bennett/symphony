@@ -5,6 +5,7 @@ locals {
   approved_prefix  = "approved-docs/"
   forbidden_prefix = "forbidden-docs/"
   fixture_files    = fileset("${path.module}/fixtures", "**")
+  kb_grant_count   = length(var.knowledge_base_reader_role_arns) == 0 ? 0 : 1
   content_types = {
     csv = "text/csv"
     md  = "text/markdown"
@@ -26,13 +27,20 @@ resource "aws_kms_key" "documents" {
   deletion_window_in_days = 7
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
+    Statement = concat([{
       Sid       = "EnableFixtureAccountIamPolicies"
       Effect    = "Allow"
       Principal = { AWS = "arn:aws:iam::${var.fixture_account_id}:root" }
       Action    = "kms:*"
       Resource  = "*"
-    }]
+      }], [for _ in range(local.kb_grant_count) : {
+      Sid       = "AllowKnowledgeBaseDecryptViaS3"
+      Effect    = "Allow"
+      Principal = { AWS = var.knowledge_base_reader_role_arns }
+      Action    = "kms:Decrypt"
+      Resource  = "*"
+      Condition = { StringEquals = { "kms:ViaService" = "s3.${local.home_region}.amazonaws.com" } }
+    }])
   })
 
   depends_on = [terraform_data.account_guard]
@@ -44,6 +52,23 @@ module "documents_bucket" {
   name                               = "symphony-fixture-${var.fixture_account_id}-docs"
   kms_key_arn                        = aws_kms_key.documents.arn
   noncurrent_version_expiration_days = 7
+  additional_policy_statements = flatten([for _ in range(local.kb_grant_count) : [
+    {
+      Sid       = "AllowKnowledgeBaseListApproved"
+      Effect    = "Allow"
+      Principal = { AWS = var.knowledge_base_reader_role_arns }
+      Action    = "s3:ListBucket"
+      Resource  = "arn:aws:s3:::symphony-fixture-${var.fixture_account_id}-docs"
+      Condition = { StringLike = { "s3:prefix" = [local.approved_prefix, "${local.approved_prefix}*"] } }
+    },
+    {
+      Sid       = "AllowKnowledgeBaseReadApproved"
+      Effect    = "Allow"
+      Principal = { AWS = var.knowledge_base_reader_role_arns }
+      Action    = "s3:GetObject"
+      Resource  = "arn:aws:s3:::symphony-fixture-${var.fixture_account_id}-docs/${local.approved_prefix}*"
+    },
+  ]])
 }
 
 resource "aws_s3_object" "fixture" {
