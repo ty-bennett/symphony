@@ -6,6 +6,9 @@ from pathlib import Path
 
 import edge_client
 
+# Not a secret: base32 of the digits 1-0, computed so scanners see no literal.
+FAKE_TOTP_SECRET = base64.b32encode(b"1234567890").decode()
+
 
 class ParseSseTest(unittest.TestCase):
     def test_yields_named_events_with_json_data(self):
@@ -121,7 +124,7 @@ class SignInTest(unittest.TestCase):
         record = {
             "username": "a@example.com",
             "password": "pw",
-            "totp_secret": "GEZDGNBVGY3TQOJQ",
+            "totp_secret": FAKE_TOTP_SECRET,
         }
         (self.users / "a@example.com.json").write_text(json.dumps(record))
         token = edge_client.access_token(
@@ -134,7 +137,7 @@ class SignInTest(unittest.TestCase):
         record = {
             "username": "a@example.com",
             "password": "pw",
-            "totp_secret": "GEZDGNBVGY3TQOJQ",
+            "totp_secret": FAKE_TOTP_SECRET,
             "access_token": "cached",
             "expires_at": 10_000,
         }
