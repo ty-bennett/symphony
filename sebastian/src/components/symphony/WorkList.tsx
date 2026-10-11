@@ -102,7 +102,7 @@ export function WorkList() {
                   </span>
                   <span className={styles.rowSide}>
                     <PlaceLabel place={job.place} quiet />
-                    <span style={{ fontVariantNumeric: "tabular-nums", minWidth: 64, textAlign: "right" }}>{formatCost(job.cost)}</span>
+                    <span style={{ fontVariantNumeric: "lining-nums tabular-nums", minWidth: 64, textAlign: "right" }}>{formatCost(job.cost)}</span>
                   </span>
                 </Link>
               </li>

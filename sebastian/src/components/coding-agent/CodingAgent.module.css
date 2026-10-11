@@ -566,7 +566,7 @@
   display: inline-flex;
   gap: 8px;
   font-size: var(--fs-meta);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .adds {

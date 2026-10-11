@@ -467,7 +467,7 @@
 
 .num {
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
   padding-right: 0 !important;
 }
 
@@ -617,5 +617,5 @@
   font-weight: 600;
   line-height: 1.2;
   color: var(--good);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
 }

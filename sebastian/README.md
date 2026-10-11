@@ -62,6 +62,9 @@ Colors follow the official palette: Onyx `#141414` and Ivory `#ffffed`, with
 Saddle Brown `#814618` for "On your Symphony", Deep Forest `#1a3d26` for the
 private cloud and Pacific Cyan `#588d93` for the open cloud (tokens in
 `globals.css`; text uses same-hue shades where a color would be too faint).
+The typeface is [Syne](https://fonts.google.com/specimen/Syne) (SIL Open Font
+License) for headings and text, with lining figures turned on so counts and
+prices sit at full height.
 
 Symphony installs like an app: on an iPhone, open it in Safari, tap **Share**,
 then **Add to Home Screen**. It opens full screen with its own icon, and the

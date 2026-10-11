@@ -360,7 +360,7 @@ export function PrivacyView() {
                 <li key={place}>
                   <span className={styles.swatch} style={{ background: PLACES[place].color }} aria-hidden="true" />
                   <span>{PLACES[place].name}</span>
-                  <span className={styles.muted} style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <span className={styles.muted} style={{ fontVariantNumeric: "lining-nums tabular-nums" }}>
                     {formatCost(money?.byPlace[place] ?? 0)}
                   </span>
                 </li>
@@ -439,7 +439,7 @@ export function PrivacyView() {
                     <li key={place}>
                       <span className={styles.swatch} style={{ background: PLACES[place].color }} aria-hidden="true" />
                       <span>{PLACES[place].name}</span>
-                      <span className={styles.muted} style={{ fontVariantNumeric: "tabular-nums" }}>
+                      <span className={styles.muted} style={{ fontVariantNumeric: "lining-nums tabular-nums" }}>
                         {formatSaved(savings.byPlace[place])}
                       </span>
                     </li>

@@ -35,8 +35,8 @@
   --warn: #b3261e;
   --warn-tint: #fbe8e1;
 
-  --font-display: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
-  --font-body: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Syne", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --fs-meta: 13px;
@@ -139,6 +139,8 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: 1.5;
+  /* Syne's default figures are old-style; use full-height ones for counts and prices. */
+  font-variant-numeric: lining-nums;
 }
 
 h1,
