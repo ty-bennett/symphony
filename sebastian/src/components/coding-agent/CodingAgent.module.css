@@ -86,7 +86,7 @@
 }
 
 .dot_live {
-  background: var(--device);
+  background: var(--good);
 }
 
 .dot_connecting {
@@ -366,7 +366,7 @@
 }
 
 .statusDone {
-  color: var(--device);
+  color: var(--good);
   flex: none;
 }
 
@@ -570,7 +570,7 @@
 }
 
 .adds {
-  color: var(--device);
+  color: var(--good);
 }
 
 .dels {
@@ -702,11 +702,11 @@
 }
 
 .diff_add {
-  background: var(--device-tint);
+  background: var(--good-tint);
 }
 
 .diff_add .diffSign {
-  color: var(--device);
+  color: var(--good);
 }
 
 .diff_del {

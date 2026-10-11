@@ -1,5 +1,6 @@
 // Pure state logic for the Coding agent tab. No React here, so it can be unit
 // tested (see scripts/check-logic.ts).
+import { describeAppTool } from "@/lib/symphony/apps"
 import { aggregateTurnDiffs } from "./diff"
 import type {
   FileDiff,
@@ -160,7 +161,7 @@ export function normalizePermission(raw: RawPermission): Permission {
   }
   for (const p of patterns) if (p && p !== "*" && !details.includes(p)) details.push(p)
   const title = raw.title ?? describePermission(kind)
-  return { id: raw.id, sessionID: raw.sessionID, title, details }
+  return { id: raw.id, sessionID: raw.sessionID, title, details, kind, ...(raw.tool?.callID ? { callID: raw.tool.callID } : {}) }
 }
 
 function describePermission(kind: string): string {
@@ -176,7 +177,7 @@ function describePermission(kind: string): string {
     case "external_directory":
       return "Use a folder outside the project"
     default:
-      return `Allow "${kind}"`
+      return describeAppTool(kind) ?? `Allow "${kind}"`
   }
 }
 

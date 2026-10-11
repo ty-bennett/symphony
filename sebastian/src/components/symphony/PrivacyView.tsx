@@ -421,7 +421,7 @@ export function PrivacyView() {
             ) : (
               <>
                 <p>
-                  <span className={styles.big} style={savings.saved < 0 ? undefined : { color: "var(--device)" }}>
+                  <span className={styles.big} style={savings.saved < 0 ? undefined : { color: "var(--good)" }}>
                     {formatSaved(savings.saved)}
                   </span>{" "}
                   <span className={styles.muted}>
@@ -537,7 +537,7 @@ export function PrivacyView() {
                           {job.reason ? job.reason.charAt(0).toUpperCase() + job.reason.slice(1) : "Started from the coding agent"}
                         </td>
                         <td className={styles.num}>{formatCost(job.cost)}</td>
-                        <td className={styles.num} style={{ color: job.saved ? "var(--device)" : "var(--muted)" }}>
+                        <td className={styles.num} style={{ color: job.saved ? "var(--good)" : "var(--muted)" }}>
                           {job.saved === undefined || job.place === "open" ? "—" : formatSaved(job.saved)}
                         </td>
                       </tr>

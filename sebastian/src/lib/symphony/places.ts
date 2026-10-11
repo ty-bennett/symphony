@@ -1,11 +1,13 @@
 import type { Place } from "./types"
 
-export const PLACES: Record<Place, { name: string; short: string; promise: string; color: string; icon: "house" | "lock" | "globe" }> = {
+/** color: the official place color (icons, bars, swatches). ink: the same hue, readable as text. */
+export const PLACES: Record<Place, { name: string; short: string; promise: string; color: string; ink: string; icon: "house" | "lock" | "globe" }> = {
   device: {
     name: "On your Symphony",
     short: "on your Symphony",
     promise: "The box in your back office. Nothing leaves the building, and it costs nothing.",
     color: "var(--device)",
+    ink: "var(--device-text)",
     icon: "house",
   },
   private: {
@@ -13,6 +15,7 @@ export const PLACES: Record<Place, { name: string; short: string; promise: strin
     short: "in your private cloud",
     promise: "Your own encrypted cloud account. Never used to train AI.",
     color: "var(--private)",
+    ink: "var(--private-text)",
     icon: "lock",
   },
   open: {
@@ -20,6 +23,7 @@ export const PLACES: Record<Place, { name: string; short: string; promise: strin
     short: "in the open cloud",
     promise: "The most capable AI, and it can search the web.",
     color: "var(--open)",
+    ink: "var(--open-text)",
     icon: "globe",
   },
 }

@@ -1,0 +1,98 @@
+{
+  "name": "Square: find a customer",
+  "description": "Look up a Square customer by email address or phone number. Body: { \"query\": \"jane@example.com\" } or { \"query\": \"803-555-0142\" }. Returns up to 5 matches with name, email and phone.",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symphony-square-find-customer",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "4fa7b5f8-f84f-4884-b8dc-14032da40e9c",
+      "name": "When Symphony asks",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "11e8b4cf-1f70-402f-bcac-0748036311c4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://connect.squareup.com/v2/customers/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ limit: 5, query: { filter: String($json.body.query ?? '').includes('@') ? { email_address: { fuzzy: String($json.body.query) } } : { phone_number: { fuzzy: String($json.body.query ?? '') } } } }) }}",
+        "options": {}
+      },
+      "id": "813cf012-3483-4004-b282-e7dfc744ce20",
+      "name": "Search Square customers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Square access token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shortens Square's customer records to what the owner needs.\nconst customers = $input.first().json.customers ?? [];\nreturn [{\n  json: {\n    found: customers.length,\n    customers: customers.slice(0, 5).map((c) => ({\n      name: [c.given_name, c.family_name].filter(Boolean).join(' ') || c.company_name || null,\n      email: c.email_address ?? null,\n      phone: c.phone_number ?? null,\n      customer_since: c.created_at?.slice(0, 10) ?? null,\n    })),\n  },\n}];"
+      },
+      "id": "a6a994c4-fc64-4183-8a33-9055d25b7b77",
+      "name": "Keep the basics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "When Symphony asks": {
+      "main": [
+        [
+          {
+            "node": "Search Square customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Square customers": {
+      "main": [
+        [
+          {
+            "node": "Keep the basics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "tags": [
+    {
+      "name": "Square"
+    },
+    {
+      "name": "Symphony"
+    }
+  ]
+}

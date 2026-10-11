@@ -26,6 +26,7 @@ export function TodayView() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [jobs, setJobs] = useState<Job[] | null>(null)
   const [savings, setSavings] = useState<Savings | null>(null)
+  const [connected, setConnected] = useState<string[]>([])
   const [pending, setPending] = useState<RawPermission[]>([])
   const [text, setText] = useState("")
   const [checkFirst, setCheckFirst] = useState(true)
@@ -58,6 +59,10 @@ export function TodayView() {
       })
       .catch((e) => setError(message(e)))
     void load()
+    // Apps with actions ready count as private in the route preview.
+    api<{ apps: { id: string; ready: unknown[] }[] }>("/api/symphony", "/apps")
+      .then((o) => setConnected(o.apps.filter((a) => a.ready.length).map((a) => a.id)))
+      .catch(() => {})
   }, [load])
 
   const refresh = useDebounced(() => void load(), 400)
@@ -65,7 +70,10 @@ export function TodayView() {
     if (event.type.startsWith("session.") || event.type.startsWith("permission.")) refresh()
   }, refresh)
 
-  const decision = useMemo(() => (settings && text.trim() ? routeTask(text, settings) : null), [settings, text])
+  const decision = useMemo(
+    () => (settings && text.trim() ? routeTask(text, settings, connected) : null),
+    [settings, text, connected],
+  )
   const place = override ?? decision?.place ?? null
 
   async function start(choice?: ConsentChoice) {
@@ -165,8 +173,9 @@ export function TodayView() {
                 <Icon name={PLACES[place].icon} size={16} style={{ color: PLACES[place].color }} />
                 <p>
                   Runs{" "}
-                  <strong style={{ color: PLACES[place].color, fontWeight: 600 }}>{PLACES[place].short}</strong>
+                  <strong style={{ color: PLACES[place].ink, fontWeight: 600 }}>{PLACES[place].short}</strong>
                   {override ? ", because you chose it. " : `, because ${decision.reason}. `}
+                  {decision.apps?.length ? `Uses ${decision.apps.join(" and ")}. ` : null}
                   <button type="button" className={styles.linkButton} aria-expanded={choosing} onClick={() => setChoosing((v) => !v)}>
                     Change
                   </button>

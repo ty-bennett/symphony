@@ -10,13 +10,61 @@ setting).
 | Today | `/` | Start a job, see what needs your OK, recent work |
 | Work | `/work`, `/work/:id` | Every job, and one job's steps, result, changes and Undo |
 | Coding agent | `/coding-agent` | opencode itself, for people who want the full view |
+| Connected apps | `/apps` | Square, Google Calendar, Gmail and more, through n8n |
 | Privacy and spending | `/privacy` | Where jobs may run, what stays private, monthly limit, report |
 
 All four run on opencode: a Symphony **job** is an opencode session. Start
 opencode as described under [Run it](#run-it), then open
 http://localhost:3000.
 
+## Connected apps (n8n)
+
+The agent can use the apps a business already runs on (Square, Google
+Calendar, Gmail, QuickBooks, Shopify, Google Sheets, Mailchimp) through
+[n8n](https://n8n.io), running next to Symphony.
+
+```
+job (opencode session) → n8n's MCP server → an n8n workflow → Square, Gmail, …
+```
+
+- **n8n holds the app logins** and each action is an n8n workflow ("Square:
+  today's sales"). A workflow is visible to Symphony when it's published and
+  **Available in MCP** is on (workflow menu › Settings). Workflows are grouped
+  under an app by a tag with the app's name, or by its name/description.
+- **Connect once** on the Connected apps page: n8n's address and an access
+  token from n8n (Settings › Instance-level MCP › Enable MCP access, then
+  Connect a client › API key). Or set `N8N_URL` and `N8N_MCP_TOKEN`. The
+  token is saved to `.symphony/n8n.json` (mode 600) and never sent to the
+  browser. Symphony registers n8n's MCP server with opencode (`POST /mcp`, as
+  `n8n`).
+- **What the agent may do.** n8n's MCP server also has tools for building,
+  publishing and deleting workflows and listing credentials. Every session
+  Symphony or the coding agent creates gets permission rules that hide all
+  `n8n_*` tools except finding a workflow, reading its details, reading a
+  run's result, and running it. Running asks first ("Ask me before an app
+  action runs", on by default), and the approval card names the action and
+  its inputs.
+- **Privacy.** A job that mentions a connected app counts as touching that
+  app's data (Square: customer contact info, bank and card details), so it
+  stays on the box or in the private cloud unless the owner agrees otherwise.
+- **Square** has no built-in n8n node, so it goes through n8n's HTTP Request
+  node with a Square access token saved as a Header Auth credential
+  (`Authorization: Bearer …`). Two starter workflows are in `public/n8n/`
+  (today's sales, find a customer) and download from the page: import into
+  n8n, pick the credential, publish. They call Square's live API
+  (`connect.squareup.com`); use `connect.squareupsandbox.com` with a sandbox
+  token to try them safely.
+
+Tested against a stand-in for n8n's MCP server (same tool names and result
+shapes as n8n's source) and the real opencode. Not yet run against a real n8n
+instance.
+
 ## On a phone
+
+Colors follow the official palette: Onyx `#141414` and Ivory `#ffffed`, with
+Saddle Brown `#814618` for "On your Symphony", Deep Forest `#1a3d26` for the
+private cloud and Pacific Cyan `#588d93` for the open cloud (tokens in
+`globals.css`; text uses same-hue shades where a color would be too faint).
 
 Symphony installs like an app: on an iPhone, open it in Safari, tap **Share**,
 then **Add to Home Screen**. It opens full screen with its own icon, and the
@@ -99,6 +147,8 @@ Set `SYMPHONY_DATA_DIR` to keep them somewhere else.
 | `GET, PUT /api/symphony/settings` | Privacy and spending settings |
 | `GET /api/symphony/jobs` | `{ jobs, spending, savings }`; each job carries `tokens`, `wouldHaveCost` and `saved` |
 | `POST /api/symphony/jobs` | `{ text, checkFirst?, place?, consent?, redact? }` → 202 `{ jobId, place, reason }`, or 409 `{ needsConsent, decision }` |
+| `GET /api/symphony/apps` | Connected apps: n8n status, each app's ready actions (`?fresh=1` skips the 30s cache) |
+| `PUT, DELETE /api/symphony/apps/connection` | `{ url, token }`: test, save and register n8n; or disconnect |
 | `GET /api/symphony/jobs/:id` | One job, the comparison `rates`, and its removed details (to restore them on screen) |
 | `POST /api/symphony/jobs/:id/undo`, `/redo` | Revert or un-revert the job's changes |
 
@@ -149,6 +199,8 @@ browser (tab) → /api/oc/* (this app) → opencode serve (http://127.0.0.1:4096
 | `OPENCODE_SERVER_PASSWORD` | unset | Basic auth password (`OPENCODE_SERVER_PASSWORD` on the opencode side) |
 | `OC_ALLOW_UNAUTHENTICATED` | unset | Set to `1` to allow `/api/oc/*` in production before login exists. Only for a trusted local demo |
 | `SYMPHONY_DATA_DIR` | `./.symphony` | Where Privacy and spending settings are saved |
+| `N8N_URL` | unset | n8n's address for Connected apps, e.g. `http://localhost:5678` (or set it in the app) |
+| `N8N_MCP_TOKEN` | unset | n8n access token (Settings › Instance-level MCP › API key) |
 
 **Security.** The agent can edit files and run shell commands. `/api/oc/*`
 refuses requests in production until `checkAuth()` in

@@ -3,6 +3,8 @@
 import { OcError, oc, ocJson, parseModel, sendPrompt, unwrap } from "@/lib/opencode/server"
 import type { RawPermission, SessionStatus } from "@/lib/opencode/types"
 import { placeForProvider, PLACE_ORDER } from "./places"
+import { appForWorkflow, appPermissionRules } from "./apps"
+import { cachedWorkflows, ensureRegistered, readN8nConfig } from "./n8n"
 import { redactContactInfo, routeTask } from "./routing"
 import { ratesFromProviders, readTokens, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "./savings"
 import type { Job, JobMeta, Place, Rates, Savings, Settings, Spending } from "./types"
@@ -154,10 +156,37 @@ export class ConsentRequired extends OcError {
   }
 }
 
+/**
+ * Which connected apps have actions the agent can run, with n8n registered in
+ * opencode. If n8n isn't set up or can't be reached, jobs run without apps.
+ */
+export async function appContext(settings: Settings): Promise<{ ready: boolean; appIds: string[] }> {
+  if (!settings.apps.enabled) return { ready: false, appIds: [] }
+  const config = await readN8nConfig()
+  if (!config) return { ready: false, appIds: [] }
+  try {
+    const [workflows] = await Promise.all([cachedWorkflows(config), ensureRegistered(config)])
+    const appIds = workflows
+      .filter((w) => w.active && w.availableInMCP)
+      .map((w) => appForWorkflow(w)?.id)
+      .filter((id): id is string => Boolean(id))
+    return { ready: true, appIds: Array.from(new Set(appIds)) }
+  } catch {
+    return { ready: false, appIds: [] }
+  }
+}
+
+/** Permission rules for a new session: file/shell/web per "Check with me first", plus the n8n guard. */
+export async function sessionRules(settings: Settings, checkFirst: boolean, apps?: { ready: boolean }) {
+  const ctx = apps ?? (await appContext(settings))
+  return [...permissionRules(checkFirst), ...appPermissionRules({ enabled: ctx.ready, ask: settings.apps.askFirst || checkFirst })]
+}
+
 export async function createJob(input: NewJob, settings: Settings): Promise<{ jobId: string; place: Place; reason: string }> {
   const text = input.text.trim()
   if (!text) throw new OcError("Describe the job first.", 400)
-  const decision = routeTask(text, settings)
+  const apps = await appContext(settings)
+  const decision = routeTask(text, settings, apps.appIds)
   let place: Place = decision.place
   let reason = decision.reason
 
@@ -206,7 +235,7 @@ export async function createJob(input: NewJob, settings: Settings): Promise<{ jo
     await oc().session.create({
       title,
       ...(parsed ? { model: { id: parsed.modelID, providerID: parsed.providerID } } : {}),
-      permission: permissionRules(checkFirst),
+      permission: await sessionRules(settings, checkFirst, apps),
       metadata: { symphony: meta },
     }),
   )

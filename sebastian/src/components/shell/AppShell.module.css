@@ -98,7 +98,7 @@
   }
 
   .brand {
-    padding: 0 6px;
+    padding: 0 4px 0 6px;
   }
 
   .brandName,
@@ -106,16 +106,41 @@
     display: none;
   }
 
+  /* Tabs share the bar's width as big, evenly spaced touch targets. */
+  .sidebar > nav {
+    flex: 1;
+    min-width: 0;
+  }
+
   .nav {
     flex-direction: row;
+    justify-content: space-between;
+    gap: 2px;
+  }
+
+  .nav > li {
+    flex: 1 1 0;
+    max-width: 64px;
   }
 
   .navLink {
-    padding: 0 10px;
+    justify-content: center;
+    min-height: 52px;
+    padding: 0;
     gap: 8px;
+    border-radius: 12px;
   }
 
-  /* Four tabs don't fit as words on a phone: icons only, names kept for screen readers. */
+  .navLink svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .footer .navLink {
+    width: 52px;
+  }
+
+  /* Tabs don't fit as words on a phone: icons only, names kept for screen readers. */
   .navLabel {
     position: absolute;
     width: 1px;

@@ -1,4 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-<rect width="64" height="64" rx="14" fill="#111111"/>
-<rect x="10.24" y="16.17" width="19.78" height="7.91" rx="3.96" fill="#7fd88f"/><rect x="10.24" y="28.04" width="31.65" height="7.91" rx="3.96" fill="#5c9cf5"/><rect x="10.24" y="39.91" width="43.52" height="7.91" rx="3.96" fill="#9d7cd8"/>
+<rect width="64" height="64" rx="14" fill="#ffffed"/>
+<rect x="10.24" y="16.17" width="19.78" height="7.91" rx="3.96" fill="#814618"/><rect x="10.24" y="28.04" width="31.65" height="7.91" rx="3.96" fill="#1a3d26"/><rect x="10.24" y="39.91" width="43.52" height="7.91" rx="3.96" fill="#588d93"/>
 </svg>

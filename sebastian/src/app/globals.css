@@ -1,29 +1,39 @@
 /*
  * Symphony design tokens. Mirrors the "Design system" board on the Symphony
- * canvas: opencode's light theme by default, opencode's dark theme with a
- * white main action as the alternative.
+ * canvas: the official palette, Ivory with Onyx text by default and Onyx with
+ * Ivory text in dark mode.
  */
 :root {
-  --bg: #ffffff;
-  --panel: #fafafa;
-  --raised: #f2f2f2;
-  --line: #ebebeb;
-  --line-strong: #8f8f8f;
-  --text: #1a1a1a;
-  --muted: #6f6f6f;
-  --hi: #1a1a1a;
-  --on-hi: #ffffff;
-  --focus: #2968c3;
+  /* Official palette: Onyx #141414 and Ivory #ffffed. */
+  --bg: #ffffed;
+  --panel: #f7f7e3;
+  --raised: #efefda;
+  --line: #e4e4cf;
+  --line-strong: #858577;
+  --text: #141414;
+  --muted: #5f5f56;
+  --hi: #141414;
+  --on-hi: #ffffed;
+  --focus: #40707a;
 
-  /* The three places work can run, plus "needs a decision". */
-  --device: #2d7a43;
-  --private: #2968c3;
-  --open: #7b5bb6;
-  --warn: #c4343a;
-  --device-tint: #ecf6ef;
-  --private-tint: #ecf2fc;
-  --open-tint: #f3eefa;
-  --warn-tint: #fcefef;
+  /* The three places work can run. --device etc. are the official colors, used
+     for icons, bars and swatches. The -text shades are the same hues adjusted
+     to stay readable as text (4.5:1) on this background. */
+  --device: #814618; /* Saddle Brown: on your Symphony */
+  --private: #1a3d26; /* Deep Forest: private cloud */
+  --open: #588d93; /* Pacific Cyan: open cloud */
+  --device-text: #814618;
+  --private-text: #1a3d26;
+  --open-text: #40707a;
+  --device-tint: #f5e9d8;
+  --private-tint: #e4eee3;
+  --open-tint: #e3eeee;
+
+  /* Status colors (not places). */
+  --good: #2a7247;
+  --good-tint: #e6f2e3;
+  --warn: #b3261e;
+  --warn-tint: #fbe8e1;
 
   --font-display: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
   --font-body: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
@@ -51,47 +61,61 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0a0a;
-    --panel: #141414;
-    --raised: #1e1e1e;
-    --line: #282828;
-    --line-strong: #6a6a6a;
-    --text: #eeeeee;
-    --muted: #8a8a8a;
-    --hi: #ffffff;
-    --on-hi: #0a0a0a;
-    --focus: #5c9cf5;
-    --device: #7fd88f;
-    --private: #5c9cf5;
-    --open: #9d7cd8;
-    --warn: #e06c75;
-    --device-tint: #16261b;
-    --private-tint: #13203a;
-    --open-tint: #231b30;
-    --warn-tint: #2c1416;
+    --bg: #141414;
+    --panel: #1c1c1b;
+    --raised: #262624;
+    --line: #2f2f2d;
+    --line-strong: #75756c;
+    --text: #ffffed;
+    --muted: #a3a396;
+    --hi: #ffffed;
+    --on-hi: #141414;
+    --focus: #7fb4ba;
+    /* Brown and Forest are too dark to see on Onyx, so dark mode uses lighter
+       shades of the same hues. Pacific Cyan is used as is for fills. */
+    --device: #c98a55;
+    --private: #5f9e75;
+    --open: #588d93;
+    --device-text: #d9a070;
+    --private-text: #7dbb91;
+    --open-text: #7fb4ba;
+    --device-tint: #2b1f15;
+    --private-tint: #15241a;
+    --open-tint: #16272a;
+    --good: #7dbb91;
+    --good-tint: #17261b;
+    --warn: #f2867e;
+    --warn-tint: #2f1715;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #0a0a0a;
-  --panel: #141414;
-  --raised: #1e1e1e;
-  --line: #282828;
-  --line-strong: #6a6a6a;
-  --text: #eeeeee;
-  --muted: #8a8a8a;
-  --hi: #ffffff;
-  --on-hi: #0a0a0a;
-  --focus: #5c9cf5;
-  --device: #7fd88f;
-  --private: #5c9cf5;
-  --open: #9d7cd8;
-  --warn: #e06c75;
-  --device-tint: #16261b;
-  --private-tint: #13203a;
-  --open-tint: #231b30;
-  --warn-tint: #2c1416;
+  --bg: #141414;
+  --panel: #1c1c1b;
+  --raised: #262624;
+  --line: #2f2f2d;
+  --line-strong: #75756c;
+  --text: #ffffed;
+  --muted: #a3a396;
+  --hi: #ffffed;
+  --on-hi: #141414;
+  --focus: #7fb4ba;
+  /* Brown and Forest are too dark to see on Onyx, so dark mode uses lighter
+     shades of the same hues. Pacific Cyan is used as is for fills. */
+  --device: #c98a55;
+  --private: #5f9e75;
+  --open: #588d93;
+  --device-text: #d9a070;
+  --private-text: #7dbb91;
+  --open-text: #7fb4ba;
+  --device-tint: #2b1f15;
+  --private-tint: #15241a;
+  --open-tint: #16272a;
+  --good: #7dbb91;
+  --good-tint: #17261b;
+  --warn: #f2867e;
+  --warn-tint: #2f1715;
   color-scheme: dark;
 }
 

@@ -12,6 +12,8 @@ import { initialAgentState, mergeSnapshot, normalizePermission, reduceEvent, sor
 import type { FileDiff, MessageWithParts, Part, RawPermission } from "@/lib/opencode/types"
 import { useDebounced, useEvents } from "@/lib/opencode/useEvents"
 import { formatCost, PLACES } from "@/lib/symphony/places"
+import { describeAppTool, N8N_SERVER } from "@/lib/symphony/apps"
+import type { AppsOverview } from "@/lib/symphony/apps-server"
 import { restoreRedactions } from "@/lib/symphony/routing"
 import { formatSaved } from "@/lib/symphony/savings"
 import type { Job, Rates } from "@/lib/symphony/types"
@@ -26,7 +28,28 @@ function textOf(m: MessageWithParts | undefined) {
     .join("\n\n")
 }
 
-function stepLabel(part: Part): string {
+type Names = Record<string, string>
+
+function workflowOf(part: Part | undefined): string | undefined {
+  const id = part?.state?.input?.workflowId
+  return typeof id === "string" ? id : undefined
+}
+
+/** What an app action was given, e.g. query: jane@example.com */
+function appInputs(part: Part | undefined): string[] {
+  const inputs = part?.state?.input?.inputs as { webhookData?: { body?: unknown } } | undefined
+  const body = inputs?.webhookData?.body ?? inputs
+  if (!body || typeof body !== "object") return []
+  return Object.entries(body as Record<string, unknown>)
+    .filter(([key]) => key !== "type")
+    .slice(0, 4)
+    .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`.slice(0, 120))
+}
+
+function stepLabel(part: Part, names: Names = {}): string {
+  const id = workflowOf(part)
+  const app = part.tool ? describeAppTool(part.tool, id ? names[id] : undefined) : null
+  if (app) return app
   const s = part.state
   if (s?.title) return s.title
   const input = s?.input ?? {}
@@ -38,7 +61,7 @@ function stepLabel(part: Part): string {
 }
 
 function StepIcon({ status }: { status?: string }) {
-  if (status === "completed") return <Icon name="check" size={16} style={{ color: "var(--device)", flex: "none" }} aria-label="Done" />
+  if (status === "completed") return <Icon name="check" size={16} style={{ color: "var(--good)", flex: "none" }} aria-label="Done" />
   if (status === "error") return <Icon name="alert" size={16} style={{ color: "var(--warn)", flex: "none" }} aria-label="Failed" />
   if (status === "running") return <span className={styles.spinner} role="img" aria-label="Running" />
   return <Icon name="clock" size={16} style={{ color: "var(--muted)", flex: "none" }} aria-label="Waiting" />
@@ -48,6 +71,8 @@ export function JobView({ id }: { id: string }) {
   const [job, setJob] = useState<Job | null>(null)
   const [redactions, setRedactions] = useState<Record<string, string>>({})
   const [rates, setRates] = useState<Rates | null>(null)
+  const [names, setNames] = useState<Names>({})
+  const namesLoaded = useRef(false)
   const [state, setState] = useState<AgentState>(initialAgentState)
   const [error, setError] = useState<string | null>(null)
   const [missing, setMissing] = useState(false)
@@ -148,7 +173,29 @@ export function JobView({ id }: { id: string }) {
   const result = restoreRedactions(textOf(lastAssistant), redactions)
   const steps = assistant.flatMap((m) => m.parts).filter((p) => p.type === "tool")
   const failure = lastAssistant?.info.error
-  const permissions = Object.values(state.permissions).filter((p) => p.sessionID === id)
+  const usesApps = steps.some((p) => p.tool?.startsWith(`${N8N_SERVER}_`)) || Object.values(state.permissions).some((p) => p.kind?.startsWith(`${N8N_SERVER}_`))
+  useEffect(() => {
+    if (!usesApps || namesLoaded.current) return
+    namesLoaded.current = true
+    api<AppsOverview>("/api/symphony", "/apps")
+      .then((o) => {
+        const all = [...o.apps.flatMap((a) => [...a.ready, ...a.off]), ...o.other]
+        setNames(Object.fromEntries(all.map((w) => [w.id, w.name])))
+      })
+      .catch(() => {})
+  }, [usesApps])
+  const permissions = Object.values(state.permissions)
+    .filter((p) => p.sessionID === id)
+    .map((p) => {
+      if (!p.kind?.startsWith(`${N8N_SERVER}_`)) return p
+      const part = steps.find((s) => s.callID && s.callID === p.callID)
+      const wf = workflowOf(part)
+      return {
+        ...p,
+        title: describeAppTool(p.kind, wf ? names[wf] : undefined) ?? p.title,
+        details: appInputs(part).map((d) => restoreRedactions(d, redactions)),
+      }
+    })
   const busy = job?.status === "working" || state.status[id] === "busy"
   const files = state.diff ?? []
 
@@ -216,8 +263,8 @@ export function JobView({ id }: { id: string }) {
                 {steps.map((p) => (
                   <li key={p.id}>
                     <StepIcon status={p.state?.status} />
-                    <span className={styles.stepText} title={stepLabel(p)}>
-                      {restoreRedactions(stepLabel(p), redactions)}
+                    <span className={styles.stepText} title={stepLabel(p, names)}>
+                      {restoreRedactions(stepLabel(p, names), redactions)}
                     </span>
                   </li>
                 ))}
@@ -314,7 +361,7 @@ export function JobView({ id }: { id: string }) {
                     <div>
                       <dt>Saved</dt>
                       <dd>
-                        <span style={{ color: job.saved > 0 ? "var(--device)" : undefined, fontWeight: 600 }}>{formatSaved(job.saved)}</span>
+                        <span style={{ color: job.saved > 0 ? "var(--good)" : undefined, fontWeight: 600 }}>{formatSaved(job.saved)}</span>
                         <span className={styles.meta}>
                           {" "}
                           It would have cost {formatCost(job.wouldHaveCost)} at {rates?.label ?? "open-cloud"} prices.{" "}

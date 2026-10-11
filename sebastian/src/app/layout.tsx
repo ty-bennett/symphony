@@ -19,13 +19,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   // Matches the top bar so the status bar blends in. ThemeToggle updates it.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#141414" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7e3" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1c1b" },
   ],
 }
 
 // Applies a saved light/dark choice before first paint so the page never flashes.
-const themeScript = `try{var t=localStorage.getItem("symphony-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="dark"?"#141414":"#fafafa"})}}catch(e){}`
+const themeScript = `try{var t=localStorage.getItem("symphony-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="dark"?"#1c1c1b":"#f7f7e3"})}}catch(e){}`
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

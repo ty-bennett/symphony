@@ -15,6 +15,7 @@ import type { MessageInfo, OcEvent, Part } from "../src/lib/opencode/types"
 import { permissionRules, spending, toJob } from "../src/lib/symphony/jobs"
 import { placeForProvider } from "../src/lib/symphony/places"
 import { redactContactInfo, restoreRedactions, routeTask } from "../src/lib/symphony/routing"
+import { appForWorkflow, appPermissionRules, appsMentioned, describeAppTool } from "../src/lib/symphony/apps"
 import { formatSaved, ratesFromProviders, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "../src/lib/symphony/savings"
 import { customCategory, normalizeSettings } from "../src/lib/symphony/settings"
 
@@ -392,6 +393,48 @@ check("savings: priced from tokens against the open cloud, never invented", () =
   assert.equal(formatSaved(0.004), "under 1¢")
   assert.equal(formatSaved(-0.4), "−$0.40")
   assert.equal(normalizeSettings({}).savings.compareWith, "open")
+})
+
+check("connected apps: matching, routing and the n8n guard", () => {
+  const wf = (name: string, tags: string[] = [], description = "") => ({ name, tags, description })
+  assert.equal(appForWorkflow(wf("Square: today's sales"))?.id, "square")
+  assert.equal(appForWorkflow(wf("Daily totals", ["Square"]))?.id, "square", "a tag naming the app wins")
+  assert.equal(appForWorkflow(wf("Book a tasting", [], "Adds an event to Google Calendar"))?.id, "google-calendar")
+  assert.equal(appForWorkflow(wf("Squared numbers")), null, "whole words only")
+  assert.deepEqual(appsMentioned("What did we sell on Square today?", ["square"]).map((a) => a.id), ["square"])
+  assert.deepEqual(appsMentioned("What did we sell on Square today?", []), [], "only apps with actions count")
+
+  // A request that uses Square touches customers and money, so it stays private.
+  const s = normalizeSettings({})
+  const d = routeTask("What did we sell on Square today?", s, ["square"])
+  assert.equal(d.place, "device")
+  assert.deepEqual(d.apps, ["Square"])
+  assert.equal(d.reason, "it reads customer contact info from Square")
+  assert.equal(routeTask("Email jo@example.com our Square totals", s, ["square"]).reason, "it includes customer contact info")
+  assert.deepEqual(d.privateHits, ["Customer contact info", "Bank and card details"])
+  assert.equal(routeTask("What did we sell on Square today?", s, []).apps, undefined)
+  const off = normalizeSettings({ apps: { enabled: false } })
+  assert.equal(routeTask("What did we sell on Square today?", off, ["square"]).apps, undefined, "apps switched off")
+  // Web + Square goes to the open cloud only with consent.
+  assert.equal(routeTask("Compare our Square prices with bakeries online", s, ["square"]).needsConsent, true)
+
+  // n8n tools: everything hidden unless allowed; running a workflow asks.
+  const evaluate = (rules: { permission: string; action: string }[], tool: string) => {
+    const match = (pat: string) => new RegExp(`^${pat.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(tool)
+    return rules.filter((r) => match(r.permission)).at(-1)?.action ?? "ask"
+  }
+  const on = appPermissionRules({ enabled: true, ask: true })
+  assert.equal(evaluate(on, "n8n_search_workflows"), "allow")
+  assert.equal(evaluate(on, "n8n_get_execution"), "allow")
+  assert.equal(evaluate(on, "n8n_execute_workflow"), "ask")
+  assert.equal(evaluate(on, "n8n_delete_workflow"), "deny")
+  assert.equal(evaluate(on, "n8n_list_credentials"), "deny")
+  assert.equal(evaluate(on, "n8n_install_community_node"), "deny")
+  assert.equal(evaluate(on, "bash"), "ask", "other tools untouched")
+  assert.equal(evaluate(appPermissionRules({ enabled: true, ask: false }), "n8n_execute_workflow"), "allow")
+  assert.equal(evaluate(appPermissionRules({ enabled: false, ask: true }), "n8n_search_workflows"), "deny")
+  assert.equal(describeAppTool("n8n_execute_workflow", "Square: today's sales"), "Run “Square: today's sales”")
+  assert.equal(describeAppTool("bash"), null)
 })
 
 check("check-with-me-first maps to opencode permission rules", () => {

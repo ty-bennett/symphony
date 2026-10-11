@@ -22,7 +22,7 @@ export function ThemeToggle() {
     document.documentElement.dataset.theme = next
     // Keep the phone's status bar the same color as the top bar.
     document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
-      m.content = next === "dark" ? "#141414" : "#fafafa"
+      m.content = next === "dark" ? "#1c1c1b" : "#f7f7e3"
     })
     try {
       localStorage.setItem("symphony-theme", next)

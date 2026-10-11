@@ -4,7 +4,7 @@ import path from "node:path"
 import { DEFAULT_SETTINGS, normalizeSettings } from "./settings"
 import type { Settings } from "./types"
 
-function dataDir() {
+export function dataDir() {
   return process.env.SYMPHONY_DATA_DIR || path.join(process.cwd(), ".symphony")
 }
 

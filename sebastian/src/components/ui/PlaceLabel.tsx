@@ -11,7 +11,7 @@ export function PlaceLabel({ place, quiet, iconOnly }: { place: Place | null; qu
     return <Icon name={p.icon} size={16} className={styles.placeQuiet} aria-label={`Ran ${p.short}`} />
   }
   return (
-    <span className={quiet ? `${styles.place} ${styles.placeQuiet}` : styles.place} style={quiet ? undefined : { color: p.color }}>
+    <span className={quiet ? `${styles.place} ${styles.placeQuiet}` : styles.place} style={quiet ? undefined : { color: p.ink }}>
       <Icon name={p.icon} size={16} />
       {p.name}
     </span>
