@@ -26,10 +26,20 @@ PREVENT_DESTROY = r"prevent_destroy\s*=\s*true"
 # (file relative to cloud/terraform, required regex, minimum matches, reason)
 REQUIRED: list[tuple[str, str, int, str]] = [
     ("modules/secure-bucket/main.tf", PREVENT_DESTROY, 1, "Buckets must not be destroyed by Terraform."),
+    ("bootstrap/state.tf", PREVENT_DESTROY, 1, "The state KMS key must not be destroyed."),
+    ("bootstrap/organization.tf", PREVENT_DESTROY, 4, "Organization, Security OU, and shared accounts must not be destroyed."),
+    (
+        "bootstrap/organization.tf",
+        r"ignore_changes\s*=\s*\[aws_service_access_principals,\s*enabled_policy_types\]",
+        1,
+        "Terraform must not remove trusted access or policy types that Control Tower enables.",
+    ),
 ]
 
 # Every root must refuse to plan against the wrong account or Region.
-ROOTS: list[str] = []
+ROOTS: list[str] = [
+    "bootstrap",
+]
 
 
 def scanned_files() -> list[Path]:

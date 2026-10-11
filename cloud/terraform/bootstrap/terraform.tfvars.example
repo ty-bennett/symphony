@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (gitignored) and replace every value.
+management_account_id     = "111111111111"
+log_archive_account_email = "aws+log-archive@example.com"
+audit_account_email       = "aws+audit@example.com"
