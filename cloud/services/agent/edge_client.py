@@ -200,7 +200,12 @@ def access_token(
 
 
 def post(
-    url: str, body: str, token: str | None, cert: Path, key: Path
+    url: str,
+    body: str,
+    token: str | None,
+    cert: Path,
+    key: Path,
+    headers: dict[str, str] | None = None,
 ) -> http.client.HTTPResponse:
     parts = urlsplit(url)
     context = ssl.create_default_context()
@@ -208,7 +213,7 @@ def post(
     conn = http.client.HTTPSConnection(
         parts.hostname, parts.port or 443, context=context, timeout=310
     )
-    headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+    headers = {"Content-Type": "application/json", "Accept": "text/event-stream", **(headers or {})}
     if token:
         headers["Authorization"] = f"Bearer {token}"
     conn.request("POST", parts.path, body=body.encode(), headers=headers)

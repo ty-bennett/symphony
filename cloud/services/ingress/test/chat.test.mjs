@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { handleChat } from "../src/chat.mjs"
+import { handleChat, MAX_CLOUD_ROUNDS } from "../src/chat.mjs"
 
 const config = { tenantId: "demo", models: { default: "moonshotai.kimi-k2.5", stepUp: "us.anthropic.claude-opus-4-5-20251101-v1:0" } }
 const auth = { tenantId: "demo", deviceId: "jetson-01", userSub: "user-123" }
@@ -153,7 +153,7 @@ test("runs Orchestra's own tools in the cloud as the caller and keeps them out o
   assert.ok(!JSON.stringify(audit).includes("PTO"))
 })
 
-test("stops after a few cloud tool rounds instead of looping", async () => {
+test("stops after one cloud tool round instead of looping", async () => {
   const loop = [
     { contentBlockStart: { contentBlockIndex: 0, start: { toolUse: { toolUseId: "o", name: "orchestra_browse" } } } },
     { contentBlockDelta: { contentBlockIndex: 0, delta: { toolUse: { input: '{"url":"https://docs.aws.amazon.com","question":"x"}' } } } },
@@ -168,7 +168,8 @@ test("stops after a few cloud tool rounds instead of looping", async () => {
     runCloudTool: async () => ({ text: "page text", usage: { input: 0, output: 0 } }),
   })
   const { text } = await run(d)
-  assert.equal(n, 4, "the first call plus three tool rounds")
+  assert.equal(n, MAX_CLOUD_ROUNDS + 1, "the first call plus one tool round")
+  assert.equal(MAX_CLOUD_ROUNDS, 1)
   assert.match(text, /"finish_reason":"stop"/)
   assert.match(text, /data: \[DONE\]/)
 })
