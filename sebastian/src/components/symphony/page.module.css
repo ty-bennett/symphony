@@ -730,3 +730,30 @@
     flex-wrap: wrap;
   }
 }
+
+.toolRuns,
+.toolAsks {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 2px;
+  min-width: 76px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-meta);
+  text-align: center;
+}
+
+.toolRuns {
+  background: var(--raised);
+  color: var(--muted);
+}
+
+.toolAsks {
+  background: var(--warn-tint);
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.howto code {
+  font-size: 0.95em;
+}

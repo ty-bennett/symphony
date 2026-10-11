@@ -1,0 +1,350 @@
+{
+  "name": "QuickBooks for Symphony",
+  "description": "Gives Symphony's agent the business's QuickBooks Online: invoices, customers, items, payments and bills.",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "bearerAuth",
+        "path": "symphony-quickbooks"
+      },
+      "id": "1a1f1ff8-3d76-4dd7-a1d3-bf5c2a835573",
+      "name": "Symphony connects here",
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "fc152e9c-4357-4347-8790-1a877a0e2131"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List invoices, optionally filtered (unpaid, by date, by customer).",
+        "resource": "invoice",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": "={{ $fromAI('limit', 'How many invoices to return, 1 to 25', 'number', 10) }}",
+        "filters": {
+          "query": "={{ $fromAI('query', 'QuickBooks query condition for invoices, for example WHERE Balance > \\'0\\'. Empty for the latest.', 'string', '') }}"
+        }
+      },
+      "id": "1bbc318e-758e-4b9d-a02b-70157a668af0",
+      "name": "list_invoices",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get one invoice in full, by its ID.",
+        "resource": "invoice",
+        "operation": "get",
+        "invoiceId": "={{ $fromAI('invoice_id', 'The invoice\\'s ID, from list_invoices', 'string') }}",
+        "download": false
+      },
+      "id": "70f48583-5ffd-4982-996c-bf2f33c91542",
+      "name": "get_invoice",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Create an invoice for a customer with one line item.",
+        "resource": "invoice",
+        "operation": "create",
+        "CustomerRef": "={{ $fromAI('customer_id', 'The customer\\'s ID, from list_customers', 'string') }}",
+        "Line": [
+          {
+            "Amount": "={{ $fromAI('amount', 'Line total in dollars', 'number') }}",
+            "Description": "={{ $fromAI('description', 'What the line is for', 'string') }}",
+            "DetailType": "SalesItemLineDetail",
+            "itemId": "={{ $fromAI('item_id', 'The product or service ID, from list_items', 'string') }}",
+            "Qty": "={{ $fromAI('quantity', 'Quantity', 'number', 1) }}"
+          }
+        ],
+        "additionalFields": {}
+      },
+      "id": "86de2dc8-eea0-4886-ba83-8a437fb64880",
+      "name": "create_invoice",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        40,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Email an invoice to a customer.",
+        "resource": "invoice",
+        "operation": "send",
+        "invoiceId": "={{ $fromAI('invoice_id', 'The invoice\\'s ID', 'string') }}",
+        "email": "={{ $fromAI('email', 'Email address to send it to', 'string') }}"
+      },
+      "id": "ec345b6f-2637-4bd3-9d36-c27156763989",
+      "name": "send_invoice",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        340,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List customers, optionally filtered.",
+        "resource": "customer",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": "={{ $fromAI('limit', 'How many customers to return, 1 to 25', 'number', 10) }}",
+        "filters": {
+          "query": "={{ $fromAI('query', 'QuickBooks query condition for customers, for example WHERE DisplayName LIKE \\'%Smith%\\'. Empty for the latest.', 'string', '') }}"
+        }
+      },
+      "id": "b61876b5-c815-4ffd-ab36-70433c846892",
+      "name": "list_customers",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get one customer's details, by ID.",
+        "resource": "customer",
+        "operation": "get",
+        "customerId": "={{ $fromAI('customer_id', 'The customer\\'s ID, from list_customers', 'string') }}"
+      },
+      "id": "0e10e130-1b97-4b6b-8492-672fd0d69a06",
+      "name": "get_customer",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Add a new customer.",
+        "resource": "customer",
+        "operation": "create",
+        "displayName": "={{ $fromAI('name', 'Customer\\'s display name', 'string') }}",
+        "additionalFields": {
+          "PrimaryEmailAddr": "={{ $fromAI('email', 'Customer\\'s email address', 'string', '') }}",
+          "PrimaryPhone": "={{ $fromAI('phone', 'Customer\\'s phone number', 'string', '') }}"
+        }
+      },
+      "id": "69be847a-05dc-467f-9ccd-ef2af4181f7c",
+      "name": "create_customer",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        40,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List the products and services you sell (needed for invoices).",
+        "resource": "item",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": "={{ $fromAI('limit', 'How many items to return, 1 to 25', 'number', 10) }}",
+        "filters": {
+          "query": "={{ $fromAI('query', 'QuickBooks query condition for items, for example WHERE Name LIKE \\'%cake%\\'. Empty for the latest.', 'string', '') }}"
+        }
+      },
+      "id": "dc31525e-31ca-4c19-a788-f6e9779df12d",
+      "name": "list_items",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        340,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List payments received, optionally filtered.",
+        "resource": "payment",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": "={{ $fromAI('limit', 'How many payments to return, 1 to 25', 'number', 10) }}",
+        "filters": {
+          "query": "={{ $fromAI('query', 'QuickBooks query condition for payments, for example WHERE TxnDate >= \\'2026-10-01\\'. Empty for the latest.', 'string', '') }}"
+        }
+      },
+      "id": "f561af2b-6be4-487a-a125-742b5f12086a",
+      "name": "list_payments",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List bills from suppliers, optionally filtered.",
+        "resource": "bill",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": "={{ $fromAI('limit', 'How many bills to return, 1 to 25', 'number', 10) }}",
+        "filters": {
+          "query": "={{ $fromAI('query', 'QuickBooks query condition for bills, for example WHERE Balance > \\'0\\'. Empty for the latest.', 'string', '') }}"
+        }
+      },
+      "id": "16550c28-6ade-487a-907d-27178c7054c8",
+      "name": "list_bills",
+      "type": "n8n-nodes-base.quickbooksTool",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "list_invoices": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_invoice": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_invoice": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_invoice": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_customers": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_customer": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_customer": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_items": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_payments": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_bills": {
+      "ai_tool": [
+        [
+          {
+            "node": "Symphony connects here",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "QuickBooks"
+    },
+    {
+      "name": "Symphony"
+    }
+  ]
+}

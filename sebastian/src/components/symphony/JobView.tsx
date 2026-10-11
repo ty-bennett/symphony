@@ -12,7 +12,7 @@ import { initialAgentState, mergeSnapshot, normalizePermission, reduceEvent, sor
 import type { FileDiff, MessageWithParts, Part, RawPermission } from "@/lib/opencode/types"
 import { useDebounced, useEvents } from "@/lib/opencode/useEvents"
 import { formatCost, PLACES } from "@/lib/symphony/places"
-import { describeAppTool, N8N_SERVER } from "@/lib/symphony/apps"
+import { appOfTool, describeAppTool, N8N_SERVER } from "@/lib/symphony/apps"
 import type { AppsOverview } from "@/lib/symphony/apps-server"
 import { restoreRedactions } from "@/lib/symphony/routing"
 import { formatSaved } from "@/lib/symphony/savings"
@@ -35,15 +35,18 @@ function workflowOf(part: Part | undefined): string | undefined {
   return typeof id === "string" ? id : undefined
 }
 
-/** What an app action was given, e.g. query: jane@example.com */
+const isAppTool = (tool?: string) => Boolean(tool && (tool.startsWith(`${N8N_SERVER}_`) || appOfTool(tool)))
+
+/** What an app action was given, e.g. to: jane@example.com */
 function appInputs(part: Part | undefined): string[] {
+  const own = part?.tool ? appOfTool(part.tool) : null
   const inputs = part?.state?.input?.inputs as { webhookData?: { body?: unknown } } | undefined
-  const body = inputs?.webhookData?.body ?? inputs
+  const body = own ? part?.state?.input : (inputs?.webhookData?.body ?? inputs)
   if (!body || typeof body !== "object") return []
   return Object.entries(body as Record<string, unknown>)
     .filter(([key]) => key !== "type")
-    .slice(0, 4)
-    .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`.slice(0, 120))
+    .slice(0, 6)
+    .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`.slice(0, 400))
 }
 
 function stepLabel(part: Part, names: Names = {}): string {
@@ -173,7 +176,7 @@ export function JobView({ id }: { id: string }) {
   const result = restoreRedactions(textOf(lastAssistant), redactions)
   const steps = assistant.flatMap((m) => m.parts).filter((p) => p.type === "tool")
   const failure = lastAssistant?.info.error
-  const usesApps = steps.some((p) => p.tool?.startsWith(`${N8N_SERVER}_`)) || Object.values(state.permissions).some((p) => p.kind?.startsWith(`${N8N_SERVER}_`))
+  const usesApps = steps.some((p) => isAppTool(p.tool)) || Object.values(state.permissions).some((p) => isAppTool(p.kind))
   useEffect(() => {
     if (!usesApps || namesLoaded.current) return
     namesLoaded.current = true
@@ -187,12 +190,12 @@ export function JobView({ id }: { id: string }) {
   const permissions = Object.values(state.permissions)
     .filter((p) => p.sessionID === id)
     .map((p) => {
-      if (!p.kind?.startsWith(`${N8N_SERVER}_`)) return p
+      if (!isAppTool(p.kind)) return p
       const part = steps.find((s) => s.callID && s.callID === p.callID)
       const wf = workflowOf(part)
       return {
         ...p,
-        title: describeAppTool(p.kind, wf ? names[wf] : undefined) ?? p.title,
+        title: describeAppTool(p.kind!, wf ? names[wf] : undefined) ?? p.title,
         details: appInputs(part).map((d) => restoreRedactions(d, redactions)),
       }
     })

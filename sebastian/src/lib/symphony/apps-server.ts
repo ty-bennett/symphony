@@ -1,6 +1,7 @@
 // Server-only: everything the Connected apps page shows.
 import { OcError } from "@/lib/opencode/server"
-import { APPS, appForWorkflow, type AppDef, type AppWorkflow } from "./apps"
+import { cachedTools, ensureAppRegistered, readAppServers } from "./app-servers"
+import { APPS, appForWorkflow, isReadTool, type AppDef, type AppWorkflow } from "./apps"
 import { cachedWorkflows, ensureRegistered, opencodeStatus, readN8nConfig } from "./n8n"
 import type { Settings } from "./types"
 
@@ -13,7 +14,20 @@ export type AppsOverview = {
     /** opencode's view of the n8n MCP server. */
     agent?: string
   }
-  apps: (Omit<AppDef, "categories"> & { categories: string[]; ready: AppWorkflow[]; off: AppWorkflow[] })[]
+  apps: (Omit<AppDef, "categories"> & {
+    categories: string[]
+    ready: AppWorkflow[]
+    off: AppWorkflow[]
+    /** The app's own n8n workflow (MCP Server Trigger with the app's tools), when connected. */
+    server?: {
+      state: "connected" | "error"
+      url: string
+      tools: { name: string; description: string; reads: boolean }[]
+      error?: string
+      /** opencode's view of it. */
+      agent?: string
+    }
+  })[]
   other: AppWorkflow[]
 }
 
@@ -39,8 +53,36 @@ export async function appsOverview(settings: Settings, fresh = false): Promise<A
     }
   }
 
+  const withServers = async (o: Omit<AppsOverview, "connection"> & { connection: AppsOverview["connection"] }): Promise<AppsOverview> => {
+    const servers = await readAppServers()
+    const apps = await Promise.all(
+      o.apps.map(async (a) => {
+        const server = servers[a.id]
+        if (!server) return a
+        try {
+          const tools = await cachedTools(a.id, server, fresh ? 0 : 60_000)
+          const agent = await ensureAppRegistered(a.id, server)
+            .then((r) => r.status)
+            .catch((e) => (e instanceof Error ? e.message : "unknown"))
+          return {
+            ...a,
+            server: {
+              state: "connected" as const,
+              url: server.url,
+              agent,
+              tools: tools.map((t) => ({ name: t.name, description: t.description, reads: isReadTool(t.name) })),
+            },
+          }
+        } catch (e) {
+          return { ...a, server: { state: "error" as const, url: server.url, tools: [], error: e instanceof Error ? e.message : String(e) } }
+        }
+      }),
+    )
+    return { ...o, apps }
+  }
+
   const config = await readN8nConfig()
-  if (!config) return { connection: { state: "not-set-up" }, ...shape([]) }
+  if (!config) return withServers({ connection: { state: "not-set-up" }, ...shape([]) })
   try {
     const workflows = await cachedWorkflows(config, fresh ? 0 : 30_000)
     let agent: string | undefined
@@ -49,9 +91,9 @@ export async function appsOverview(settings: Settings, fresh = false): Promise<A
     } catch (e) {
       agent = (await opencodeStatus())?.status ?? (e instanceof Error ? e.message : "unknown")
     }
-    return { connection: { state: "connected", source: config.source, url: config.url, agent }, ...shape(workflows) }
+    return withServers({ connection: { state: "connected", source: config.source, url: config.url, agent }, ...shape(workflows) })
   } catch (e) {
     const error = e instanceof OcError || e instanceof Error ? e.message : String(e)
-    return { connection: { state: "error", source: config.source, url: config.url, error }, ...shape([]) }
+    return withServers({ connection: { state: "error", source: config.source, url: config.url, error }, ...shape([]) })
   }
 }

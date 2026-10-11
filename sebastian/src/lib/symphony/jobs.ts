@@ -3,7 +3,8 @@
 import { OcError, oc, ocJson, parseModel, sendPrompt, unwrap } from "@/lib/opencode/server"
 import type { RawPermission, SessionStatus } from "@/lib/opencode/types"
 import { placeForProvider, PLACE_ORDER } from "./places"
-import { appForWorkflow, appPermissionRules } from "./apps"
+import { ensureAppRegistered, readAppServers } from "./app-servers"
+import { appForWorkflow, appPermissionRules, appServerRules } from "./apps"
 import { cachedWorkflows, ensureRegistered, readN8nConfig } from "./n8n"
 import { redactContactInfo, routeTask } from "./routing"
 import { ratesFromProviders, readTokens, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "./savings"
@@ -160,26 +161,50 @@ export class ConsentRequired extends OcError {
  * Which connected apps have actions the agent can run, with n8n registered in
  * opencode. If n8n isn't set up or can't be reached, jobs run without apps.
  */
-export async function appContext(settings: Settings): Promise<{ ready: boolean; appIds: string[] }> {
-  if (!settings.apps.enabled) return { ready: false, appIds: [] }
-  const config = await readN8nConfig()
-  if (!config) return { ready: false, appIds: [] }
-  try {
-    const [workflows] = await Promise.all([cachedWorkflows(config), ensureRegistered(config)])
-    const appIds = workflows
-      .filter((w) => w.active && w.availableInMCP)
-      .map((w) => appForWorkflow(w)?.id)
-      .filter((id): id is string => Boolean(id))
-    return { ready: true, appIds: Array.from(new Set(appIds)) }
-  } catch {
-    return { ready: false, appIds: [] }
-  }
+export type AppContext = {
+  /** n8n's instance-level MCP server is registered (workflows the agent can run). */
+  ready: boolean
+  /** Apps the agent can reach: each app's own workflow, plus instance-level workflows tied to an app. */
+  appIds: string[]
+  /** Apps connected through their own MCP Server Trigger workflow. */
+  servers: string[]
 }
 
-/** Permission rules for a new session: file/shell/web per "Check with me first", plus the n8n guard. */
-export async function sessionRules(settings: Settings, checkFirst: boolean, apps?: { ready: boolean }) {
+export async function appContext(settings: Settings): Promise<AppContext> {
+  const servers = await readAppServers()
+  const serverIds = Object.keys(servers)
+  if (!settings.apps.enabled) return { ready: false, appIds: [], servers: serverIds }
+  await Promise.all(serverIds.map((id) => ensureAppRegistered(id, servers[id]).catch(() => null)))
+  const config = await readN8nConfig()
+  let ready = false
+  let fromWorkflows: string[] = []
+  if (config) {
+    try {
+      const [workflows] = await Promise.all([cachedWorkflows(config), ensureRegistered(config)])
+      fromWorkflows = workflows
+        .filter((w) => w.active && w.availableInMCP)
+        .map((w) => appForWorkflow(w)?.id)
+        .filter((id): id is string => Boolean(id))
+      ready = true
+    } catch {
+      // n8n unreachable: jobs run without its workflows.
+    }
+  }
+  return { ready, appIds: Array.from(new Set([...serverIds, ...fromWorkflows])), servers: serverIds }
+}
+
+/** The app guard on every session: n8n's admin tools hidden; app writes ask unless asking is off. */
+export function appGuardRules(settings: Settings, ctx: Pick<AppContext, "ready" | "servers">, ask: boolean) {
+  return [
+    ...appPermissionRules({ enabled: ctx.ready, ask }),
+    ...appServerRules(ctx.servers, { enabled: settings.apps.enabled, ask }),
+  ]
+}
+
+/** Permission rules for a new job: file/shell/web per "Check with me first", plus the app guard. */
+export async function sessionRules(settings: Settings, checkFirst: boolean, apps?: AppContext) {
   const ctx = apps ?? (await appContext(settings))
-  return [...permissionRules(checkFirst), ...appPermissionRules({ enabled: ctx.ready, ask: settings.apps.askFirst || checkFirst })]
+  return [...permissionRules(checkFirst), ...appGuardRules(settings, ctx, settings.apps.askFirst || checkFirst)]
 }
 
 export async function createJob(input: NewJob, settings: Settings): Promise<{ jobId: string; place: Place; reason: string }> {

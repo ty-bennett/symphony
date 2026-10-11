@@ -52,34 +52,37 @@ export const mcpUrl = (config: Pick<N8nConfig, "url">) => `${config.url}/mcp-ser
 
 type RpcResponse = { id?: number | string; result?: unknown; error?: { code: number; message: string } }
 
-async function rpc(
-  config: N8nConfig,
-  body: Record<string, unknown>,
-  session?: string,
-): Promise<{ message?: RpcResponse; session?: string }> {
+/** Where to send MCP requests, and what to tell the owner when it fails. */
+export type McpTarget = { endpoint: string; token?: string; name: string; authHint: string; missingHint: string }
+
+const instanceTarget = (config: N8nConfig): McpTarget => ({
+  endpoint: mcpUrl(config),
+  token: config.token,
+  name: `n8n at ${config.url}`,
+  authHint: "n8n didn't accept the access token. Generate a new one in n8n under Settings > Instance-level MCP.",
+  missingHint: "n8n's MCP server isn't turned on. In n8n, open Settings > Instance-level MCP and enable it.",
+})
+
+async function rpc(target: McpTarget, body: Record<string, unknown>, session?: string): Promise<{ message?: RpcResponse; session?: string }> {
   let response: Response
   try {
-    response = await fetch(mcpUrl(config), {
+    response = await fetch(target.endpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
-        authorization: `Bearer ${config.token}`,
         "mcp-protocol-version": "2025-06-18",
+        ...(target.token ? { authorization: `Bearer ${target.token}` } : {}),
         ...(session ? { "mcp-session-id": session } : {}),
       },
       body: JSON.stringify({ jsonrpc: "2.0", ...body }),
       signal: AbortSignal.timeout(15_000),
     })
   } catch {
-    throw new OcError(`Can't reach n8n at ${config.url}. Is it running?`, 502)
+    throw new OcError(`Can't reach ${target.name}. Is n8n running?`, 502)
   }
-  if (response.status === 401 || response.status === 403) {
-    throw new OcError("n8n didn't accept the access token. Generate a new one in n8n under Settings > Instance-level MCP.", 401)
-  }
-  if (response.status === 404) {
-    throw new OcError("n8n's MCP server isn't turned on. In n8n, open Settings > Instance-level MCP and enable it.", 404)
-  }
+  if (response.status === 401 || response.status === 403) throw new OcError(target.authHint, 401)
+  if (response.status === 404) throw new OcError(target.missingHint, 404)
   const nextSession = response.headers.get("mcp-session-id") ?? session
   if (response.status === 202 || !("id" in body)) return { session: nextSession }
   if (!response.ok) throw new OcError(`n8n returned ${response.status}`, 502)
@@ -104,14 +107,31 @@ async function rpc(
   return { message, session: nextSession }
 }
 
-async function callTool(config: N8nConfig, name: string, args: Record<string, unknown>): Promise<unknown> {
-  const init = await rpc(config, {
+/** Open a session, run one request, close the session. */
+async function withSession<T>(target: McpTarget, run: (session?: string) => Promise<T>): Promise<T> {
+  const init = await rpc(target, {
     id: 1,
     method: "initialize",
     params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "symphony", version: "0.1.0" } },
   })
-  await rpc(config, { method: "notifications/initialized" }, init.session)
-  const { message } = await rpc(config, { id: 2, method: "tools/call", params: { name, arguments: args } }, init.session)
+  await rpc(target, { method: "notifications/initialized" }, init.session)
+  try {
+    return await run(init.session)
+  } finally {
+    if (init.session) {
+      fetch(target.endpoint, {
+        method: "DELETE",
+        headers: { "mcp-session-id": init.session, ...(target.token ? { authorization: `Bearer ${target.token}` } : {}) },
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => undefined)
+    }
+  }
+}
+
+async function callTool(config: N8nConfig, name: string, args: Record<string, unknown>): Promise<unknown> {
+  const { message } = await withSession(instanceTarget(config), (session) =>
+    rpc(instanceTarget(config), { id: 2, method: "tools/call", params: { name, arguments: args } }, session),
+  )
   const result = message?.result as
     | { structuredContent?: unknown; content?: { type: string; text?: string }[]; isError?: boolean }
     | undefined
@@ -124,6 +144,15 @@ async function callTool(config: N8nConfig, name: string, args: Record<string, un
   } catch {
     return text
   }
+}
+
+export type AppTool = { name: string; description: string }
+
+/** The tools an app's MCP Server Trigger workflow offers. */
+export async function listTools(target: McpTarget): Promise<AppTool[]> {
+  const { message } = await withSession(target, (session) => rpc(target, { id: 2, method: "tools/list", params: {} }, session))
+  const tools = (message?.result as { tools?: { name?: string; description?: string }[] } | undefined)?.tools ?? []
+  return tools.filter((t) => typeof t.name === "string").map((t) => ({ name: t.name!, description: t.description ?? "" }))
 }
 
 /** Workflows the agent can see: active and "Available in MCP". */

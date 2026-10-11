@@ -60,8 +60,8 @@ export function TodayView() {
       .catch((e) => setError(message(e)))
     void load()
     // Apps with actions ready count as private in the route preview.
-    api<{ apps: { id: string; ready: unknown[] }[] }>("/api/symphony", "/apps")
-      .then((o) => setConnected(o.apps.filter((a) => a.ready.length).map((a) => a.id)))
+    api<{ apps: { id: string; ready: unknown[]; server?: { state: string } }[] }>("/api/symphony", "/apps")
+      .then((o) => setConnected(o.apps.filter((a) => a.ready.length || a.server?.state === "connected").map((a) => a.id)))
       .catch(() => {})
   }, [load])
 

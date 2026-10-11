@@ -10,7 +10,7 @@ setting).
 | Today | `/` | Start a job, see what needs your OK, recent work |
 | Work | `/work`, `/work/:id` | Every job, and one job's steps, result, changes and Undo |
 | Coding agent | `/coding-agent` | opencode itself, for people who want the full view |
-| Connected apps | `/apps` | Square, Google Calendar, Gmail and more, through n8n |
+| Connected apps | `/apps` | Gmail, Mailchimp, QuickBooks, Square and more, through n8n |
 | Privacy and spending | `/privacy` | Where jobs may run, what stays private, monthly limit, report |
 
 All four run on opencode: a Symphony **job** is an opencode session. Start
@@ -19,45 +19,58 @@ http://localhost:3000.
 
 ## Connected apps (n8n)
 
-The agent can use the apps a business already runs on (Square, Google
-Calendar, Gmail, QuickBooks, Shopify, Google Sheets, Mailchimp) through
-[n8n](https://n8n.io), running next to Symphony.
+The agent gets full use of the apps a business runs on (Gmail, Mailchimp,
+QuickBooks, Square, and more) through [n8n](https://n8n.io), running next to
+Symphony. Anything that isn't reading asks the owner first.
 
 ```
-job (opencode session) → n8n's MCP server → an n8n workflow → Square, Gmail, …
+job (opencode session) → gmail_send_email → n8n "Gmail for Symphony" workflow → Gmail
 ```
 
-- **n8n holds the app logins** and each action is an n8n workflow ("Square:
-  today's sales"). A workflow is visible to Symphony when it's published and
-  **Available in MCP** is on (workflow menu › Settings). Workflows are grouped
-  under an app by a tag with the app's name, or by its name/description.
-- **Connect once** on the Connected apps page: n8n's address and an access
-  token from n8n (Settings › Instance-level MCP › Enable MCP access, then
-  Connect a client › API key). Or set `N8N_URL` and `N8N_MCP_TOKEN`. The
-  token is saved to `.symphony/n8n.json` (mode 600) and never sent to the
-  browser. Symphony registers n8n's MCP server with opencode (`POST /mcp`, as
-  `n8n`).
-- **What the agent may do.** n8n's MCP server also has tools for building,
-  publishing and deleting workflows and listing credentials. Every session
-  Symphony or the coding agent creates gets permission rules that hide all
-  `n8n_*` tools except finding a workflow, reading its details, reading a
-  run's result, and running it. Running asks first ("Ask me before an app
-  action runs", on by default), and the approval card names the action and
-  its inputs.
-- **Privacy.** A job that mentions a connected app counts as touching that
-  app's data (Square: customer contact info, bank and card details), so it
-  stays on the box or in the private cloud unless the owner agrees otherwise.
-- **Square** has no built-in n8n node, so it goes through n8n's HTTP Request
-  node with a Square access token saved as a Header Auth credential
-  (`Authorization: Bearer …`). Two starter workflows are in `public/n8n/`
-  (today's sales, find a customer) and download from the page: import into
-  n8n, pick the credential, publish. They call Square's live API
-  (`connect.squareup.com`); use `connect.squareupsandbox.com` with a sandbox
-  token to try them safely.
+**One workflow per app.** Each app is an n8n workflow whose **MCP Server
+Trigger** has that app's tool nodes attached, with their settings left to the
+AI (`$fromAI`). Ready-made ones are in `public/n8n/` and download from the
+page:
 
-Tested against a stand-in for n8n's MCP server (same tool names and result
-shapes as n8n's source) and the real opencode. Not yet run against a real n8n
-instance.
+| Workflow | Tools |
+|---|---|
+| Gmail for Symphony | search_emails, read_email, send_email, reply_to_email, create_draft, mark_as_read, delete_email |
+| Mailchimp for Symphony | list_subscribers, get_subscriber, add_subscriber, unsubscribe, list_campaigns, get_campaign, send_campaign |
+| QuickBooks for Symphony | list_invoices, get_invoice, create_invoice, send_invoice, list_customers, get_customer, create_customer, list_items, list_payments, list_bills |
+| Square for Symphony | get_sales, search_customers, list_items, list_locations, create_customer, create_payment_link (HTTP Request tools + a Square access token) |
+
+Set up per app: import the file in n8n, sign in to the app in its tools (for
+Mailchimp also pick the audience), set **Bearer Auth** with a token of your
+choice on "Symphony connects here", activate, and paste the trigger's
+**Production URL** and the token into Connected apps. Symphony lists the
+tools to test it, saves it to `.symphony/app-servers.json` (mode 600, never
+sent to the browser), and registers it with opencode under the app's id, so
+tools are named `gmail_send_email` and so on. Any app works this way: build a
+workflow with an MCP Server Trigger and that app's tool nodes.
+
+**Reads run, writes ask.** Tools named `search_…`, `read_…`, `get_…`,
+`list_…`, `find_…` run on their own; everything else (send, create, delete,
+unsubscribe…) waits for the owner's OK on the approval card, which shows the
+tool's inputs (the email's recipient, subject and text, say). "Ask me before
+an app changes anything" turns this off.
+
+**Privacy.** A job that mentions a connected app counts as touching that
+app's data (Gmail: customer contact info; QuickBooks and Square: customers
+and money), so it stays on the box or in the private cloud unless the owner
+agrees otherwise.
+
+**More n8n workflows (optional).** Connecting n8n itself (Settings ›
+Instance-level MCP, address + token, or `N8N_URL`/`N8N_MCP_TOKEN`) also lets
+the agent find and run any workflow marked "Available in MCP". n8n's MCP
+tools for building, publishing or deleting workflows and listing credentials
+are hidden from every session; running a workflow asks first. Works with
+n8n 2.8 (which lists only enabled workflows and reports their nodes, so a
+workflow with a Gmail node shows under Gmail) and later versions.
+
+Tested against stand-ins for n8n's MCP servers built from n8n 2.8.4's source
+(same tool names, transports and result shapes) and the real opencode. The
+workflow files follow n8n 2.8.4's node definitions but haven't been imported
+into a real n8n yet.
 
 ## On a phone
 
@@ -148,7 +161,8 @@ Set `SYMPHONY_DATA_DIR` to keep them somewhere else.
 | `GET /api/symphony/jobs` | `{ jobs, spending, savings }`; each job carries `tokens`, `wouldHaveCost` and `saved` |
 | `POST /api/symphony/jobs` | `{ text, checkFirst?, place?, consent?, redact? }` → 202 `{ jobId, place, reason }`, or 409 `{ needsConsent, decision }` |
 | `GET /api/symphony/apps` | Connected apps: n8n status, each app's ready actions (`?fresh=1` skips the 30s cache) |
-| `PUT, DELETE /api/symphony/apps/connection` | `{ url, token }`: test, save and register n8n; or disconnect |
+| `PUT, DELETE /api/symphony/apps/connection` | `{ url, token }`: test, save and register n8n itself; or disconnect |
+| `PUT, DELETE /api/symphony/apps/:id` | `{ url, token }`: connect one app's MCP Server Trigger workflow (tools are listed to test it); or disconnect |
 | `GET /api/symphony/jobs/:id` | One job, the comparison `rates`, and its removed details (to restore them on screen) |
 | `POST /api/symphony/jobs/:id/undo`, `/redo` | Revert or un-revert the job's changes |
 

@@ -15,7 +15,8 @@ import type { MessageInfo, OcEvent, Part } from "../src/lib/opencode/types"
 import { permissionRules, spending, toJob } from "../src/lib/symphony/jobs"
 import { placeForProvider } from "../src/lib/symphony/places"
 import { redactContactInfo, restoreRedactions, routeTask } from "../src/lib/symphony/routing"
-import { appForWorkflow, appPermissionRules, appsMentioned, describeAppTool } from "../src/lib/symphony/apps"
+import { readFileSync } from "node:fs"
+import { APPS, appForWorkflow, appOfTool, appPermissionRules, appServerRules, appsMentioned, describeAppTool, isReadTool } from "../src/lib/symphony/apps"
 import { formatSaved, ratesFromProviders, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "../src/lib/symphony/savings"
 import { customCategory, normalizeSettings } from "../src/lib/symphony/settings"
 
@@ -436,6 +437,58 @@ check("connected apps: matching, routing and the n8n guard", () => {
   assert.equal(evaluate(appPermissionRules({ enabled: false, ask: true }), "n8n_search_workflows"), "deny")
   assert.equal(describeAppTool("n8n_execute_workflow", "Square: today's sales"), "Run “Square: today's sales”")
   assert.equal(describeAppTool("bash"), null)
+})
+
+check("app tools: reading runs, everything else asks; workflow files are well formed", () => {
+  const evaluate = (rules: { permission: string; action: string }[], tool: string) => {
+    const match = (pat: string) => new RegExp(`^${pat.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(tool)
+    return rules.filter((r) => match(r.permission)).at(-1)?.action ?? "ask"
+  }
+  const on = appServerRules(["gmail", "quickbooks"], { enabled: true, ask: true })
+  assert.equal(evaluate(on, "gmail_search_emails"), "allow")
+  assert.equal(evaluate(on, "gmail_read_email"), "allow")
+  assert.equal(evaluate(on, "gmail_send_email"), "ask")
+  assert.equal(evaluate(on, "gmail_delete_email"), "ask")
+  assert.equal(evaluate(on, "gmail_create_draft"), "ask")
+  assert.equal(evaluate(on, "gmail_listen_to_everything"), "ask", "prefix must be a whole word")
+  assert.equal(evaluate(on, "quickbooks_list_invoices"), "allow")
+  assert.equal(evaluate(on, "quickbooks_create_invoice"), "ask")
+  assert.equal(evaluate(on, "bash"), "ask", "other tools untouched")
+  assert.equal(evaluate(appServerRules(["gmail"], { enabled: true, ask: false }), "gmail_send_email"), "allow")
+  assert.equal(evaluate(appServerRules(["gmail"], { enabled: false, ask: true }), "gmail_search_emails"), "deny")
+  assert.equal(isReadTool("list"), true)
+  assert.equal(isReadTool("listen"), false)
+  assert.equal(appOfTool("google-calendar_list_events")?.app.id, "google-calendar")
+  assert.equal(describeAppTool("gmail_send_email"), "Gmail: Send email")
+
+  for (const app of APPS.filter((a) => a.workflow)) {
+    const wf = JSON.parse(readFileSync(`public${app.workflow}`, "utf8")) as {
+      nodes: { name: string; type: string; typeVersion: number; parameters: Record<string, unknown> }[]
+      connections: Record<string, { ai_tool?: { node: string; type: string }[][] }>
+    }
+    const trigger = wf.nodes.find((n) => n.type === "@n8n/n8n-nodes-langchain.mcpTrigger")
+    assert.ok(trigger, `${app.id}: has an MCP Server Trigger`)
+    assert.equal(trigger!.parameters.authentication, "bearerAuth", `${app.id}: trigger asks for a token`)
+    const tools = wf.nodes.filter((n) => n !== trigger)
+    assert.ok(tools.length >= 4, `${app.id}: has tools`)
+    const fromAI = new Map<string, string>()
+    for (const t of tools) {
+      assert.match(t.name, /^[a-z][a-z_]*$/, `${app.id}: tool name ${t.name}`)
+      assert.ok(t.type.endsWith("Tool"), `${app.id}: ${t.name} is a tool node`)
+      assert.equal(t.parameters.descriptionType, "manual")
+      assert.ok(String(t.parameters.toolDescription).length > 10, `${app.id}: ${t.name} has a description`)
+      assert.equal(wf.connections[t.name]?.ai_tool?.[0]?.[0]?.node, trigger!.name, `${app.id}: ${t.name} is attached to the trigger`)
+      // $fromAI keys must be described the same way everywhere in a node.
+      fromAI.clear()
+      for (const m of JSON.stringify(t.parameters).matchAll(/\$fromAI\('([^']+)', '((?:[^'\\]|\\.)*)'/g)) {
+        const prev = fromAI.get(m[1])
+        assert.ok(prev === undefined || prev === m[2], `${app.id}: ${t.name} uses ${m[1]} with two descriptions`)
+        fromAI.set(m[1], m[2])
+      }
+    }
+    // Reading tools exist and so do writing ones.
+    assert.ok(tools.some((t) => isReadTool(t.name)) && tools.some((t) => !isReadTool(t.name)), `${app.id}: reads and writes`)
+  }
 })
 
 check("check-with-me-first maps to opencode permission rules", () => {

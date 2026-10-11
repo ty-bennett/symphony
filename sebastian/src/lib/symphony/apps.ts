@@ -27,8 +27,8 @@ export type AppDef = {
   via: "built-in" | "http"
   /** n8n node types that mean a workflow uses this app. */
   nodeTypes?: string[]
-  /** Starter n8n workflows shipped in public/n8n/. */
-  starters?: { file: string; title: string }[]
+  /** Ready-made n8n workflow (MCP Server Trigger with this app's tools) in public/n8n/. */
+  workflow?: string
 }
 
 export const APPS: AppDef[] = [
@@ -36,14 +36,11 @@ export const APPS: AppDef[] = [
     id: "square",
     name: "Square",
     about: "Sales, payments and customers from your register",
-    examples: ["What did we sell today?", "Find a customer's phone number"],
+    examples: ["What did we sell today?", "Send Jane a payment link for the cake"],
     keywords: ["square", "point of sale", "register sales"],
     categories: ["customers", "money"],
     via: "http",
-    starters: [
-      { file: "/n8n/square-sales-today.json", title: "Today's Square sales" },
-      { file: "/n8n/square-find-customer.json", title: "Find a Square customer" },
-    ],
+    workflow: "/n8n/square-for-symphony.json",
   },
   {
     id: "google-calendar",
@@ -59,20 +56,22 @@ export const APPS: AppDef[] = [
     id: "gmail",
     name: "Gmail",
     about: "Customer emails and order requests",
-    examples: ["Summarize this week's catering inquiries", "Draft replies to unanswered emails"],
+    examples: ["Summarize this week's catering inquiries", "Reply to Jane and confirm Saturday"],
     keywords: ["gmail", "inbox", "email"],
     categories: ["customers"],
     via: "built-in",
+    workflow: "/n8n/gmail-for-symphony.json",
     nodeTypes: ["n8n-nodes-base.gmail", "n8n-nodes-base.gmailTrigger"],
   },
   {
     id: "quickbooks",
     name: "QuickBooks",
     about: "Invoices, bills and bookkeeping",
-    examples: ["Which invoices are overdue?", "Total supplier bills this month"],
+    examples: ["Which invoices are overdue?", "Invoice the Smiths for the wedding cake"],
     keywords: ["quickbooks", "invoice", "bookkeeping"],
     categories: ["money", "customers"],
     via: "built-in",
+    workflow: "/n8n/quickbooks-for-symphony.json",
     nodeTypes: ["n8n-nodes-base.quickbooks"],
   },
   {
@@ -99,10 +98,11 @@ export const APPS: AppDef[] = [
     id: "mailchimp",
     name: "Mailchimp",
     about: "Newsletters and your mailing list",
-    examples: ["Draft this month's newsletter", "How many people joined the list?"],
+    examples: ["How many people joined the list this month?", "Send the October newsletter"],
     keywords: ["mailchimp", "newsletter", "mailing list"],
     categories: ["customers"],
     via: "built-in",
+    workflow: "/n8n/mailchimp-for-symphony.json",
     nodeTypes: ["n8n-nodes-base.mailchimp", "n8n-nodes-base.mailchimpTrigger"],
   },
 ]
@@ -154,8 +154,44 @@ export function appPermissionRules({ enabled, ask }: { enabled: boolean; ask: bo
   return rules
 }
 
+/** Tools whose names start with these only read, so they run without asking. Everything else asks. */
+export const READ_PREFIXES = ["search", "read", "get", "list", "find", "look_up", "check", "count"]
+
+export function isReadTool(tool: string): boolean {
+  return READ_PREFIXES.some((p) => tool === p || tool.startsWith(`${p}_`))
+}
+
+/**
+ * Rules for apps connected through their own n8n workflow (registered in
+ * opencode under the app id, so tools are `<app>_<tool>`): reading tools
+ * run, everything else asks first (or runs, if asking is switched off).
+ */
+export function appServerRules(appIds: string[], { enabled, ask }: { enabled: boolean; ask: boolean }): Rule[] {
+  const rules: Rule[] = []
+  for (const id of appIds) {
+    rules.push({ permission: `${id}_*`, pattern: "*", action: enabled ? (ask ? "ask" : "allow") : "deny" })
+    if (!enabled) continue
+    for (const p of READ_PREFIXES) {
+      rules.push({ permission: `${id}_${p}`, pattern: "*", action: "allow" })
+      rules.push({ permission: `${id}_${p}_*`, pattern: "*", action: "allow" })
+    }
+  }
+  return rules
+}
+
+/** Which app an opencode tool name belongs to, and the tool's own name. */
+export function appOfTool(tool: string): { app: AppDef; name: string } | null {
+  const app = APPS.find((a) => tool.startsWith(`${a.id}_`))
+  return app ? { app, name: tool.slice(app.id.length + 1) } : null
+}
+
 /** Readable names for n8n tool calls in steps and approval cards. */
 export function describeAppTool(tool: string, workflowName?: string): string | null {
+  const own = appOfTool(tool)
+  if (own) {
+    const words = own.name.replace(/_/g, " ")
+    return `${own.app.name}: ${words.charAt(0).toUpperCase()}${words.slice(1)}`
+  }
   if (!tool.startsWith(`${N8N_SERVER}_`)) return null
   const name = tool.slice(N8N_SERVER.length + 1)
   const quoted = workflowName ? `“${workflowName}”` : "an app action"

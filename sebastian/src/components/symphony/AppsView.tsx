@@ -11,6 +11,10 @@ import type { Settings } from "@/lib/symphony/types"
 import styles from "./page.module.css"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+const pretty = (tool: string) => {
+  const words = tool.replace(/_/g, " ")
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
 
 type App = AppsOverview["apps"][number]
 
@@ -88,14 +92,17 @@ export function AppsView() {
 
   const connection = overview?.connection
   const n8n = connection?.url
-  const readyCount = overview?.apps.filter((a) => a.ready.length).length ?? 0
+  const askFirst = settings?.apps.askFirst ?? true
 
   return (
     <div className={`${styles.page} ${styles.narrow}`}>
       <header className={styles.header}>
         <div className={styles.headerText}>
           <h1>Connected apps</h1>
-          <p className={styles.muted}>Let Symphony use the apps you already run the business on. Powered by n8n, running on your Symphony.</p>
+          <p className={styles.muted}>
+            Give Symphony your email, mailing list, books and register. It can do anything you could do in them, and asks before
+            it changes or sends anything.
+          </p>
         </div>
         <p className={styles.saved} role="status" aria-live="polite">
           {saved}
@@ -112,8 +119,66 @@ export function AppsView() {
         </div>
       ) : null}
 
+      <section className={styles.section} aria-labelledby="apps-h">
+        <div className={styles.actions}>
+          <h2 id="apps-h" style={{ fontSize: "var(--fs-section)", lineHeight: 1.25 }}>
+            Apps
+          </h2>
+          <Button variant="secondary" onClick={() => void load(true)}>
+            Refresh
+          </Button>
+        </div>
+        <p className={styles.muted}>
+          Each app is one workflow in n8n that holds the app&apos;s login and all of its tools. Import it, sign in once, and paste its
+          address here.
+        </p>
+        <ul className={styles.list}>
+          {(overview?.apps ?? []).map((app) => (
+            <AppRow key={app.id} app={app} askFirst={askFirst} n8n={n8n} onOverview={setOverview} onError={setError} />
+          ))}
+        </ul>
+      </section>
+
+      {settings ? (
+        <section className={styles.section} aria-labelledby="rules-h">
+          <h2 id="rules-h">What jobs may do</h2>
+          <ul className={styles.list}>
+            <li className={styles.settingRow}>
+              <div className={styles.settingText}>
+                <h3>Let jobs use connected apps</h3>
+                <p className={styles.muted}>When it&apos;s off, the agent can&apos;t see any of them.</p>
+              </div>
+              <Switch checked={settings.apps.enabled} onChange={(on) => updateApps({ enabled: on })} label="Let jobs use connected apps" hideLabel />
+            </li>
+            <li className={styles.settingRow}>
+              <div className={styles.settingText}>
+                <h3>Ask me before an app changes anything</h3>
+                <p className={styles.muted}>
+                  Sending, creating, changing or deleting waits for your OK, with exactly what it will do. Searching and reading never
+                  ask.
+                </p>
+              </div>
+              <Switch
+                checked={settings.apps.askFirst}
+                onChange={(on) => updateApps({ askFirst: on })}
+                label="Ask me before an app changes anything"
+                hideLabel
+              />
+            </li>
+          </ul>
+          <p className={styles.meta}>
+            Jobs that use an app with private information (email, customers, money) stay {PLACES.device.short} or {PLACES.private.short}{" "}
+            unless you say otherwise.
+          </p>
+        </section>
+      ) : null}
+
       <section className={styles.section} aria-labelledby="n8n-h">
-        <h2 id="n8n-h">n8n</h2>
+        <h2 id="n8n-h">More n8n workflows</h2>
+        <p className={styles.muted}>
+          Optional. Connect n8n itself and the agent can also run any workflow you mark &ldquo;Available in MCP&rdquo;, like a custom
+          report.
+        </p>
         {!connection ? (
           <p className={styles.muted}>Loading</p>
         ) : connection.state === "connected" ? (
@@ -122,7 +187,7 @@ export function AppsView() {
             <div className={styles.settingText}>
               <h3>Connected to n8n</h3>
               <p className={styles.muted}>
-                {n8n} · {readyCount ? `${readyCount} ${readyCount === 1 ? "app has" : "apps have"} actions ready` : "no actions ready yet"}
+                {n8n}
                 {connection.agent && connection.agent !== "connected" ? ` · The agent can't use it yet (${connection.agent})` : ""}
               </p>
             </div>
@@ -130,9 +195,6 @@ export function AppsView() {
               <a className={styles.reviewLink} href={n8n} target="_blank" rel="noreferrer">
                 Open n8n
               </a>
-              <Button variant="secondary" disabled={busy} onClick={() => void load(true)}>
-                Refresh
-              </Button>
               {connection.source === "saved" ? (
                 <Button variant="text" disabled={busy} onClick={() => void disconnect()}>
                   Disconnect
@@ -142,14 +204,7 @@ export function AppsView() {
           </div>
         ) : (
           <>
-            {connection.state === "error" ? (
-              <p className={styles.warnText}>{connection.error}</p>
-            ) : (
-              <p className={styles.muted}>
-                n8n holds your app logins and runs the actions. Symphony connects to n8n&apos;s MCP server, so the agent can find and run
-                the actions you allow.
-              </p>
-            )}
+            {connection.state === "error" ? <p className={styles.warnText}>{connection.error}</p> : null}
             {connection.source === "env" ? (
               <p className={styles.meta}>The address and token come from N8N_URL and N8N_MCP_TOKEN on the server.</p>
             ) : (
@@ -173,79 +228,21 @@ export function AppsView() {
                 </label>
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>Access token</span>
-                  <input
-                    className={styles.textInput}
-                    type="password"
-                    value={token}
-                    autoComplete="off"
-                    onChange={(e) => setToken(e.target.value)}
-                  />
+                  <input className={styles.textInput} type="password" value={token} autoComplete="off" onChange={(e) => setToken(e.target.value)} />
                 </label>
-                <Button type="submit" variant="primary" disabled={busy || !url.trim() || !token.trim()}>
+                <Button type="submit" variant="secondary" disabled={busy || !url.trim() || !token.trim()}>
                   {busy ? "Connecting" : "Connect"}
                 </Button>
               </form>
             )}
-            <ol className={styles.howto}>
-              <li>
-                In n8n, open <strong>Settings › Instance-level MCP</strong> and turn on <strong>Enable MCP access</strong>.
-              </li>
-              <li>
-                Choose <strong>Connect a client</strong>, open the <strong>API key</strong> tab, and copy the token.
-              </li>
-              <li>Paste n8n&apos;s address and the token here.</li>
-            </ol>
+            <p className={styles.meta}>
+              The token is in n8n under Settings › Instance-level MCP › Connection details. n8n&apos;s tools for building, publishing or
+              deleting workflows are never shown to the agent.
+            </p>
           </>
         )}
-      </section>
-
-      {settings ? (
-        <section className={styles.section} aria-labelledby="rules-h">
-          <h2 id="rules-h">What jobs may do</h2>
-          <ul className={styles.list}>
-            <li className={styles.settingRow}>
-              <div className={styles.settingText}>
-                <h3>Let jobs use connected apps</h3>
-                <p className={styles.muted}>When it&apos;s off, the agent can&apos;t see n8n at all.</p>
-              </div>
-              <Switch checked={settings.apps.enabled} onChange={(on) => updateApps({ enabled: on })} label="Let jobs use connected apps" hideLabel />
-            </li>
-            <li className={styles.settingRow}>
-              <div className={styles.settingText}>
-                <h3>Ask me before an app action runs</h3>
-                <p className={styles.muted}>
-                  Actions can send emails or change things in your apps. Finding actions and reading their results never asks.
-                </p>
-              </div>
-              <Switch
-                checked={settings.apps.askFirst}
-                onChange={(on) => updateApps({ askFirst: on })}
-                label="Ask me before an app action runs"
-                hideLabel
-              />
-            </li>
-          </ul>
-          <p className={styles.meta}>
-            Jobs that mention a connected app count as private, so they stay {PLACES.device.short} or {PLACES.private.short} unless you
-            say otherwise. n8n&apos;s tools for building, publishing or deleting workflows are never shown to the agent.
-          </p>
-        </section>
-      ) : null}
-
-      <section className={styles.section} aria-labelledby="apps-h">
-        <h2 id="apps-h">Apps</h2>
-        <ul className={styles.list}>
-          {(overview?.apps ?? []).map((app) => (
-            <AppRow key={app.id} app={app} n8n={connection?.state === "connected" ? n8n : undefined} />
-          ))}
-        </ul>
-      </section>
-
-      {overview?.other.length ? (
-        <section className={styles.section} aria-labelledby="other-h">
-          <h2 id="other-h">Other actions</h2>
-          <p className={styles.muted}>Workflows in n8n that the agent can run, not tied to an app above.</p>
-          <ul className={styles.list}>
+        {overview?.other.length ? (
+          <ul className={styles.list} style={{ marginTop: 8 }}>
             {overview.other.map((w) => (
               <li key={w.id} className={styles.row}>
                 <span className={styles.rowText}>
@@ -255,17 +252,73 @@ export function AppsView() {
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
+        ) : null}
+      </section>
     </div>
   )
 }
 
-function AppRow({ app, n8n }: { app: App; n8n?: string }) {
-  const ready = app.ready.length > 0
+function AppRow({
+  app,
+  askFirst,
+  n8n,
+  onOverview,
+  onError,
+}: {
+  app: App
+  askFirst: boolean
+  n8n?: string
+  onOverview: (o: AppsOverview) => void
+  onError: (e: string | null) => void
+}) {
+  const [url, setUrl] = useState(app.server?.url ?? "")
+  const [token, setToken] = useState("")
+  const [busy, setBusy] = useState(false)
+  const server = app.server
+  const connected = server?.state === "connected"
+  // Open when connected or failing; stays open after connecting or disconnecting.
+  const [open, setOpen] = useState(connected || server?.state === "error")
+  const tools = server?.tools ?? []
+
+  async function connect() {
+    setBusy(true)
+    onError(null)
+    try {
+      onOverview(
+        await api<AppsOverview>("/api/symphony", `/apps/${encodeURIComponent(app.id)}`, { method: "PUT", body: JSON.stringify({ url, token }) }),
+      )
+      setToken("")
+    } catch (e) {
+      onError(`${app.name}: ${message(e)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function disconnect() {
+    setBusy(true)
+    try {
+      onOverview(await api<AppsOverview>("/api/symphony", `/apps/${encodeURIComponent(app.id)}`, { method: "DELETE" }))
+      setOpen(true)
+    } catch (e) {
+      onError(`${app.name}: ${message(e)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const status = connected
+    ? `Connected · ${tools.length} ${tools.length === 1 ? "tool" : "tools"}`
+    : server?.state === "error"
+      ? "Can't reach it"
+      : app.ready.length
+        ? `${app.ready.length} ${app.ready.length === 1 ? "action" : "actions"} ready`
+        : "Not connected"
+  const good = connected || (!server && app.ready.length > 0)
+
   return (
     <li>
-      <details className={styles.app} open={ready || undefined}>
+      <details className={styles.app} open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
         <summary className={styles.appSummary}>
           <span className={styles.appMark} aria-hidden="true">
             {app.name.charAt(0)}
@@ -274,34 +327,118 @@ function AppRow({ app, n8n }: { app: App; n8n?: string }) {
             <span className={styles.rowTitle}>{app.name}</span>
             <span className={styles.muted}>{app.about}</span>
           </span>
-          <span className={ready ? styles.appReady : styles.meta}>
-            {ready ? `${app.ready.length} ${app.ready.length === 1 ? "action" : "actions"} ready` : "Not set up"}
-          </span>
+          <span className={good ? styles.appReady : server?.state === "error" ? styles.warnText : styles.meta}>{status}</span>
           <Icon name="chevronDown" size={16} className={styles.appChevron} />
         </summary>
 
         <div className={styles.appBody}>
-          {ready ? (
-            <ul className={styles.actions2}>
-              {app.ready.map((w) => (
-                <li key={w.id}>
-                  <Icon name="check" size={16} style={{ color: "var(--good)", flex: "none", marginTop: 4 }} />
-                  <span>
-                    <span className={styles.rowTitle}>{w.name}</span>
-                    {w.description ? <span className={`${styles.muted} ${styles.block}`}>{w.description}</span> : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          {connected ? (
+            <>
+              <ul className={styles.actions2} aria-label={`${app.name} tools`}>
+                {tools.map((t) => (
+                  <li key={t.name}>
+                    <span className={t.reads || !askFirst ? styles.toolRuns : styles.toolAsks}>
+                      {t.reads || !askFirst ? "Runs" : "Asks first"}
+                    </span>
+                    <span>
+                      <span className={styles.rowTitle}>{pretty(t.name)}</span>
+                      {t.description ? <span className={`${styles.muted} ${styles.block}`}>{t.description}</span> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className={styles.inline}>
+                <span className={styles.meta} style={{ overflowWrap: "anywhere" }}>
+                  {server?.url}
+                  {server?.agent && server.agent !== "connected" ? ` · The agent can't use it yet (${server.agent})` : ""}
+                </span>
+                <Button variant="text" disabled={busy} onClick={() => void disconnect()}>
+                  Disconnect
+                </Button>
+              </div>
+            </>
           ) : (
-            <p className={styles.muted}>Try asking: {app.examples.map((e) => `“${e}”`).join(" or ")}</p>
+            <>
+              {server?.state === "error" ? <p className={styles.warnText}>{server.error}</p> : null}
+              <p className={styles.muted}>Then ask things like {app.examples.map((e) => `“${e}”`).join(" or ")}.</p>
+              <ol className={styles.howto}>
+                {app.workflow ? (
+                  <li>
+                    <a href={app.workflow} download>
+                      Download “{app.name} for Symphony”
+                    </a>{" "}
+                    and import it in n8n (Workflows › ⋯ › Import from file).
+                  </li>
+                ) : (
+                  <li>
+                    In n8n, make a workflow with an <strong>MCP Server Trigger</strong> and attach n8n&apos;s {app.name} Tool nodes for what
+                    the agent should be able to do.
+                  </li>
+                )}
+                {app.via === "http" ? (
+                  <li>
+                    Create a <strong>Header Auth</strong> credential named <code>Authorization</code> with the value{" "}
+                    <code>Bearer</code> plus your {app.name} access token, and choose it in each tool.
+                  </li>
+                ) : (
+                  <li>
+                    Open one of the {app.name} tools, sign in to {app.name}, and choose that login in the other tools
+                    {app.id === "mailchimp" ? ". Pick your audience in the subscriber tools" : ""}.
+                  </li>
+                )}
+                <li>
+                  On <strong>Symphony connects here</strong>, choose Bearer Auth and make a token: any long password. Use the same one for
+                  every app.
+                </li>
+                <li>
+                  Turn the workflow on (<strong>Active</strong>) and paste the trigger&apos;s <strong>Production URL</strong> and the token
+                  below.
+                </li>
+              </ol>
+              <form
+                className={styles.connectForm}
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void connect()
+                }}
+              >
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Production URL</span>
+                  <input
+                    className={styles.textInput}
+                    value={url}
+                    placeholder={`${n8n || "http://localhost:5678"}/mcp/symphony-${app.id}`}
+                    autoComplete="off"
+                    inputMode="url"
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Token</span>
+                  <input className={styles.textInput} type="password" value={token} autoComplete="off" onChange={(e) => setToken(e.target.value)} />
+                </label>
+                <Button type="submit" variant="primary" disabled={busy || !url.trim()}>
+                  {busy ? "Connecting" : `Connect ${app.name}`}
+                </Button>
+              </form>
+            </>
           )}
 
-          {app.off.length ? (
-            <p className={styles.meta}>
-              In n8n but not available to Symphony: {app.off.map((w) => w.name).join(", ")}. Publish them and turn on{" "}
-              <strong>Available in MCP</strong> in each workflow&apos;s settings.
-            </p>
+          {app.ready.length ? (
+            <div className={styles.section}>
+              <p className={styles.meta}>Also from your n8n workflows:</p>
+              <ul className={styles.actions2}>
+                {app.ready.map((w) => (
+                  <li key={w.id}>
+                    <Icon name="check" size={16} style={{ color: "var(--good)", flex: "none", marginTop: 4 }} />
+                    <span>
+                      <span className={styles.rowTitle}>{w.name}</span>
+                      {w.description ? <span className={`${styles.muted} ${styles.block}`}>{w.description}</span> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
 
           {app.categories.length ? (
@@ -310,31 +447,6 @@ function AppRow({ app, n8n }: { app: App; n8n?: string }) {
               jobs that use it are treated as private.
             </p>
           ) : null}
-
-          <div className={styles.inline}>
-            {app.via === "http" ? (
-              <p className={styles.meta} style={{ flexBasis: "100%" }}>
-                n8n reaches {app.name} with its HTTP Request node and a {app.name} access token saved as a Header Auth credential
-                (Authorization: Bearer …). Import a starter action, pick that credential, then publish it.
-              </p>
-            ) : (
-              <p className={styles.meta} style={{ flexBasis: "100%" }}>
-                n8n has a built-in {app.name} node. Make a workflow with a Webhook trigger, sign in to {app.name} in that node, publish it,
-                and turn on Available in MCP.
-              </p>
-            )}
-            {app.starters?.map((s) => (
-              <a key={s.file} className={styles.reviewLink} href={s.file} download>
-                <Icon name="download" size={16} />
-                {s.title}
-              </a>
-            ))}
-            {n8n ? (
-              <a className={styles.linkButton} href={`${n8n}/home/workflows`} target="_blank" rel="noreferrer">
-                Open n8n <Icon name="external" size={14} style={{ verticalAlign: -2 }} />
-              </a>
-            ) : null}
-          </div>
         </div>
       </details>
     </li>
