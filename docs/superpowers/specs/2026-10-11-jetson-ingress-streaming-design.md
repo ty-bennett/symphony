@@ -9,7 +9,7 @@ Builds on: `cloud/PLAN.md` Phase 3 items 3.1–3.4, the deployed tenant agent (`
 
 **What the user said.** API Gateway + streaming Lambda (not direct-to-harness). Buy a cheap domain via Route 53; the user sends registrant details. Local pilot CA. The on-prem team builds the Jetson client; we publish the API contract. Memory recall comes from prefetching the user's facts before each call. Develop the harness so the UX is seamless.
 
-**Assumptions (correct me).** One tenant (`demo`, us-east-1). Domain `symphony-edge.tech` (user's choice; Route 53 price $49/yr — `symphony-edge.click` at $3/yr is the cheap alternative), a single Terraform variable; endpoint `api.demo.symphony-edge.tech`. The Jetson holds a per-device client certificate and obtains a Cognito user token for the person using it.
+**Assumptions (correct me).** One tenant (`demo`, us-east-1). Domain `symphony-edge.link` (registered 2026-10-11 in the management account via Route 53, $5/yr, privacy protection on, auto-renew), a single Terraform variable; endpoint `api.demo.symphony-edge.link`. The Jetson holds a per-device client certificate and obtains a Cognito user token for the person using it.
 
 **Success criteria (live).**
 1. A valid device certificate + valid user token gets `text/event-stream` with the first token in ≤ 3 s (p50) for a document question; the full answer matches the non-streaming path.
@@ -72,4 +72,4 @@ The Jetson client and local Qwen router (on-prem team), Phase 2 device packaging
 
 ## Cost notes
 
-Domain $49/yr for `.tech` ($3/yr if `.click`) plus $0.50/month per hosted zone; API Gateway REST per request; Lambda streaming per GB-second and streamed bytes; WAF about $5/month plus rules; DynamoDB idempotency table on demand. All negligible at demo volume.
+Domain $5/yr (`.link`) plus $0.50/month per hosted zone; API Gateway REST per request; Lambda streaming per GB-second and streamed bytes; WAF about $5/month plus rules; DynamoDB idempotency table on demand. All negligible at demo volume.
