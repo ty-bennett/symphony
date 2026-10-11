@@ -20,3 +20,5 @@ tenants = {
     billing_contacts   = ["billing@acme.example.com"]
   }
 }
+
+security_contacts = ["security@example.com"]

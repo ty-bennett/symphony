@@ -213,3 +213,50 @@ run "rejects_an_invalid_tenant_id" {
 
   expect_failures = [var.tenants]
 }
+
+# --- security services ---
+run "delegates_guardduty_to_audit_in_both_regions" {
+  command = plan
+
+  assert {
+    condition     = toset([for a in aws_guardduty_organization_admin_account.this : "${a.region}/${a.admin_account_id}"]) == toset(["us-east-1/333333333333", "us-east-2/333333333333"])
+    error_message = "GuardDuty must be delegated to the audit account in both governed Regions."
+  }
+
+  assert {
+    condition     = alltrue([for c in aws_guardduty_organization_configuration.this : c.auto_enable_organization_members == "ALL"])
+    error_message = "GuardDuty must auto-enable every member account."
+  }
+}
+
+run "delegates_security_hub_without_extra_standards" {
+  command = plan
+
+  assert {
+    condition     = toset([for a in aws_securityhub_organization_admin_account.this : "${a.region}/${a.admin_account_id}"]) == toset(["us-east-1/333333333333", "us-east-2/333333333333"])
+    error_message = "Security Hub must be delegated to the audit account in both governed Regions."
+  }
+
+  assert {
+    condition     = alltrue([for c in aws_securityhub_organization_configuration.this : c.auto_enable && c.auto_enable_standards == "NONE"])
+    error_message = "Security Hub must auto-enable accounts without enabling paid standards."
+  }
+}
+
+run "enables_trusted_access_for_both_services" {
+  command = plan
+
+  assert {
+    condition     = toset([for s in aws_organizations_aws_service_access.security : s.service_principal]) == toset(["guardduty.amazonaws.com", "securityhub.amazonaws.com"])
+    error_message = "GuardDuty and Security Hub need trusted access."
+  }
+}
+
+run "creates_finding_alerts_in_each_region" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(module.finding_alerts)) == toset(["us-east-1", "us-east-2"])
+    error_message = "Each governed Region needs a finding alert topic."
+  }
+}

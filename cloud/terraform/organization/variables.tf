@@ -131,3 +131,13 @@ variable "tenants" {
     error_message = "Every vended account needs its own email address."
   }
 }
+
+variable "security_contacts" {
+  description = "Email addresses notified of high-severity GuardDuty and Security Hub findings."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.security_contacts) >= 1
+    error_message = "At least one security contact is required."
+  }
+}

@@ -22,3 +22,8 @@ output "tenant_accounts" {
     }
   }
 }
+
+output "security_alert_topic_arns" {
+  description = "SNS topics in the audit account for high-severity findings, keyed by Region."
+  value       = { for region, alerts in module.finding_alerts : region => alerts.topic_arn }
+}
