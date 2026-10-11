@@ -128,9 +128,11 @@ class LockdownLogsTest(unittest.TestCase):
         changed = tenant_ops.lockdown_runtime_logs(logs, "arn:key")
         self.assertEqual(len(changed), 3)
         self.assertEqual(
-            logs.retention, ["/aws/bedrock-agentcore/runtimes/abc-DEFAULT"]
+            logs.retention, ["/aws/bedrock-agentcore/runtimes/abc-DEFAULT", "aws/spans"]
         )
-        self.assertEqual(logs.kms, ["/aws/bedrock-agentcore/runtimes/abc-DEFAULT"])
+        self.assertEqual(
+            logs.kms, ["/aws/bedrock-agentcore/runtimes/abc-DEFAULT", "aws/spans"]
+        )
 
 
 if __name__ == "__main__":
