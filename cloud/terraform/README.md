@@ -10,7 +10,8 @@ Terraform for the Phase 1 AWS landing zone in [`../PLAN.md`](../PLAN.md). Each d
 | 4 | [`shared-services/`](shared-services/README.md) | Shared services | us-east-1 | `symphony/shared-services.tfstate` |
 | 5 | [`tenant-baseline/`](tenant-baseline/README.md) | One tenant | Tenant workload Region | `symphony/tenants/<tenant_id>/baseline.tfstate` |
 | 6 | [`sandbox-fixture/`](sandbox-fixture/README.md) | Integration fixture | us-east-1 | `symphony/sandbox-fixture.tfstate` |
-| — | [`tenant-workload/`](tenant-workload/README.md) | One tenant | Tenant workload Region | `symphony/tenants/<tenant_id>/workload.tfstate` (Phase 3) |
+| 7 | [`tenant-workload/`](tenant-workload/README.md) | One tenant | Tenant workload Region | `symphony/tenants/<tenant_id>/workload.tfstate` |
+| 8 | [`external-aws-connector/`](external-aws-connector/README.md) | Document-owning account (pilot: fixture) | us-east-1 | `symphony/tenants/<tenant_id>/external-aws-connector.tfstate` |
 
 Shared modules live in [`modules/`](modules/): `secure-bucket`, `ct-account`, `finding-alerts`, and `account-hygiene`.
 

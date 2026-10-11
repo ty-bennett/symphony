@@ -32,3 +32,14 @@ variable "state_bucket" {
   description = "Terraform state bucket created by the bootstrap root."
   type        = string
 }
+
+variable "model_id" {
+  description = "In-Region, on-demand Bedrock model for the private-cloud agent."
+  type        = string
+  default     = "moonshotai.kimi-k2.5"
+
+  validation {
+    condition     = contains(["moonshotai.kimi-k2.5", "zai.glm-5", "qwen.qwen3-32b-v1:0"], var.model_id)
+    error_message = "model_id must be one of the benchmarked candidates: moonshotai.kimi-k2.5, zai.glm-5, qwen.qwen3-32b-v1:0."
+  }
+}

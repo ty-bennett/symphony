@@ -57,6 +57,7 @@ ROOTS: list[str] = [
     "tenant-baseline",
     "sandbox-fixture",
     "tenant-workload",
+    "external-aws-connector",
 ]
 
 

@@ -1,4 +1,11 @@
-# Phase 3 scaffold. The Regional API Gateway (mTLS custom domain), authorizer,
-# AgentCore Harness and Gateway, Lambda tool adapter, and their IAM roles are
-# added here by the Phase 3 plan. Until then this root only proves the account
-# and Region guard against the organization root's tenant record.
+# Phase 3 agent slice: an AgentCore Harness (managed Strands loop) on in-Region
+# Bedrock, an IAM-authenticated AgentCore Gateway, and the read-only S3 document
+# tool as its only target. The Regional API Gateway ingress (mTLS + Cognito) is
+# a later plan; until then the harness is invoked with SigV4 by operators.
+locals {
+  name_prefix      = "symphony-${var.tenant_id}"
+  harness_name     = "symphony_${replace(var.tenant_id, "-", "_")}_agent"
+  tool_target_name = "customer-documents"
+  fixture_account  = local.organization.fixture_account_id
+  external_role    = "arn:aws:iam::${local.fixture_account}:role/SymphonyIntegrationRole"
+}
