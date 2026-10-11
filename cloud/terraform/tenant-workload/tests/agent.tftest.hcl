@@ -292,8 +292,8 @@ run "traces_stay_encrypted_in_the_tenant" {
   command = plan
 
   assert {
-    condition     = aws_cloudwatch_log_group.spans.retention_in_days == 7 && aws_cloudwatch_log_group.spans.kms_key_id == "arn:aws:kms:us-east-2:444444444444:key/22222222-2222-2222-2222-222222222222"
-    error_message = "Spans hold prompt payloads: tenant key and 7-day retention."
+    condition     = jsondecode(aws_cloudwatch_log_resource_policy.xray_spans.policy_document).Statement[0].Condition.StringEquals["aws:SourceAccount"] == "444444444444"
+    error_message = "Only this account's X-Ray may write spans."
   }
 
   assert {

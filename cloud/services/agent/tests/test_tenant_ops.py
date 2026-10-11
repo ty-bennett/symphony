@@ -122,10 +122,11 @@ class LockdownLogsTest(unittest.TestCase):
                     "kmsKeyId": "arn:key",
                 },
                 {"logGroupName": "/symphony/demo/documents-tool"},
+                {"logGroupName": "aws/spans"},
             ]
         )
         changed = tenant_ops.lockdown_runtime_logs(logs, "arn:key")
-        self.assertEqual(len(changed), 2)
+        self.assertEqual(len(changed), 3)
         self.assertEqual(
             logs.retention, ["/aws/bedrock-agentcore/runtimes/abc-DEFAULT"]
         )

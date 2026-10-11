@@ -186,5 +186,12 @@ resource "aws_bedrockagentcore_harness" "agent" {
     }
   }
 
+  lifecycle {
+    # The service derives one memory retrieval_config per strategy, but the AWS
+    # provider (6.68) allows at most one and reports an inconsistent result.
+    # Remove this line deliberately when changing the memory wiring.
+    ignore_changes = [memory]
+  }
+
   depends_on = [aws_iam_role_policy.harness, aws_bedrockagentcore_gateway_target.documents, aws_bedrockagentcore_gateway_target.knowledge_search, aws_bedrockagentcore_memory_strategy.facts, aws_bedrockagentcore_memory_strategy.summaries]
 }

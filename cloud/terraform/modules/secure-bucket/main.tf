@@ -66,6 +66,23 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
     }
   }
 
+  dynamic "rule" {
+    for_each = var.expiration == null ? [] : [var.expiration]
+
+    content {
+      id     = "expire-prefix"
+      status = "Enabled"
+
+      filter {
+        prefix = rule.value.prefix
+      }
+
+      expiration {
+        days = rule.value.days
+      }
+    }
+  }
+
   depends_on = [aws_s3_bucket_versioning.this]
 }
 

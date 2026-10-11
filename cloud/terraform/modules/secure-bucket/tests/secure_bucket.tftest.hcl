@@ -95,3 +95,25 @@ run "rejects_an_invalid_bucket_name" {
 
   expect_failures = [var.name]
 }
+
+run "expires_objects_under_a_prefix_when_asked" {
+  command = plan
+
+  variables {
+    expiration = { prefix = "recordings/", days = 30 }
+  }
+
+  assert {
+    condition     = length(aws_s3_bucket_lifecycle_configuration.this.rule) == 2 && one([for r in aws_s3_bucket_lifecycle_configuration.this.rule : one(r.expiration).days if r.id == "expire-prefix"]) == 30
+    error_message = "An expiration rule must be added in the same lifecycle configuration."
+  }
+}
+
+run "adds_no_expiration_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(aws_s3_bucket_lifecycle_configuration.this.rule) == 1
+    error_message = "Objects must not expire unless requested."
+  }
+}

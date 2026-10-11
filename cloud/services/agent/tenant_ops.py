@@ -6,7 +6,7 @@
 Commands:
   zdr                 Set Bedrock data retention to "none" and verify it (us-east-1, us-east-2, us-west-2).
   kb-sync KB DS       Start a knowledge base ingestion job and wait for it to finish.
-  lockdown-logs KEY   Give AgentCore runtime log groups 7-day retention and the tenant KMS key.
+  lockdown-logs KEY   Give AgentCore runtime log groups and aws/spans 7-day retention and the tenant KMS key.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from collections.abc import Callable
 from typing import Any
 
 ZDR_REGIONS = ("us-east-1", "us-east-2", "us-west-2")
-RUNTIME_LOG_PREFIX = "/aws/bedrock-agentcore/runtimes/"
+TENANT_LOG_PREFIXES = ("/aws/bedrock-agentcore/runtimes/", "aws/spans")
 LOG_RETENTION_DAYS = 7
 
 
@@ -71,7 +71,12 @@ def sync_knowledge_base(
 def lockdown_runtime_logs(client: Any, kms_key_arn: str) -> list[str]:
     changed = []
     paginator = client.get_paginator("describe_log_groups")
-    for page in paginator.paginate(logGroupNamePrefix=RUNTIME_LOG_PREFIX):
+    pages = [
+        page
+        for prefix in TENANT_LOG_PREFIXES
+        for page in paginator.paginate(logGroupNamePrefix=prefix)
+    ]
+    for page in pages:
         for group in page.get("logGroups", []):
             name = group["logGroupName"]
             if group.get("retentionInDays") != LOG_RETENTION_DAYS:

@@ -17,23 +17,7 @@ module "browser_bucket" {
   name                               = local.browser_bucket
   kms_key_arn                        = local.tenant_baseline.tenant_data_kms_key_arn
   noncurrent_version_expiration_days = 7
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "recordings_expiry" {
-  bucket = module.browser_bucket.name
-
-  rule {
-    id     = "expire-recordings"
-    status = "Enabled"
-
-    filter {
-      prefix = "recordings/"
-    }
-
-    expiration {
-      days = 30
-    }
-  }
+  expiration                         = { prefix = "recordings/", days = 30 }
 }
 
 resource "aws_s3_object" "browser_policy" {

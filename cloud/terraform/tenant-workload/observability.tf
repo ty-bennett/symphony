@@ -1,14 +1,8 @@
 # Agent traces (CloudWatch Transaction Search). Harness spans include prompt and
 # tool payloads, so they stay in this tenant account only: tenant-key encryption
-# and 7-day retention. Nothing here is exported to Symphony's accounts.
-resource "aws_cloudwatch_log_group" "spans" {
-  name              = "aws/spans"
-  retention_in_days = 7
-  kms_key_id        = local.tenant_baseline.tenant_data_kms_key_arn
-
-  depends_on = [terraform_data.account_guard]
-}
-
+# and 7-day retention. Transaction Search creates the reserved aws/spans group;
+# tenant_ops.py lockdown-logs then applies the key and retention. Nothing here
+# is exported to Symphony's accounts.
 resource "aws_cloudwatch_log_resource_policy" "xray_spans" {
   policy_name = "symphony-transaction-search"
   policy_document = jsonencode({
@@ -33,7 +27,7 @@ resource "aws_cloudwatch_log_resource_policy" "xray_spans" {
 resource "aws_xray_trace_segment_destination" "this" {
   destination = "CloudWatchLogs"
 
-  depends_on = [aws_cloudwatch_log_group.spans, aws_cloudwatch_log_resource_policy.xray_spans]
+  depends_on = [aws_cloudwatch_log_resource_policy.xray_spans]
 }
 
 resource "aws_xray_indexing_rule" "default" {

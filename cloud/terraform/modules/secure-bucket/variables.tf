@@ -34,3 +34,12 @@ variable "additional_policy_statements" {
   type        = any
   default     = []
 }
+
+variable "expiration" {
+  description = "Optional rule that deletes current objects under a prefix after a number of days."
+  type = object({
+    prefix = string
+    days   = number
+  })
+  default = null
+}
