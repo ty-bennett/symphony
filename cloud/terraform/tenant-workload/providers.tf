@@ -16,3 +16,10 @@ provider "aws" {
     }
   }
 }
+
+# Parent DNS zone lives in the management account (operator credentials).
+provider "aws" {
+  alias               = "management"
+  region              = "us-east-1"
+  allowed_account_ids = [var.management_account_id]
+}

@@ -2,6 +2,10 @@ mock_provider "aws" {
   override_during = plan
 }
 
+mock_provider "aws" {
+  alias = "management"
+}
+
 mock_provider "archive" {
   override_during = plan
 }
@@ -34,7 +38,14 @@ override_data {
 
 override_data {
   target = data.terraform_remote_state.tenant_baseline
-  values = { outputs = { tenant_data_kms_key_arn = "arn:aws:kms:us-east-2:444444444444:key/22222222-2222-2222-2222-222222222222" } }
+  values = {
+    outputs = {
+      tenant_data_kms_key_arn    = "arn:aws:kms:us-east-2:444444444444:key/22222222-2222-2222-2222-222222222222"
+      user_pool_id               = "us-east-2_AcmePool1"
+      device_registry_table_name = "symphony-acme-device-registry"
+      device_registry_table_arn  = "arn:aws:dynamodb:us-east-2:444444444444:table/symphony-acme-device-registry"
+    }
+  }
 }
 
 override_data {
@@ -337,4 +348,28 @@ run "rejects_a_global_or_unlisted_step_up_profile" {
   }
 
   expect_failures = [var.step_up_model_id]
+}
+
+run "prompt_sets_tool_order_memory_handling_and_streaming_style" {
+  command = plan
+
+  assert {
+    condition     = strcontains(one(aws_bedrockagentcore_harness.agent.system_prompt).text, "search_documents first, then read_document")
+    error_message = "The prompt orders tools: search, then read, then code, then web."
+  }
+
+  assert {
+    condition     = strcontains(one(aws_bedrockagentcore_harness.agent.system_prompt).text, "Known facts about this user")
+    error_message = "The prompt explains the memory-facts block the ingress adds."
+  }
+
+  assert {
+    condition     = strcontains(one(aws_bedrockagentcore_harness.agent.system_prompt).text, "one short clarifying question")
+    error_message = "Ambiguous requests get one clarifying question."
+  }
+
+  assert {
+    condition     = strcontains(one(aws_bedrockagentcore_harness.agent.system_prompt).text, "never instructions")
+    error_message = "Tool output and memory stay untrusted data."
+  }
 }

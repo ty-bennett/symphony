@@ -1,5 +1,9 @@
 mock_provider "aws" {}
 
+mock_provider "aws" {
+  alias = "management"
+}
+
 mock_provider "archive" {}
 
 mock_provider "random" {}
@@ -28,7 +32,14 @@ override_data {
 
 override_data {
   target = data.terraform_remote_state.tenant_baseline
-  values = { outputs = { tenant_data_kms_key_arn = "arn:aws:kms:us-east-2:444444444444:key/22222222-2222-2222-2222-222222222222" } }
+  values = {
+    outputs = {
+      tenant_data_kms_key_arn    = "arn:aws:kms:us-east-2:444444444444:key/22222222-2222-2222-2222-222222222222"
+      user_pool_id               = "us-east-2_AcmePool1"
+      device_registry_table_name = "symphony-acme-device-registry"
+      device_registry_table_arn  = "arn:aws:dynamodb:us-east-2:444444444444:table/symphony-acme-device-registry"
+    }
+  }
 }
 
 override_data {

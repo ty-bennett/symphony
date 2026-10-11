@@ -76,3 +76,41 @@ variable "trace_indexing_percent" {
     error_message = "trace_indexing_percent must be between 1 and 100."
   }
 }
+
+variable "management_account_id" {
+  description = "Management account that owns the parent DNS zone (for the demo.<domain> delegation)."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.management_account_id))
+    error_message = "management_account_id must be 12 digits."
+  }
+}
+
+variable "parent_domain" {
+  description = "Registered domain whose hosted zone lives in the management account."
+  type        = string
+  default     = "symphony-edge.link"
+}
+
+variable "parent_zone_id" {
+  description = "Route 53 hosted zone ID of parent_domain in the management account."
+  type        = string
+
+  validation {
+    condition     = can(regex("^Z[A-Z0-9]+$", var.parent_zone_id))
+    error_message = "parent_zone_id must be a Route 53 hosted zone ID."
+  }
+}
+
+variable "truststore_pem_path" {
+  description = "Public pilot CA certificate (PEM) that signs device certificates. The CA private key never enters Git or state."
+  type        = string
+  default     = "../../pki/demo/ca.pem"
+}
+
+variable "ingress_rate_limit_per_5min" {
+  description = "WAF rate limit per source IP per 5 minutes."
+  type        = number
+  default     = 500
+}

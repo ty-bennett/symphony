@@ -52,3 +52,23 @@ output "memory_id" {
   description = "AgentCore Memory resource for per-user recall."
   value       = aws_bedrockagentcore_memory.agent.id
 }
+
+output "ingress_url" {
+  description = "Jetson endpoint (mTLS + Cognito bearer token)."
+  value       = "https://${local.api_hostname}/v1/requests"
+}
+
+output "jetson_app_client_id" {
+  description = "Cognito app client the Jetson uses to sign users in."
+  value       = aws_cognito_user_pool_client.jetson.id
+}
+
+output "tenant_zone_id" {
+  description = "Delegated tenant DNS zone."
+  value       = aws_route53_zone.tenant.zone_id
+}
+
+output "user_pool_id" {
+  description = "Cognito user pool the Jetson signs users in to."
+  value       = local.tenant_baseline.user_pool_id
+}
