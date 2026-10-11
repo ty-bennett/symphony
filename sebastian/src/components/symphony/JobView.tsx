@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FileEntry } from "@/components/coding-agent/DiffPanel"
+import { useMe } from "@/components/shell/AuthGate"
 import { PermissionCard } from "@/components/coding-agent/PermissionCard"
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
@@ -45,6 +46,7 @@ function StepIcon({ status }: { status?: string }) {
 }
 
 export function JobView({ id }: { id: string }) {
+  const { user } = useMe()
   const [job, setJob] = useState<Job | null>(null)
   const [redactions, setRedactions] = useState<Record<string, string>>({})
   const [rates, setRates] = useState<Rates | null>(null)
@@ -151,6 +153,10 @@ export function JobView({ id }: { id: string }) {
   const permissions = Object.values(state.permissions).filter((p) => p.sessionID === id)
   const busy = job?.status === "working" || state.status[id] === "busy"
   const files = state.diff ?? []
+  // Members approve, undo and redo only their own jobs; the owner can act on any. The server checks too.
+  const mine = Boolean(job?.by && user && job.by.id === user.id)
+  const canAct = user?.role === "owner" || mine
+  const starter = job?.by && !mine ? job.by.name : null
 
   if (missing) {
     return (
@@ -167,7 +173,9 @@ export function JobView({ id }: { id: string }) {
   const status = !job
     ? "Loading"
     : job.status === "needs-ok"
-      ? "Waiting for your OK"
+      ? canAct
+        ? "Waiting for your OK"
+        : "Waiting for an OK"
       : job.status === "working"
         ? "Working"
         : job.status === "undone"
@@ -200,14 +208,24 @@ export function JobView({ id }: { id: string }) {
         <div className={styles.main}>
           {asked ? (
             <div className={styles.quote}>
-              <p className={styles.meta}>You asked</p>
+              <p className={styles.meta}>{starter ? `${starter} asked` : "You asked"}</p>
               <p style={{ fontSize: "var(--fs-lead)" }}>{asked}</p>
             </div>
           ) : null}
 
-          {permissions.map((p) => (
-            <PermissionCard key={p.id} permission={p} onAnswer={(r) => answer(p.id, r)} />
-          ))}
+          {canAct
+            ? permissions.map((p) => <PermissionCard key={p.id} permission={p} onAnswer={(r) => answer(p.id, r)} />)
+            : permissions.length
+              ? (
+                  <div className={styles.note} style={{ background: "var(--raised)" }}>
+                    <Icon name="clock" size={16} />
+                    <p>
+                      {permissions[0].title}.{" "}
+                      {job?.by?.owner ? `Waiting for ${job.by.name} (the owner) to OK it.` : `Waiting for ${starter ?? "the person who started it"} or the owner to OK it.`}
+                    </p>
+                  </div>
+                )
+              : null}
 
           {steps.length || busy ? (
             <section className={styles.section} aria-labelledby="steps-h">
@@ -235,9 +253,11 @@ export function JobView({ id }: { id: string }) {
             <div className={styles.note} style={{ background: "var(--raised)" }}>
               <Icon name="undo" size={16} />
               <p style={{ flex: 1 }}>This job was undone. The files it changed are back the way they were.</p>
-              <Button variant="secondary" disabled={acting} onClick={() => void act("redo")}>
-                Redo
-              </Button>
+              {canAct ? (
+                <Button variant="secondary" disabled={acting} onClick={() => void act("redo")}>
+                  Redo
+                </Button>
+              ) : null}
             </div>
           ) : null}
 
@@ -255,7 +275,7 @@ export function JobView({ id }: { id: string }) {
             </div>
           ) : null}
 
-          {job && job.status !== "undone" && !busy && files.length ? (
+          {canAct && job && job.status !== "undone" && !busy && files.length ? (
             <div className={styles.inline}>
               <Button variant="secondary" disabled={acting} onClick={() => void act("undo")}>
                 <Icon name="undo" size={16} />
@@ -267,9 +287,11 @@ export function JobView({ id }: { id: string }) {
             </div>
           ) : null}
 
-          <Link href={`/coding-agent?session=${encodeURIComponent(id)}`} className={styles.meta} style={{ alignSelf: "flex-start" }}>
-            Open in the coding agent
-          </Link>
+          {user?.role === "owner" ? (
+            <Link href={`/coding-agent?session=${encodeURIComponent(id)}`} className={styles.meta} style={{ alignSelf: "flex-start" }}>
+              Open in the coding agent
+            </Link>
+          ) : null}
         </div>
 
         <aside className={styles.aside}>
@@ -279,6 +301,12 @@ export function JobView({ id }: { id: string }) {
               <>
                 <PlaceLabel place={job.place} />
                 <dl className={styles.facts}>
+                  {job.by ? (
+                    <div>
+                      <dt>Started by</dt>
+                      <dd>{mine ? `You (${job.by.name})` : job.by.name}</dd>
+                    </div>
+                  ) : null}
                   {job.reason ? (
                     <div>
                       <dt>Why</dt>
@@ -318,7 +346,7 @@ export function JobView({ id }: { id: string }) {
                         <span className={styles.meta}>
                           {" "}
                           It would have cost {formatCost(job.wouldHaveCost)} at {rates?.label ?? "open-cloud"} prices.{" "}
-                          <Link href="/privacy#saved">How this is worked out</Link>
+                          {user?.role === "owner" ? <Link href="/privacy#saved">How this is worked out</Link> : null}
                         </span>
                       </dd>
                     </div>

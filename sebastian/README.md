@@ -10,11 +10,51 @@ setting).
 | Today | `/` | Start a job, see what needs your OK, recent work |
 | Work | `/work`, `/work/:id` | Every job, and one job's steps, result, changes and Undo |
 | Coding agent | `/coding-agent` | opencode itself, for people who want the full view |
+| Team | `/team` | Who can sign in; invite links |
 | Privacy and spending | `/privacy` | Where jobs may run, what stays private, monthly limit, report |
 
 All of them run on opencode: a Symphony **job** is an opencode session. Start
 opencode as described under [Run it](#run-it), then open
 http://localhost:3000.
+
+The logo is a treble clef (`Logo` in `src/components/ui/Icon.tsx`; app icons in
+`src/app/icon.svg`, `src/app/apple-icon.png` and `public/icons/`).
+
+## Accounts and first run
+
+The first time anyone opens Symphony, `/setup` asks them to create the
+**owner** account, then walks through three steps: the business (name and
+type), what to keep private, and the monthly spending limit. Nothing else
+opens until that's done.
+
+The owner invites staff from **Team**: **Invite someone** makes a link
+(`/join?code=…`) that works once, for 7 days. The person opens it, picks their
+own name, email and password, and is signed in as a **team member**. No email
+is sent and nothing leaves the box, so it works offline. Make the invite while
+you're on Symphony's network address, not `localhost`, or the link only works
+on your own computer.
+
+| | Owner | Team member |
+|---|---|---|
+| Start jobs, see Today and Work | Yes | Yes |
+| Approve, undo or redo a job | Any job | Only jobs they started |
+| Privacy and spending, Team, Coding agent | Yes | No (pages and API both refuse) |
+
+Forgot a password? The owner removes the person and sends a new invite. If
+the owner forgets theirs, stop the app and delete `.symphony/auth.json`; the
+next visit starts setup again (settings and jobs are kept).
+
+How it's stored and checked:
+
+- Accounts live in `.symphony/auth.json` (mode 600). Passwords are hashed with
+  scrypt; session tokens and invite codes are stored only as SHA-256 hashes.
+- Signing in sets an HttpOnly, SameSite=Lax cookie (`symphony_session`) good
+  for 30 days, marked Secure when the app is served over HTTPS.
+- Five wrong passwords for an email lock it for 30 seconds.
+- Every API route goes through `checkAuth()` in `src/lib/opencode/server.ts`:
+  it refuses requests from another site (Origin check), then signed-out
+  requests (401), then members on owner-only routes (403). Jobs remember who
+  started them (`by` in the session's Symphony metadata).
 
 ## On a phone
 
@@ -43,8 +83,9 @@ office network that blocks devices from seeing each other, connect the
 computer to the phone's hotspot and use its address on that network.
 `next.config.ts` already allows this computer's network addresses in dev.
 
-Don't share the dev server through a public tunnel: there's no login yet,
-and the coding agent can run commands.
+Sign-in is plain HTTP on your own network. Don't share the dev server
+through a public tunnel: the coding agent can run commands, so put Symphony
+behind HTTPS before it's reachable from the internet.
 
 The offline page ("Can't reach your Symphony") comes from a small service
 worker, which browsers only run over HTTPS or on localhost. Everything else
@@ -107,7 +148,23 @@ Set `SYMPHONY_DATA_DIR` to keep them somewhere else.
 | `GET /api/symphony/jobs/:id` | One job, the comparison `rates`, and its removed details (to restore them on screen) |
 | `POST /api/symphony/jobs/:id/undo`, `/redo` | Revert or un-revert the job's changes |
 
-These routes use the same auth hook as `/api/oc/*`.
+These routes use the same auth hook as `/api/oc/*`. `PUT /api/symphony/settings`
+is owner-only and keeps any field you leave out.
+
+### Account API routes
+
+| Route | Who | Does |
+|---|---|---|
+| `GET /api/auth/me` | anyone | `{ state: "setup" }`, `{ state: "signed-out" }` or `{ state: "signed-in", user, onboarded }` |
+| `POST /api/auth/setup` | first run only | `{ name, email, password }` → owner account, signed in |
+| `POST /api/auth/login` | anyone | `{ email, password }` → session cookie |
+| `POST /api/auth/logout` | anyone | ends the session |
+| `GET /api/auth/join?code=` | anyone | `{ valid }` |
+| `POST /api/auth/join` | invite holder | `{ code, name, email, password }` → member account, signed in |
+| `GET, POST /api/auth/invites` | owner | list; create → `{ invite, code }` (the code is shown once) |
+| `DELETE /api/auth/invites/:id` | owner | cancel an invite |
+| `GET /api/auth/users` | owner | everyone on the team |
+| `DELETE /api/auth/users/:id` | owner | remove a member and end their sessions |
 
 ## Coding agent tab
 
@@ -152,12 +209,12 @@ browser (tab) → /api/oc/* (this app) → opencode serve (http://127.0.0.1:4096
 | `OPENCODE_URL` | `http://127.0.0.1:4096` | Where `opencode serve` listens |
 | `OPENCODE_SERVER_USERNAME` | `opencode` | Basic auth user, if opencode has a password |
 | `OPENCODE_SERVER_PASSWORD` | unset | Basic auth password (`OPENCODE_SERVER_PASSWORD` on the opencode side) |
-| `OC_ALLOW_UNAUTHENTICATED` | unset | Set to `1` to allow `/api/oc/*` in production before login exists. Only for a trusted local demo |
-| `SYMPHONY_DATA_DIR` | `./.symphony` | Where Privacy and spending settings are saved |
+| `OC_ALLOW_UNAUTHENTICATED` | unset | Set to `1` to skip sign-in: everyone is treated as the owner. Only for a trusted local demo |
+| `SYMPHONY_DATA_DIR` | `./.symphony` | Where settings and accounts are saved |
 
-**Security.** The agent can edit files and run shell commands. `/api/oc/*`
-refuses requests in production until `checkAuth()` in
-`src/lib/opencode/server.ts` is wired to the app's login.
+**Security.** The agent can edit files and run shell commands, so every
+`/api/oc/*` route needs a signed-in owner (reading jobs and approving your
+own needs any signed-in account). See [Accounts and first run](#accounts-and-first-run).
 
 ### API routes
 
@@ -192,5 +249,6 @@ refuses requests in production until `checkAuth()` in
 npm run lint
 npm run typecheck
 npm run check:logic   # event handling, history merge, diffs, routing, redaction, spending, savings
+npm run check:auth    # passwords, sessions, invites, lockout, roles, origin check
 npm run build
 ```

@@ -95,7 +95,10 @@ export function WorkList() {
                 <Link href={`/work/${job.id}`} className={styles.rowLink}>
                   <span className={styles.rowText}>
                     <span className={styles.rowTitle}>{job.title}</span>
-                    <span className={job.status === "needs-ok" ? styles.warnText : styles.meta}>{statusText(job)}</span>
+                    <span className={styles.meta}>
+                      <span className={job.status === "needs-ok" ? styles.warnText : undefined}>{statusText(job)}</span>
+                      {job.by ? ` · by ${job.by.name}` : null}
+                    </span>
                   </span>
                   <span className={styles.rowSide}>
                     <PlaceLabel place={job.place} quiet />

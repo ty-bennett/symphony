@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useMe } from "@/components/shell/AuthGate"
 import { Button } from "@/components/ui/Button"
 import { Select, Switch } from "@/components/ui/controls"
 import { Icon } from "@/components/ui/Icon"
@@ -23,6 +24,7 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export function TodayView() {
   const router = useRouter()
+  const { user } = useMe()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [jobs, setJobs] = useState<Job[] | null>(null)
   const [savings, setSavings] = useState<Savings | null>(null)
@@ -102,7 +104,8 @@ export function TodayView() {
     }
   }
 
-  const needsOk = (jobs ?? []).filter((j) => j.status === "needs-ok")
+  // Members only see the approvals that are theirs to give.
+  const needsOk = (jobs ?? []).filter((j) => j.status === "needs-ok" && (user?.role === "owner" || j.by?.id === user?.id))
   const recent = (jobs ?? []).filter((j) => j.status !== "needs-ok").slice(0, 5)
   const approvalTitle = (jobId: string) => {
     const p = pending.find((x) => x.sessionID === jobId)
@@ -118,9 +121,12 @@ export function TodayView() {
       <header className={styles.header}>
         <div className={styles.headerText}>
           <h1>Today</h1>
-          <p className={styles.muted}>{today}</p>
+          <p className={styles.muted}>
+            {settings?.businessName ? `${settings.businessName} · ` : ""}
+            {today}
+          </p>
         </div>
-        {savings && savings.jobs > 0 && savings.saved > 0 ? (
+        {user?.role === "owner" && savings && savings.jobs > 0 && savings.saved > 0 ? (
           <Link href="/privacy#saved" className={styles.savedStat}>
             <span className={styles.meta}>Saved this month</span>
             <span className={styles.savedAmount}>{formatSaved(savings.saved)}</span>

@@ -23,8 +23,13 @@ export async function api<T>(apiBase: string, path: string, init?: RequestInit):
   if (!response.ok) {
     let message = `Request failed (${response.status})`
     try {
-      const body = (await response.json()) as { error?: string }
+      const body = (await response.json()) as { error?: string; auth?: "setup" | "signed-out" }
       if (body.error) message = body.error
+      // Signed out in another tab, or the session expired: go sign in again.
+      if (response.status === 401 && body.auth && typeof window !== "undefined") {
+        const here = `${window.location.pathname}${window.location.search}`
+        window.location.assign(body.auth === "setup" ? "/setup" : here === "/" ? "/login" : `/login?next=${encodeURIComponent(here)}`)
+      }
     } catch {
       // Not JSON.
     }

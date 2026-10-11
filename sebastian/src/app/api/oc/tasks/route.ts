@@ -1,4 +1,4 @@
-import { oc, parseModel, readPromptInput, sendPrompt, unwrap, withOc } from "@/lib/opencode/server"
+import { oc, parseModel, readPromptInput, sendPrompt, unwrap, ownerOnly } from "@/lib/opencode/server"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -9,7 +9,7 @@ export const runtime = "nodejs"
  *
  * Body: { text, title?, model?: "provider/model", agent? } -> 202 { sessionId }
  */
-export const POST = withOc(async (req) => {
+export const POST = ownerOnly(async (req) => {
   const body = (await req.json()) as Record<string, unknown>
   const input = readPromptInput(body)
   parseModel(input.model) // validate before creating anything

@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check:logic": "tsx scripts/check-logic.ts"
+    "check:logic": "tsx scripts/check-logic.ts",
+    "check:auth": "tsx scripts/check-auth.ts"
   },
   "dependencies": {
     "@opencode-ai/sdk": "1.18.35",

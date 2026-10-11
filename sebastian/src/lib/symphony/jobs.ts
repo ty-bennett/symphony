@@ -1,5 +1,7 @@
 // Server-only: a Symphony "job" is an opencode session plus the routing
 // decision Symphony stored on its metadata.
+import { listUsers } from "@/lib/auth/store"
+import type { PublicUser } from "@/lib/auth/types"
 import { OcError, oc, ocJson, parseModel, sendPrompt, unwrap } from "@/lib/opencode/server"
 import type { RawPermission, SessionStatus } from "@/lib/opencode/types"
 import { placeForProvider, PLACE_ORDER } from "./places"
@@ -34,6 +36,7 @@ export function readMeta(metadata: unknown): JobMeta | undefined {
     reason: typeof m.reason === "string" ? m.reason : "",
     checkFirst: Boolean(m.checkFirst),
     ...(m.redactions && typeof m.redactions === "object" ? { redactions: m.redactions as Record<string, string> } : {}),
+    ...(typeof m.by === "string" ? { by: m.by } : {}),
   }
 }
 
@@ -41,7 +44,13 @@ function configuredModels(settings: Settings): Partial<Record<Place, string>> {
   return { device: settings.places.device.model, private: settings.places.private.model, open: settings.places.open.model }
 }
 
-export function toJob(session: OcSession, status: string | undefined, approvals: number, settings: Settings): Job {
+export function toJob(
+  session: OcSession,
+  status: string | undefined,
+  approvals: number,
+  settings: Settings,
+  names: Map<string, PublicUser> = new Map(),
+): Job {
   const meta = readMeta(session.metadata)
   const place = meta?.place ?? placeForProvider(session.model?.providerID, configuredModels(settings))
   return {
@@ -57,6 +66,9 @@ export function toJob(session: OcSession, status: string | undefined, approvals:
     cost: session.cost ?? 0,
     approvals,
     tokens: readTokens(session.tokens),
+    ...(meta?.by
+      ? { by: { id: meta.by, name: names.get(meta.by)?.name ?? "Someone who left", ...(names.get(meta.by)?.role === "owner" ? { owner: true } : {}) } }
+      : {}),
   }
 }
 
@@ -105,20 +117,37 @@ async function snapshot() {
   return { sessions, status: status ?? {}, approvals }
 }
 
+async function userNames() {
+  return new Map((await listUsers().catch(() => [])).map((u) => [u.id, u]))
+}
+
 export async function listJobs(settings: Settings): Promise<Job[]> {
-  const { sessions, status, approvals } = await snapshot()
+  const [{ sessions, status, approvals }, names] = await Promise.all([snapshot(), userNames()])
   return sessions
     .filter((s) => !s.parentID)
-    .map((s) => toJob(s, status[s.id]?.type, approvals.get(s.id) ?? 0, settings))
+    .map((s) => toJob(s, status[s.id]?.type, approvals.get(s.id) ?? 0, settings, names))
     .sort((a, b) => b.updated - a.updated)
 }
 
 export async function getJob(id: string, settings: Settings): Promise<{ job: Job; meta?: JobMeta }> {
-  const [session, { status, approvals }] = await Promise.all([
+  const [session, { status, approvals }, names] = await Promise.all([
     oc().session.get({ sessionID: id }).then((r) => unwrap(r) as OcSession),
     snapshot(),
+    userNames(),
   ])
-  return { job: toJob(session, status[id]?.type, approvals.get(id) ?? 0, settings), meta: readMeta(session.metadata) }
+  return { job: toJob(session, status[id]?.type, approvals.get(id) ?? 0, settings, names), meta: readMeta(session.metadata) }
+}
+
+/**
+ * Members may approve, undo or redo only jobs they started; the owner may act
+ * on any job (and on coding agent sessions, which members can't use).
+ */
+export async function assertCanAct(id: string, user: PublicUser) {
+  if (user.role === "owner") return
+  const session = unwrap(await oc().session.get({ sessionID: id })) as OcSession
+  if (readMeta(session.metadata)?.by !== user.id) {
+    throw new OcError("Only the person who started this job, or the owner, can do that.", 403)
+  }
 }
 
 export function monthKey(ms: number) {
@@ -154,7 +183,11 @@ export class ConsentRequired extends OcError {
   }
 }
 
-export async function createJob(input: NewJob, settings: Settings): Promise<{ jobId: string; place: Place; reason: string }> {
+export async function createJob(
+  input: NewJob,
+  settings: Settings,
+  user?: PublicUser,
+): Promise<{ jobId: string; place: Place; reason: string }> {
   const text = input.text.trim()
   if (!text) throw new OcError("Describe the job first.", 400)
   const decision = routeTask(text, settings)
@@ -197,7 +230,13 @@ export async function createJob(input: NewJob, settings: Settings): Promise<{ jo
   const parsed = parseModel(model)
   const { text: sendText, redactions } =
     input.redact && place === "open" ? redactContactInfo(text) : { text, redactions: {} as Record<string, string> }
-  const meta: JobMeta = { place, reason, checkFirst, ...(Object.keys(redactions).length ? { redactions } : {}) }
+  const meta: JobMeta = {
+    place,
+    reason,
+    checkFirst,
+    ...(Object.keys(redactions).length ? { redactions } : {}),
+    ...(user ? { by: user.id } : {}),
+  }
 
   // An explicit title keeps opencode from generating one, which would send
   // the request to its small model.

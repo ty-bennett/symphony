@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/session"
 import { withOc } from "@/lib/opencode/server"
 import { ConsentRequired, createJob, jobsWithSavings, spending, type NewJob } from "@/lib/symphony/jobs"
 import { readSettings } from "@/lib/symphony/settings-store"
@@ -24,7 +25,7 @@ export const POST = withOc(async (req) => {
     redact: body.redact === true,
   }
   try {
-    const created = await createJob(input, await readSettings())
+    const created = await createJob(input, await readSettings(), await requireUser(req))
     return Response.json(created, { status: 202 })
   } catch (error) {
     if (error instanceof ConsentRequired) {

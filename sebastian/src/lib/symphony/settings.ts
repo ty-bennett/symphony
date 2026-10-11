@@ -25,7 +25,9 @@ export const DEFAULT_CATEGORIES: PrivacyCategory[] = [
 ]
 
 export const DEFAULT_SETTINGS: Settings = {
+  businessName: "",
   businessType: "Bakery and café",
+  onboarded: false,
   checkFirst: true,
   keepPrivate: DEFAULT_CATEGORIES,
   places: {
@@ -58,7 +60,9 @@ export function normalizeSettings(input: unknown): Settings {
   const rule = places.open?.rule
   const limit = Number(s.spending?.limit)
   return {
+    businessName: str(s.businessName, "").trim().slice(0, 80),
     businessType: str(s.businessType, d.businessType),
+    onboarded: bool(s.onboarded, false),
     checkFirst: bool(s.checkFirst, d.checkFirst),
     keepPrivate: categories,
     places: {

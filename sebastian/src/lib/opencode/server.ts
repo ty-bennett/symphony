@@ -1,6 +1,11 @@
 // Server-only helpers for talking to `opencode serve`. Never import this from a
 // client component: it reads secrets from the environment.
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk/v2"
+import { whoIs } from "@/lib/auth/session"
+import type { Role } from "@/lib/auth/types"
+import { OcError } from "./errors"
+
+export { OcError }
 
 const DEFAULT_URL = "http://127.0.0.1:4096"
 
@@ -41,14 +46,6 @@ export function oc(): OpencodeClient {
   return client
 }
 
-export class OcError extends Error {
-  constructor(
-    message: string,
-    readonly status = 502,
-  ) {
-    super(message)
-  }
-}
 
 function describe(error: unknown): string | undefined {
   if (!error) return undefined
@@ -111,29 +108,38 @@ export async function ocJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /**
- * AUTH HOOK. The coding agent can edit files and run shell commands, so every
- * /api/oc/* route must sit behind the app's login.
- *
- * Wire this to the app's session check when login exists, e.g.
- *   const user = await getCurrentUser(req); if (!user) return deny()
- *
- * Until then: requests are allowed in development and refused in production
- * unless OC_ALLOW_UNAUTHENTICATED=1 is set for a trusted local demo.
+ * AUTH. Every API route goes through this: the caller must be signed in, and
+ * owner-only routes (settings, team, the coding agent) refuse members.
+ * Changes must come from this site (Origin check), on top of the SameSite cookie.
+ * OC_ALLOW_UNAUTHENTICATED=1 skips sign-in for a trusted local demo.
  */
-export async function checkAuth(req: Request): Promise<Response | null> {
-  void req
-  if (process.env.NODE_ENV !== "production") return null
-  if (process.env.OC_ALLOW_UNAUTHENTICATED === "1") return null
-  return Response.json(
-    { error: "The coding agent needs a signed-in user. Wire checkAuth() in src/lib/opencode/server.ts to the app's login." },
-    { status: 401 },
-  )
+/** Changes (POST, PUT, DELETE) must come from Symphony's own pages. */
+export function originProblem(req: Request): Response | null {
+  if (req.method === "GET" || req.method === "HEAD") return null
+  const origin = req.headers.get("origin")
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host")
+  if (origin && host && new URL(origin).host !== host) {
+    return Response.json({ error: "Requests must come from Symphony itself." }, { status: 403 })
+  }
+  return null
 }
 
-/** Shared wrapper for every /api/oc route: auth first, then JSON errors. */
-export function withOc<Ctx>(handler: (req: Request, ctx: Ctx) => Promise<Response>) {
+export async function checkAuth(req: Request, role: Role = "member"): Promise<Response | null> {
+  const bad = originProblem(req)
+  if (bad) return bad
+  const who = await whoIs(req)
+  if (who.state === "setup") return Response.json({ error: "Set up Symphony first.", auth: "setup" }, { status: 401 })
+  if (who.state === "signed-out") return Response.json({ error: "Sign in first.", auth: "signed-out" }, { status: 401 })
+  if (role === "owner" && who.user.role !== "owner") {
+    return Response.json({ error: "Only the owner can do that." }, { status: 403 })
+  }
+  return null
+}
+
+/** Shared wrapper for every API route: auth first (role "member" = anyone signed in), then JSON errors. */
+export function withOc<Ctx>(handler: (req: Request, ctx: Ctx) => Promise<Response>, opts: { role?: Role; public?: boolean } = {}) {
   return async (req: Request, ctx: Ctx): Promise<Response> => {
-    const denied = await checkAuth(req)
+    const denied = opts.public ? originProblem(req) : await checkAuth(req, opts.role)
     if (denied) return denied
     try {
       return await handler(req, ctx)
@@ -148,6 +154,9 @@ export function withOc<Ctx>(handler: (req: Request, ctx: Ctx) => Promise<Respons
     }
   }
 }
+
+/** withOc for routes only the owner may use. */
+export const ownerOnly = <Ctx>(handler: (req: Request, ctx: Ctx) => Promise<Response>) => withOc(handler, { role: "owner" })
 
 /** Accepts "provider/model" (model ids may contain more slashes). */
 export function parseModel(value: unknown): { providerID: string; modelID: string } | undefined {

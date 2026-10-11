@@ -15,7 +15,10 @@ export type PrivacyCategory = {
 export type OpenCloudRule = "ask-if-private" | "ask-always" | "never"
 
 export type Settings = {
+  businessName: string
   businessType: string
+  /** The owner finished first-run setup. */
+  onboarded: boolean
   checkFirst: boolean
   keepPrivate: PrivacyCategory[]
   places: {
@@ -52,6 +55,8 @@ export type Job = {
   checkFirst?: boolean
   cost: number
   approvals: number
+  /** Who started it, when it was started from Symphony. */
+  by?: { id: string; name: string; owner?: boolean }
   tokens?: Tokens
   /** What the same tokens would have cost in the open cloud (see Rates). */
   wouldHaveCost?: number
@@ -99,4 +104,6 @@ export type JobMeta = {
   checkFirst: boolean
   /** Placeholder -> original value, for text that was redacted before leaving the device. */
   redactions?: Record<string, string>
+  /** Who started the job (user id). */
+  by?: string
 }
