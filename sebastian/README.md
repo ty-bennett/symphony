@@ -41,7 +41,7 @@ page:
 
 Set up per app: in n8n create a new workflow and use ⋯ › Import from File (or paste the file's contents onto the canvas), sign in to the app in its tools (for
 Mailchimp also pick the audience), set **Bearer Auth** with a token of your
-choice on "Symphony connects here", activate, and paste the trigger's
+choice on "Symphony connects here", publish it (older n8n: activate), and paste the trigger's
 **Production URL** and the token into Connected apps. Symphony lists the
 tools to test it, saves it to `.symphony/app-servers.json` (mode 600, never
 sent to the browser), and registers it with opencode under the app's id, so

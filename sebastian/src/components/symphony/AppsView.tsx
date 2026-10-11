@@ -392,8 +392,8 @@ function AppRow({
                   every app.
                 </li>
                 <li>
-                  Turn the workflow on (<strong>Active</strong>) and paste the trigger&apos;s <strong>Production URL</strong> and the token
-                  below.
+                  <strong>Publish</strong> the workflow (older n8n: switch it to <strong>Active</strong>), then paste the trigger&apos;s{" "}
+                  <strong>Production URL</strong> and the token below.
                 </li>
               </ol>
               <form

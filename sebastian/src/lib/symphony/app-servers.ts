@@ -37,7 +37,7 @@ export function appTarget(appId: string, server: AppServer): McpTarget {
     token: server.token,
     name: `the ${name} workflow in n8n`,
     authHint: `n8n didn't accept the token for ${name}. Use the same token as the Bearer Auth credential on the workflow's MCP Server Trigger.`,
-    missingHint: `n8n doesn't know that address. Copy the Production URL from the ${name} workflow's MCP Server Trigger, and make sure the workflow is active.`,
+    missingHint: `n8n doesn't know that address. Copy the Production URL from the ${name} workflow's MCP Server Trigger, and make sure the workflow is published.`,
   }
 }
 
