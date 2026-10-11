@@ -42,6 +42,13 @@
   color-scheme: light;
 }
 
+/* Touch screens: 16px text, so iPhones don't zoom in when a field is tapped. */
+@media (pointer: coarse) {
+  :root {
+    --fs-body: 16px;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0a0a0a;
@@ -94,9 +101,15 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body {
   margin: 0;
+  -webkit-tap-highlight-color: transparent;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);

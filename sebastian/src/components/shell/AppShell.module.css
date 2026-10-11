@@ -69,6 +69,13 @@
 .main {
   flex: 1;
   min-width: 0;
+  /* Home-bar space when opened from the Home Screen (0 in a browser). */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.shell {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Phones: the sidebar becomes one top bar and the page fills the rest. */
@@ -85,7 +92,7 @@
     flex-direction: row;
     align-items: center;
     gap: 4px;
-    padding: 6px 8px;
+    padding: calc(6px + env(safe-area-inset-top)) 8px 6px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
@@ -128,5 +135,65 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+  }
+}
+
+/* ---------- install hint ---------- */
+
+.installWrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px clamp(20px, 4vw, 56px) 0;
+}
+
+.install {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 8px 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--panel);
+}
+
+.installIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.installText {
+  flex: 1;
+  min-width: 0;
+}
+
+.installShare {
+  vertical-align: -3px;
+  color: var(--focus);
+}
+
+.installActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 760px) {
+  .installWrap {
+    padding: 12px 16px 0;
+  }
+
+  .install {
+    align-items: flex-start;
+  }
+
+  .installIcon {
+    width: 36px;
+    height: 36px;
   }
 }

@@ -65,6 +65,7 @@ const paths = {
     </>
   ),
   download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
+  share: <path d="M12 3v12M8 7l4-4 4 4M8 10H6v11h12V10h-2" />,
 } as const
 
 export type IconName = keyof typeof paths

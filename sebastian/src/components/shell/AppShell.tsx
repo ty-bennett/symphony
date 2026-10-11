@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 import { Icon, Logo, type IconName } from "@/components/ui/Icon"
+import { InstallHint } from "./InstallHint"
 import { ThemeToggle } from "./ThemeToggle"
 import styles from "./AppShell.module.css"
 
@@ -48,7 +49,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <ThemeToggle />
         </div>
       </aside>
-      <main className={styles.main}>{children}</main>
+      <main className={styles.main}>
+        <InstallHint />
+        {children}
+      </main>
     </div>
   )
 }

@@ -16,6 +16,35 @@ All four run on opencode: a Symphony **job** is an opencode session. Start
 opencode as described under [Run it](#run-it), then open
 http://localhost:3000.
 
+## On a phone
+
+Symphony installs like an app: on an iPhone, open it in Safari, tap **Share**,
+then **Add to Home Screen**. It opens full screen with its own icon, and the
+layout leaves room for the notch and home bar. Chrome and Edge (Android or
+desktop) show an **Install** button instead. Either way, the app shows a small
+hint until it's installed or dismissed.
+
+To try it from your phone while running `npm run dev`:
+
+1. Put the phone on the same Wi-Fi as the computer.
+2. Find the computer's Wi-Fi address (Windows: `ipconfig`, the IPv4 Address
+   under "Wireless LAN adapter Wi-Fi", usually `192.168.x.x` or `10.x.x.x`).
+   Ignore a `169.254.x.x` address; that's an adapter with no network.
+3. On the phone, open `http://<that address>:3000`.
+
+If it doesn't load: allow Node.js through Windows Firewall on private
+networks (and make sure the Wi-Fi is set to Private), or, on a school or
+office network that blocks devices from seeing each other, connect the
+computer to the phone's hotspot and use its address on that network.
+`next.config.ts` already allows this computer's network addresses in dev.
+
+Don't share the dev server through a public tunnel: there's no login yet,
+and the coding agent can run commands.
+
+The offline page ("Can't reach your Symphony") comes from a small service
+worker, which browsers only run over HTTPS or on localhost. Everything else
+works over plain HTTP on the local network.
+
 ## Today, Work, Privacy and spending
 
 ### How a job runs
