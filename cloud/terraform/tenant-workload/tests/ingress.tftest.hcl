@@ -278,7 +278,7 @@ run "lambdas_have_only_what_they_need" {
 
   assert {
     condition = [for s in jsondecode(aws_iam_role_policy.ingress.policy).Statement : s.Sid] == [
-      "InvokeTenantHarness", "PrefetchUserMemory", "ClaimRequestIds", "UseTenantKey", "WriteOwnLogs",
+      "InvokeTenantHarness", "PrefetchUserMemory", "DescribeMemoryKeyViaAgentCore", "ClaimRequestIds", "UseTenantKey", "WriteOwnLogs",
     ]
     error_message = "The ingress role may invoke the harness, read memory, claim request IDs, and log; nothing else."
   }
@@ -289,7 +289,12 @@ run "lambdas_have_only_what_they_need" {
   }
 
   assert {
-    condition     = jsondecode(aws_iam_role_policy.ingress.policy).Statement[2].Action == "dynamodb:PutItem"
+    condition     = jsondecode(aws_iam_role_policy.ingress.policy).Statement[2].Condition.StringEquals["kms:ViaService"] == "bedrock-agentcore.us-east-2.amazonaws.com"
+    error_message = "AgentCore Memory describes the tenant key on the caller's behalf, and only through AgentCore."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.ingress.policy).Statement[3].Action == "dynamodb:PutItem"
     error_message = "Idempotency needs only a conditional put."
   }
 
@@ -343,5 +348,14 @@ run "alarms_on_server_errors_and_denial_spikes" {
   assert {
     condition     = aws_cloudwatch_metric_alarm.ingress["denial-spike"].metric_name == "4XXError" && aws_cloudwatch_metric_alarm.ingress["denial-spike"].threshold == 50
     error_message = "Alarm on a spike of denials (4xx)."
+  }
+}
+
+run "ingress_sends_the_same_system_prompt_as_the_harness" {
+  command = plan
+
+  assert {
+    condition     = aws_lambda_function.ingress.environment[0].variables.SYSTEM_PROMPT == one(aws_bedrockagentcore_harness.agent.system_prompt).text
+    error_message = "The per-request prompt (base + memory facts) must start from the harness prompt."
   }
 }

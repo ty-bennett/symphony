@@ -171,6 +171,13 @@ resource "aws_iam_role_policy" "ingress" {
         Resource = aws_bedrockagentcore_memory.agent.arn
       },
       {
+        Sid       = "DescribeMemoryKeyViaAgentCore"
+        Effect    = "Allow"
+        Action    = "kms:DescribeKey"
+        Resource  = local.tenant_baseline.tenant_data_kms_key_arn
+        Condition = { StringEquals = { "kms:ViaService" = "bedrock-agentcore.${var.workload_region}.amazonaws.com" } }
+      },
+      {
         Sid      = "ClaimRequestIds"
         Effect   = "Allow"
         Action   = "dynamodb:PutItem"
@@ -239,6 +246,7 @@ resource "aws_lambda_function" "ingress" {
       DEFAULT_MODEL_ID  = var.model_id
       STEP_UP_MODEL_ID  = var.step_up_model_id
       IDEMPOTENCY_TABLE = aws_dynamodb_table.idempotency.name
+      SYSTEM_PROMPT     = local.harness_system_prompt
     }
   }
 
@@ -361,13 +369,14 @@ resource "aws_lambda_permission" "api" {
 resource "aws_api_gateway_deployment" "ingress" {
   rest_api_id = aws_api_gateway_rest_api.ingress.id
 
+  # Redeploy only when routing, auth, or error responses change (not on computed attributes).
   triggers = {
-    redeploy = sha1(jsonencode([
-      aws_api_gateway_method.post,
-      aws_api_gateway_integration.post,
-      aws_api_gateway_authorizer.device_user,
-      aws_api_gateway_gateway_response.denied,
-    ]))
+    redeploy = sha1(jsonencode({
+      method      = [aws_api_gateway_method.post.id, aws_api_gateway_method.post.authorization, aws_api_gateway_method.post.authorizer_id]
+      integration = [aws_api_gateway_integration.post.uri, aws_api_gateway_integration.post.response_transfer_mode, aws_api_gateway_integration.post.timeout_milliseconds]
+      authorizer  = [aws_api_gateway_authorizer.device_user.authorizer_uri, aws_api_gateway_authorizer.device_user.identity_source, aws_api_gateway_authorizer.device_user.authorizer_result_ttl_in_seconds]
+      responses   = { for k, r in aws_api_gateway_gateway_response.denied : k => [r.status_code, r.response_templates] }
+    }))
   }
 
   lifecycle {
