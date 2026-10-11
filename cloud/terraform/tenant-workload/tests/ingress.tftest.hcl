@@ -359,3 +359,47 @@ run "ingress_sends_the_same_system_prompt_as_the_harness" {
     error_message = "The per-request prompt (base + memory facts) must start from the harness prompt."
   }
 }
+
+run "jetson_client_signs_in_through_hosted_login_with_pkce" {
+  command = plan
+
+  assert {
+    condition     = aws_cognito_user_pool_client.jetson.allowed_oauth_flows_user_pool_client == true && aws_cognito_user_pool_client.jetson.allowed_oauth_flows == toset(["code"])
+    error_message = "People sign in through the hosted login page with the authorization-code flow (no implicit flow)."
+  }
+
+  assert {
+    condition     = aws_cognito_user_pool_client.jetson.generate_secret == false && aws_cognito_user_pool_client.jetson.allowed_oauth_scopes == toset(["openid", "email", "profile"])
+    error_message = "A public client (PKCE, no secret) with OpenID scopes."
+  }
+
+  assert {
+    condition     = aws_cognito_user_pool_client.jetson.callback_urls == toset(["http://localhost:53682/callback"]) && aws_cognito_user_pool_client.jetson.supported_identity_providers == toset(["COGNITO"])
+    error_message = "By default only the loopback callback of the sign-in tool and the pool's own users."
+  }
+
+  assert {
+    condition     = aws_cognito_user_pool_domain.login.domain == "symphony-acme-${substr(sha1("444444444444"), 0, 8)}" && aws_cognito_user_pool_domain.login.managed_login_version == 1
+    error_message = "A per-tenant hosted login domain on the classic login page (available on the Lite tier)."
+  }
+}
+
+run "a_customer_identity_provider_is_configuration_only" {
+  command = plan
+
+  variables {
+    sso_identity_providers = {
+      Entra = {
+        type              = "OIDC"
+        provider_details  = { client_id = "abc", oidc_issuer = "https://login.microsoftonline.com/tenant/v2.0", authorize_scopes = "openid email profile", attributes_request_method = "GET" }
+        attribute_mapping = { email = "email" }
+      }
+    }
+    sso_client_secrets = { Entra = "test-only" }
+  }
+
+  assert {
+    condition     = aws_cognito_identity_provider.sso["Entra"].provider_type == "OIDC" && aws_cognito_user_pool_client.jetson.supported_identity_providers == toset(["COGNITO", "Entra"])
+    error_message = "Adding an identity provider makes it a sign-in option on the Jetson client."
+  }
+}

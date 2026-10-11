@@ -114,3 +114,37 @@ variable "ingress_rate_limit_per_5min" {
   type        = number
   default     = 500
 }
+
+variable "jetson_callback_urls" {
+  description = "Where hosted login returns the authorization code: the sign-in tool's loopback listener (and optionally the Jetson)."
+  type        = list(string)
+  default     = ["http://localhost:53682/callback"]
+}
+
+variable "jetson_logout_urls" {
+  description = "Where hosted logout returns."
+  type        = list(string)
+  default     = ["http://localhost:53682/signed-out"]
+}
+
+variable "sso_identity_providers" {
+  description = "Customer identity providers for SSO, keyed by the name shown on the login page. Put OIDC client secrets in sso_client_secrets, not here."
+  type = map(object({
+    type              = string
+    provider_details  = map(string)
+    attribute_mapping = map(string)
+  }))
+  default = {}
+
+  validation {
+    condition     = alltrue([for p in values(var.sso_identity_providers) : contains(["OIDC", "SAML"], p.type) && !contains(keys(p.provider_details), "client_secret")])
+    error_message = "Each SSO provider is OIDC or SAML, with any client secret in sso_client_secrets."
+  }
+}
+
+variable "sso_client_secrets" {
+  description = "OIDC client secrets by provider name (gitignored terraform.tfvars only)."
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}

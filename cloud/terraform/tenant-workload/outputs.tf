@@ -72,3 +72,8 @@ output "user_pool_id" {
   description = "Cognito user pool the Jetson signs users in to."
   value       = local.tenant_baseline.user_pool_id
 }
+
+output "hosted_login_domain" {
+  description = "Cognito hosted login base URL for the sign-in tool."
+  value       = "https://${aws_cognito_user_pool_domain.login.domain}.auth.${var.workload_region}.amazoncognito.com"
+}

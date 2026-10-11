@@ -76,19 +76,47 @@ resource "aws_cognito_user_pool_client" "jetson" {
   generate_secret = false
   # SRP for people on the Jetson; ADMIN_USER_PASSWORD needs IAM credentials and
   # is used only by the operator's stand-in client for live verification.
-  explicit_auth_flows                  = ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_ADMIN_USER_PASSWORD_AUTH"]
-  prevent_user_existence_errors        = "ENABLED"
-  access_token_validity                = 60
-  id_token_validity                    = 60
-  refresh_token_validity               = 30
-  enable_token_revocation              = true
-  allowed_oauth_flows_user_pool_client = false
+  explicit_auth_flows           = ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_ADMIN_USER_PASSWORD_AUTH"]
+  prevent_user_existence_errors = "ENABLED"
+  access_token_validity         = 60
+  id_token_validity             = 60
+  refresh_token_validity        = 30
+  enable_token_revocation       = true
+
+  # Hosted login (authorization code + PKCE, no secret): the sign-in tool opens the
+  # browser and listens on a loopback callback; SSO providers appear as buttons there.
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["openid", "email", "profile"]
+  callback_urls                        = var.jetson_callback_urls
+  logout_urls                          = var.jetson_logout_urls
+  supported_identity_providers         = concat(["COGNITO"], keys(var.sso_identity_providers))
+
+  depends_on = [aws_cognito_identity_provider.sso]
 
   token_validity_units {
     access_token  = "minutes"
     id_token      = "minutes"
     refresh_token = "days"
   }
+}
+
+resource "aws_cognito_user_pool_domain" "login" {
+  domain                = "symphony-${var.tenant_id}-${substr(sha1(var.tenant_account_id), 0, 8)}"
+  user_pool_id          = local.tenant_baseline.user_pool_id
+  managed_login_version = 1
+}
+
+# Customer SSO (Microsoft Entra ID, Google Workspace, Okta): federated users sign in
+# with their work account; that provider's MFA applies.
+resource "aws_cognito_identity_provider" "sso" {
+  for_each = var.sso_identity_providers
+
+  user_pool_id      = local.tenant_baseline.user_pool_id
+  provider_name     = each.key
+  provider_type     = each.value.type
+  provider_details  = merge(each.value.provider_details, contains(keys(var.sso_client_secrets), each.key) ? { client_secret = var.sso_client_secrets[each.key] } : {})
+  attribute_mapping = each.value.attribute_mapping
 }
 
 # --- Idempotency ---------------------------------------------------------------
