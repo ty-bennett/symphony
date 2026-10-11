@@ -96,3 +96,45 @@ run "refuses_the_wrong_audit_account" {
 
   expect_failures = [terraform_data.account_guard]
 }
+
+# --- scps ---
+run "denies_regions_outside_the_pilot_pair" {
+  command = plan
+
+  assert {
+    condition     = jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].Condition.StringNotEquals["aws:RequestedRegion"] == ["us-east-1", "us-east-2"]
+    error_message = "Only us-east-1 and us-east-2 may be allowed."
+  }
+
+  assert {
+    condition     = !contains(jsondecode(aws_organizations_policy.scp["region-guardrail"].content).Statement[0].NotAction, "bedrock:*")
+    error_message = "Bedrock must stay Region-restricted; it is not a global service."
+  }
+}
+
+run "protects_the_security_baseline" {
+  command = plan
+
+  assert {
+    condition     = toset([for s in jsondecode(aws_organizations_policy.scp["baseline-protection"].content).Statement : s.Sid]) == toset(["DenyLeavingOrganization", "DenyRootUser", "DenyLongLivedIamUserCredentials", "DenySecurityBaselineChanges", "DenyKmsKeyDeletion"])
+    error_message = "Baseline protection statements are missing or unexpected."
+  }
+}
+
+run "fits_the_scp_size_limit" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for p in aws_organizations_policy.scp : length(p.content) <= 5120])
+    error_message = "Each SCP must be at most 5,120 characters or AWS rejects it at apply time."
+  }
+}
+
+run "attaches_both_policies_to_every_workload_ou" {
+  command = plan
+
+  assert {
+    condition     = toset(keys(aws_organizations_policy_attachment.scp)) == toset(["region-guardrail/infrastructure", "region-guardrail/customers", "region-guardrail/sandbox", "baseline-protection/infrastructure", "baseline-protection/customers", "baseline-protection/sandbox"])
+    error_message = "Both SCPs must be attached to Infrastructure, Customers, and Sandbox."
+  }
+}
