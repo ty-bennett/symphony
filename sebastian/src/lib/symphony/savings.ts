@@ -1,6 +1,6 @@
-// "Theoretically saved": what the jobs Symphony kept off the open cloud would
-// have cost there, priced from the tokens each job actually used, minus what
-// they really cost. Shared by server and browser; no I/O here.
+// "Theoretically saved": what Soloist and Orchestra jobs would have cost at
+// frontier-model prices, priced from the tokens each job actually used, minus
+// what they really cost. Shared by server and browser; no I/O here.
 import type { Job, Place, Rates, Savings, Tokens } from "./types"
 
 /** Used when the comparison model has no price in opencode (e.g. a custom provider). */
@@ -54,11 +54,11 @@ export function priceTokens(tokens: Tokens, rates: Rates): number {
   )
 }
 
-/** Adds wouldHaveCost and saved to a job. Open-cloud jobs saved nothing by definition. */
+/** Adds wouldHaveCost and saved to a job. Jobs that ran outside Symphony (no place) saved nothing. */
 export function withSavings(job: Job, rates: Rates): Job {
   if (!job.tokens) return job
   const wouldHaveCost = priceTokens(job.tokens, rates)
-  if (job.place === "open") return { ...job, wouldHaveCost, saved: 0 }
+  if (!job.place) return { ...job, wouldHaveCost, saved: 0 }
   return { ...job, wouldHaveCost, saved: wouldHaveCost - job.cost }
 }
 
@@ -70,24 +70,24 @@ function monthOf(ms: number) {
 /** Totals for jobs that already went through withSavings(). */
 export function summarizeSavings(jobs: Job[], rates: Rates, now = Date.now()): Savings {
   const month = monthOf(now)
-  const byPlace: Record<Place, number> = { device: 0, private: 0, open: 0 }
+  const byPlace: Record<Place, number> = { device: 0, private: 0 }
   let wouldHaveCost = 0
   let actual = 0
   let count = 0
   let allTime = 0
   for (const job of jobs) {
-    if (job.place === "open" || job.saved === undefined) continue
+    if (!job.place || job.saved === undefined) continue
     allTime += job.saved
     if (monthOf(job.created) !== month) continue
     wouldHaveCost += job.wouldHaveCost ?? 0
     actual += job.cost
-    if (job.place) byPlace[job.place] += job.saved
+    byPlace[job.place] += job.saved
     count += 1
   }
   return { month, wouldHaveCost, actual, saved: wouldHaveCost - actual, byPlace, jobs: count, allTime, rates }
 }
 
-/** "$1.23", "under 1¢", or "-$0.40" for a job that cost more than the open cloud would have. */
+/** "$1.23", "under 1¢", or "-$0.40" for a job that cost more than frontier prices would have. */
 export function formatSaved(amount: number): string {
   if (amount < 0) return `−$${Math.abs(amount).toFixed(2)}`
   if (amount === 0) return "$0.00"

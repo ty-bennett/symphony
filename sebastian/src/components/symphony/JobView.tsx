@@ -13,7 +13,6 @@ import { initialAgentState, mergeSnapshot, normalizePermission, reduceEvent, sor
 import type { FileDiff, MessageWithParts, Part, RawPermission } from "@/lib/opencode/types"
 import { useDebounced, useEvents } from "@/lib/opencode/useEvents"
 import { formatCost, PLACES } from "@/lib/symphony/places"
-import { restoreRedactions } from "@/lib/symphony/routing"
 import { formatSaved } from "@/lib/symphony/savings"
 import type { Job, Rates } from "@/lib/symphony/types"
 import styles from "./page.module.css"
@@ -48,7 +47,6 @@ function StepIcon({ status }: { status?: string }) {
 export function JobView({ id }: { id: string }) {
   const { user } = useMe()
   const [job, setJob] = useState<Job | null>(null)
-  const [redactions, setRedactions] = useState<Record<string, string>>({})
   const [rates, setRates] = useState<Rates | null>(null)
   const [state, setState] = useState<AgentState>(initialAgentState)
   const [error, setError] = useState<string | null>(null)
@@ -58,10 +56,9 @@ export function JobView({ id }: { id: string }) {
 
   const loadJob = useCallback(async () => {
     try {
-      const data = await api<{ job: Job; rates: Rates; redactions: Record<string, string> }>("/api/symphony", `/jobs/${encodeURIComponent(id)}`)
+      const data = await api<{ job: Job; rates: Rates }>("/api/symphony", `/jobs/${encodeURIComponent(id)}`)
       setJob(data.job)
       setRates(data.rates)
-      setRedactions(data.redactions)
     } catch (e) {
       if (message(e).includes("not found")) setMissing(true)
       else setError(message(e))
@@ -144,10 +141,10 @@ export function JobView({ id }: { id: string }) {
   }
 
   const messages = useMemo(() => sortedMessages(state.messages), [state.messages])
-  const asked = restoreRedactions(textOf(messages.find((m) => m.info.role === "user")), redactions)
+  const asked = textOf(messages.find((m) => m.info.role === "user"))
   const assistant = messages.filter((m) => m.info.role === "assistant")
   const lastAssistant = assistant[assistant.length - 1]
-  const result = restoreRedactions(textOf(lastAssistant), redactions)
+  const result = textOf(lastAssistant)
   const steps = assistant.flatMap((m) => m.parts).filter((p) => p.type === "tool")
   const failure = lastAssistant?.info.error
   const permissions = Object.values(state.permissions).filter((p) => p.sessionID === id)
@@ -235,7 +232,7 @@ export function JobView({ id }: { id: string }) {
                   <li key={p.id}>
                     <StepIcon status={p.state?.status} />
                     <span className={styles.stepText} title={stepLabel(p)}>
-                      {restoreRedactions(stepLabel(p), redactions)}
+                      {stepLabel(p)}
                     </span>
                   </li>
                 ))}
@@ -325,27 +322,18 @@ export function JobView({ id }: { id: string }) {
                       <dd>{job.checkFirst ? "On" : "Off"}</dd>
                     </div>
                   ) : null}
-                  {Object.keys(redactions).length ? (
-                    <div>
-                      <dt>Removed before sending</dt>
-                      <dd>
-                        {Object.keys(redactions).length} {Object.keys(redactions).length === 1 ? "detail" : "details"}, kept{" "}
-                        {PLACES.device.short}
-                      </dd>
-                    </div>
-                  ) : null}
                   <div>
                     <dt>Cost</dt>
                     <dd>{formatCost(job.cost)}</dd>
                   </div>
-                  {job.place !== "open" && job.saved !== undefined && job.wouldHaveCost ? (
+                  {job.place && job.saved !== undefined && job.wouldHaveCost ? (
                     <div>
                       <dt>Saved</dt>
                       <dd>
                         <span style={{ color: job.saved > 0 ? "var(--good)" : undefined, fontWeight: 600 }}>{formatSaved(job.saved)}</span>
                         <span className={styles.meta}>
                           {" "}
-                          It would have cost {formatCost(job.wouldHaveCost)} at {rates?.label ?? "open-cloud"} prices.{" "}
+                          It would have cost {formatCost(job.wouldHaveCost)} at {rates?.label ?? "frontier-model"} prices.{" "}
                           {user?.role === "owner" ? <Link href="/privacy#saved">How this is worked out</Link> : null}
                         </span>
                       </dd>

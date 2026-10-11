@@ -19,15 +19,12 @@
   /* The three places work can run. --device etc. are the official colors, used
      for icons, bars and swatches. The -text shades are the same hues adjusted
      to stay readable as text (4.5:1) on this background. */
-  --device: #814618; /* Saddle Brown: on your Symphony */
-  --private: #1a3d26; /* Deep Forest: private cloud */
-  --open: #588d93; /* Pacific Cyan: open cloud */
+  --device: #814618; /* Saddle Brown: Soloist (the box) */
+  --private: #1a3d26; /* Deep Forest: Orchestra (private cloud) */
   --device-text: #814618;
   --private-text: #1a3d26;
-  --open-text: #40707a;
   --device-tint: #f5e9d8;
   --private-tint: #e4eee3;
-  --open-tint: #e3eeee;
 
   /* Status colors (not places). */
   --good: #2a7247;
@@ -75,13 +72,10 @@
        shades of the same hues. Pacific Cyan is used as is for fills. */
     --device: #c98a55;
     --private: #5f9e75;
-    --open: #588d93;
     --device-text: #d9a070;
     --private-text: #7dbb91;
-    --open-text: #7fb4ba;
     --device-tint: #2b1f15;
     --private-tint: #15241a;
-    --open-tint: #16272a;
     --good: #7dbb91;
     --good-tint: #17261b;
     --warn: #f2867e;
@@ -105,13 +99,10 @@
      shades of the same hues. Pacific Cyan is used as is for fills. */
   --device: #c98a55;
   --private: #5f9e75;
-  --open: #588d93;
   --device-text: #d9a070;
   --private-text: #7dbb91;
-  --open-text: #7fb4ba;
   --device-tint: #2b1f15;
   --private-tint: #15241a;
-  --open-tint: #16272a;
   --good: #7dbb91;
   --good-tint: #17261b;
   --warn: #f2867e;

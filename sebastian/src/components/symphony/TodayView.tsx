@@ -16,8 +16,7 @@ import { PLACE_ORDER, PLACES } from "@/lib/symphony/places"
 import { routeTask } from "@/lib/symphony/routing"
 import { formatSaved } from "@/lib/symphony/savings"
 import { startersFor } from "@/lib/symphony/starters"
-import type { Job, Place, RouteDecision, Savings, Settings } from "@/lib/symphony/types"
-import { ConsentDialog, type ConsentChoice } from "./ConsentDialog"
+import type { Job, Place, Savings, Settings } from "@/lib/symphony/types"
 import styles from "./page.module.css"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -35,7 +34,6 @@ export function TodayView() {
   const [choosing, setChoosing] = useState(false)
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [consent, setConsent] = useState<RouteDecision | null>(null)
   const input = useRef<HTMLTextAreaElement>(null)
 
   const load = useCallback(async () => {
@@ -70,35 +68,20 @@ export function TodayView() {
   const decision = useMemo(() => (settings && text.trim() ? routeTask(text, settings) : null), [settings, text])
   const place = override ?? decision?.place ?? null
 
-  async function start(choice?: ConsentChoice) {
-    // Ask before sending private information to the open cloud. The server
-    // enforces the same rule (409) in case settings changed in between.
-    if (!choice && decision && settings && place === "open") {
-      if (decision.privateHits.length > 0 || settings.places.open.rule === "ask-always") {
-        setConsent(override ? { ...decision, place: "open", reason: "you chose to run it there" } : decision)
-        return
-      }
-    }
-    choice ??= {}
+  async function start() {
     setStarting(true)
     setError(null)
     try {
       const response = await fetch("/api/symphony/jobs", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text, checkFirst, place: choice.place ?? override ?? undefined, consent: choice.consent, redact: choice.redact }),
+        body: JSON.stringify({ text, checkFirst, place: override ?? undefined }),
       })
-      const body = (await response.json().catch(() => ({}))) as { jobId?: string; error?: string; needsConsent?: boolean; decision?: RouteDecision }
-      if (response.status === 409 && body.needsConsent && body.decision) {
-        setConsent(body.decision)
-        return
-      }
+      const body = (await response.json().catch(() => ({}))) as { jobId?: string; error?: string }
       if (!response.ok || !body.jobId) throw new Error(body.error ?? `Couldn't start the job (${response.status})`)
-      setConsent(null)
       router.push(`/work/${body.jobId}`)
     } catch (e) {
       setError(message(e))
-      setConsent(null)
     } finally {
       setStarting(false)
     }
@@ -283,18 +266,6 @@ export function TodayView() {
           </Link>
         </section>
       </div>
-
-      {settings ? (
-        <ConsentDialog
-          key={consent ? text : "closed"}
-          decision={consent}
-          text={text}
-          settings={settings}
-          busy={starting}
-          onCancel={() => setConsent(null)}
-          onChoose={(choice) => void start(choice)}
-        />
-      ) : null}
     </div>
   )
 }

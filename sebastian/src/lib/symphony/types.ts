@@ -1,7 +1,7 @@
 // Shared Symphony types (client and server).
 
-/** The three places a job can run, from most to least private. */
-export type Place = "device" | "private" | "open"
+/** Where a job runs: Soloist (the model on the box) or Orchestra (the agent in the private cloud). */
+export type Place = "device" | "private"
 
 export type PrivacyCategory = {
   id: string
@@ -11,8 +11,6 @@ export type PrivacyCategory = {
   on: boolean
   custom?: boolean
 }
-
-export type OpenCloudRule = "ask-if-private" | "ask-always" | "never"
 
 export type Settings = {
   businessName: string
@@ -24,10 +22,9 @@ export type Settings = {
   places: {
     device: { model: string }
     private: { enabled: boolean; model: string }
-    open: { enabled: boolean; model: string; rule: OpenCloudRule }
   }
   spending: { limit: number; atLimit: "pause" | "device-only" }
-  /** What "saved" is measured against: "open" (the open-cloud model), "typical", or a "provider/model". */
+  /** What "saved" is measured against: "typical" frontier prices or a priced "provider/model". */
   savings: { compareWith: string }
 }
 
@@ -37,8 +34,6 @@ export type RouteDecision = {
   reason: string
   /** Names of keep-private categories the request touches. */
   privateHits: string[]
-  /** True when the job would send private information to the open cloud. */
-  needsConsent: boolean
 }
 
 export type JobStatus = "needs-ok" | "working" | "done" | "undone"
@@ -58,9 +53,9 @@ export type Job = {
   /** Who started it, when it was started from Symphony. */
   by?: { id: string; name: string; owner?: boolean }
   tokens?: Tokens
-  /** What the same tokens would have cost in the open cloud (see Rates). */
+  /** What the same tokens would have cost at frontier-model prices (see Rates). */
   wouldHaveCost?: number
-  /** wouldHaveCost minus what the job actually cost. 0 for open-cloud jobs. */
+  /** wouldHaveCost minus what the job actually cost. 0 for jobs that ran outside Symphony. */
   saved?: number
 }
 
@@ -79,7 +74,7 @@ export type Rates = {
 
 export type Savings = {
   month: string
-  /** This month: what jobs kept off the open cloud would have cost there, what they cost, and the difference. */
+  /** This month: what Soloist and Orchestra jobs would have cost at frontier prices, what they cost, and the difference. */
   wouldHaveCost: number
   actual: number
   saved: number
@@ -102,8 +97,6 @@ export type JobMeta = {
   place: Place
   reason: string
   checkFirst: boolean
-  /** Placeholder -> original value, for text that was redacted before leaving the device. */
-  redactions?: Record<string, string>
   /** Who started the job (user id). */
   by?: string
 }

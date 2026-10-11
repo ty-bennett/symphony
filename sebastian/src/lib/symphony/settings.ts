@@ -33,10 +33,9 @@ export const DEFAULT_SETTINGS: Settings = {
   places: {
     device: { model: "" },
     private: { enabled: true, model: "" },
-    open: { enabled: true, model: "", rule: "ask-if-private" },
   },
   spending: { limit: 40, atLimit: "pause" },
-  savings: { compareWith: "open" },
+  savings: { compareWith: "typical" },
 }
 
 /** Fill in anything missing from a stored or submitted settings object. */
@@ -57,7 +56,6 @@ export function normalizeSettings(input: unknown): Settings {
           ...(c.custom ? { custom: true } : {}),
         }))
     : d.keepPrivate
-  const rule = places.open?.rule
   const limit = Number(s.spending?.limit)
   return {
     businessName: str(s.businessName, "").trim().slice(0, 80),
@@ -68,19 +66,17 @@ export function normalizeSettings(input: unknown): Settings {
     places: {
       device: { model: str(places.device?.model, "") },
       private: { enabled: bool(places.private?.enabled, true), model: str(places.private?.model, "") },
-      open: {
-        enabled: bool(places.open?.enabled, true),
-        model: str(places.open?.model, ""),
-        rule: rule === "ask-always" || rule === "never" ? rule : "ask-if-private",
-      },
     },
     spending: {
       limit: Number.isFinite(limit) && limit >= 0 ? Math.round(limit * 100) / 100 : d.spending.limit,
       atLimit: s.spending?.atLimit === "device-only" ? "device-only" : "pause",
     },
     savings: {
+      // "open" was the removed open-cloud model; it falls back to typical prices.
       compareWith:
-        typeof s.savings?.compareWith === "string" && s.savings.compareWith.trim() ? s.savings.compareWith.trim().slice(0, 200) : "open",
+        typeof s.savings?.compareWith === "string" && s.savings.compareWith.trim() && s.savings.compareWith.trim() !== "open"
+          ? s.savings.compareWith.trim().slice(0, 200)
+          : "typical",
     },
   }
 }

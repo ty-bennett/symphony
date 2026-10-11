@@ -13,8 +13,8 @@ import {
 } from "../src/lib/opencode/state"
 import type { MessageInfo, OcEvent, Part } from "../src/lib/opencode/types"
 import { permissionRules, spending, toJob } from "../src/lib/symphony/jobs"
-import { placeForProvider } from "../src/lib/symphony/places"
-import { redactContactInfo, restoreRedactions, routeTask } from "../src/lib/symphony/routing"
+import { placeForProvider, PLACE_ORDER, PLACES } from "../src/lib/symphony/places"
+import { routeTask } from "../src/lib/symphony/routing"
 import { formatSaved, ratesFromProviders, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "../src/lib/symphony/savings"
 import { customCategory, normalizeSettings } from "../src/lib/symphony/settings"
 
@@ -265,44 +265,33 @@ check("per-turn diffs (opencode 1.18) combine per file; empty session.diff is ig
 
 const base = normalizeSettings({})
 
-check("routing: quick and private jobs stay on the Symphony", () => {
-  assert.deepEqual(pick(routeTask("Write a thank-you note for the bakery window", base)), ["device", "it's a quick job", false])
-  const catering = routeTask("Draft replies to the catering inquiries in my inbox", base)
-  assert.deepEqual(pick(catering), ["device", "it includes customer contact info", false])
+check("places: Soloist on the box and Orchestra in the private cloud, nothing else", () => {
+  assert.deepEqual(PLACE_ORDER, ["device", "private"])
+  assert.equal(PLACES.device.name, "Soloist")
+  assert.equal(PLACES.private.name, "Orchestra")
+})
+
+check("routing: quick and private jobs stay on Soloist", () => {
+  assert.deepEqual(pick(routeTask("Write a thank-you note for the bakery window", base)), ["device", "it's a quick job"])
+  assert.deepEqual(pick(routeTask("Draft replies to the catering inquiries in my inbox", base)), ["device", "it includes customer contact info"])
   assert.deepEqual(routeTask("Reply to jo@example.com about Saturday", base).privateHits, ["Customer contact info"])
   assert.deepEqual(routeTask("Call (803) 555-0142 back", base).privateHits, ["Customer contact info"])
 })
 
-check("routing: big private jobs go to the private cloud, big shareable ones to the open cloud", () => {
+check("routing: big jobs and web jobs go to Orchestra", () => {
   assert.deepEqual(pick(routeTask("Analyze last year's payroll and find overtime trends", base)), [
     "private",
     "it's a big job that includes staff and payroll",
-    false,
   ])
-  assert.deepEqual(pick(routeTask("Write a report on fall baking trends for our blog", base)), [
-    "open",
-    "it's a big job with nothing private in it",
-    false,
-  ])
+  assert.deepEqual(pick(routeTask("Write a report on fall baking trends for our blog", base)), ["private", "it's a big job"])
+  assert.deepEqual(pick(routeTask("Look up what other bakeries online charge for cupcakes", base)), ["private", "it needs the web"])
+  assert.equal("needsConsent" in routeTask("Compare our customer comments with reviews of the bakeries nearby", base), false)
 })
 
-check("routing: web jobs need the open cloud and ask first when private info is involved", () => {
-  assert.deepEqual(pick(routeTask("Look up what other bakeries online charge for cupcakes", base)), ["open", "it needs to search the web", false])
-  const mixed = routeTask("Compare our customer comments with reviews of the bakeries nearby", base)
-  assert.deepEqual(pick(mixed), ["open", "it needs to search the web", true])
-})
-
-check("routing: respects switched-off places and the open-cloud rule", () => {
-  const noOpen = normalizeSettings({ places: { open: { enabled: false } } })
-  assert.equal(routeTask("Write a report on fall baking trends", noOpen).place, "private")
-  const never = normalizeSettings({ places: { open: { rule: "never" } } })
-  const r = routeTask("Compare our customer comments with reviews of other bakeries nearby", never)
-  assert.equal(r.place, "private")
-  assert.equal(r.needsConsent, false)
+check("routing: with Orchestra off, everything stays on Soloist", () => {
   const noPrivate = normalizeSettings({ places: { private: { enabled: false } } })
-  assert.equal(routeTask("Analyze last year's payroll", noPrivate).place, "device")
-  const always = normalizeSettings({ places: { open: { rule: "ask-always" } } })
-  assert.equal(routeTask("Write a report on fall baking trends", always).needsConsent, true)
+  assert.deepEqual(pick(routeTask("Analyze last year's payroll", noPrivate)), ["device", "Orchestra is off"])
+  assert.deepEqual(pick(routeTask("Look up bakery prices online", noPrivate)), ["device", "Orchestra is off"])
   const off = normalizeSettings({ keepPrivate: base.keepPrivate.map((c) => ({ ...c, on: false })) })
   assert.equal(routeTask("Draft replies to the catering inquiries", off).place, "device")
   assert.deepEqual(routeTask("Draft replies to the catering inquiries", off).privateHits, [])
@@ -315,19 +304,16 @@ check("routing: custom keep-private items count", () => {
   assert.deepEqual(customCategory("Glass").keywords, ["glass"])
 })
 
-check("redaction removes emails and phone numbers and restores them for display", () => {
-  const { text, redactions } = redactContactInfo("Email jo@example.com or call 803-555-0142, cc sam@shop.co")
-  assert.equal(text, "Email [email 1] or call [phone 1], cc [email 2]")
-  assert.equal(restoreRedactions("I wrote to [email 1] and [email 2]", redactions), "I wrote to jo@example.com and sam@shop.co")
-})
-
-check("settings: defaults fill gaps and bad values are cleaned", () => {
-  const s = normalizeSettings({ spending: { limit: -5, atLimit: "explode" }, places: { open: { rule: "sometimes" } }, checkFirst: "yes" })
+check("settings: defaults fill gaps, bad values are cleaned, the old open cloud is dropped", () => {
+  const s = normalizeSettings({ spending: { limit: -5, atLimit: "explode" }, places: { open: { enabled: true, rule: "never" } }, checkFirst: "yes" })
   assert.equal(s.spending.limit, 40)
   assert.equal(s.spending.atLimit, "pause")
-  assert.equal(s.places.open.rule, "ask-if-private")
+  assert.deepEqual(Object.keys(s.places), ["device", "private"])
   assert.equal(s.checkFirst, true)
   assert.equal(s.keepPrivate.length, 6)
+  assert.equal(normalizeSettings({}).savings.compareWith, "typical")
+  assert.equal(normalizeSettings({ savings: { compareWith: "open" } }).savings.compareWith, "typical", "old setting falls back")
+  assert.equal(normalizeSettings({ savings: { compareWith: "anthropic/big-model" } }).savings.compareWith, "anthropic/big-model")
 })
 
 check("jobs: status, place and monthly spending", () => {
@@ -339,19 +325,21 @@ check("jobs: status, place and monthly spending", () => {
   assert.equal(toJob(session({ metadata: { symphony: { place: "private", reason: "x", checkFirst: true } } }), "idle", 0, base).place, "private")
   assert.equal(toJob(session({ model: { id: "m", providerID: "amazon-bedrock" } }), "idle", 0, base).place, "private")
   assert.equal(toJob(session({ model: { id: "m", providerID: "ollama" } }), "idle", 0, base).place, "device")
+  assert.equal(toJob(session({ model: { id: "m", providerID: "anthropic" } }), "idle", 0, base).place, null, "not Soloist or Orchestra")
+  assert.equal(toJob(session({ metadata: { symphony: { place: "open", reason: "", checkFirst: true } } }), "idle", 0, base).place, null)
   assert.equal(placeForProvider("mock", { device: "mock/mock-coder" }), "device")
   const jobs = [
     toJob(session({ id: "1", cost: 0.25, metadata: { symphony: { place: "private", reason: "", checkFirst: true } } }), "idle", 0, base),
-    toJob(session({ id: "2", cost: 1.5, metadata: { symphony: { place: "open", reason: "", checkFirst: true } } }), "idle", 0, base),
-    toJob(session({ id: "3", cost: 9, time: { created: Date.UTC(2026, 8, 3), updated: 0 }, metadata: { symphony: { place: "open", reason: "", checkFirst: true } } }), "idle", 0, base),
+    toJob(session({ id: "2", cost: 1.5, metadata: { symphony: { place: "device", reason: "", checkFirst: true } } }), "idle", 0, base),
+    toJob(session({ id: "3", cost: 9, time: { created: Date.UTC(2026, 8, 3), updated: 0 }, metadata: { symphony: { place: "private", reason: "", checkFirst: true } } }), "idle", 0, base),
   ]
   const spent = spending(jobs, base, Date.UTC(2026, 9, 10))
   assert.equal(spent.month, "2026-10")
   assert.equal(spent.total, 1.75)
-  assert.deepEqual(spent.byPlace, { device: 0, private: 0.25, open: 1.5 })
+  assert.deepEqual(spent.byPlace, { device: 1.5, private: 0.25 })
 })
 
-check("savings: priced from tokens against the open cloud, never invented", () => {
+check("savings: priced from tokens against frontier rates, never invented", () => {
   const providers: PricedProvider[] = [
     { id: "anthropic", models: { "big-model": { id: "big-model", name: "Big model", cost: { input: 5, output: 25, cache: { read: 0.5, write: 6.25 } } } } },
     { id: "mock", models: { "mock-coder": { id: "mock-coder", name: "Mock coder" } } },
@@ -375,23 +363,23 @@ check("savings: priced from tokens against the open cloud, never invented", () =
   assert.equal(device.wouldHaveCost?.toFixed(2), "7.60")
   assert.equal(device.saved?.toFixed(2), "7.60")
   const priv = at("private", 1.2, { input: 400_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
-  assert.equal(priv.saved?.toFixed(2), "0.80", "private saves the difference")
-  const open = at("open", 3, { input: 1_000_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
-  assert.equal(open.saved, 0, "open-cloud jobs save nothing")
+  assert.equal(priv.saved?.toFixed(2), "0.80", "Orchestra saves the difference")
+  const elsewhere = at("open", 3, { input: 1_000_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
+  assert.equal(elsewhere.saved, 0, "jobs that ran outside Symphony save nothing")
   const old = at("device", 0, { input: 200_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } }, Date.UTC(2026, 8, 3))
   const noTokens = at("device", 0, undefined)
   assert.equal(noTokens.saved, undefined)
-  const sum = summarizeSavings([device, priv, open, old, noTokens], rates, Date.UTC(2026, 9, 10))
+  const sum = summarizeSavings([device, priv, elsewhere, old, noTokens], rates, Date.UTC(2026, 9, 10))
   assert.equal(sum.jobs, 2)
   assert.equal(sum.saved.toFixed(2), "8.40")
   assert.equal(sum.wouldHaveCost.toFixed(2), "9.60")
   assert.equal(sum.actual.toFixed(2), "1.20")
   assert.equal(sum.allTime.toFixed(2), "9.40")
   assert.equal(sum.byPlace.device.toFixed(2), "7.60")
+  assert.deepEqual(Object.keys(sum.byPlace), ["device", "private"])
   assert.equal(TYPICAL_RATES.typical, true)
   assert.equal(formatSaved(0.004), "under 1¢")
   assert.equal(formatSaved(-0.4), "−$0.40")
-  assert.equal(normalizeSettings({}).savings.compareWith, "open")
 })
 
 check("check-with-me-first maps to opencode permission rules", () => {
@@ -402,8 +390,8 @@ check("check-with-me-first maps to opencode permission rules", () => {
   assert.ok(permissionRules(false).every((r) => r.action === "allow"))
 })
 
-function pick(r: { place: string; reason: string; needsConsent: boolean }) {
-  return [r.place, r.reason, r.needsConsent]
+function pick(r: { place: string; reason: string }) {
+  return [r.place, r.reason]
 }
 
 console.log(`\n${passed} checks passed`)

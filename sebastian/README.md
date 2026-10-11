@@ -59,8 +59,8 @@ How it's stored and checked:
 ## On a phone
 
 Colors follow the official palette: Onyx `#141414` and Ivory `#ffffed`, with
-Saddle Brown `#814618` for "On your Symphony", Deep Forest `#1a3d26` for the
-private cloud and Pacific Cyan `#588d93` for the open cloud (tokens in
+Saddle Brown `#814618` for Soloist (the box) and Deep Forest `#1a3d26` for
+Orchestra (the private cloud) (tokens in
 `globals.css`; text uses same-hue shades where a color would be too faint).
 The typeface is [Syne](https://fonts.google.com/specimen/Syne) (SIL Open Font
 License) for headings and text, with lining figures turned on so counts and
@@ -99,38 +99,38 @@ works over plain HTTP on the local network.
 ### How a job runs
 
 1. **Routing.** `routeTask()` in `src/lib/symphony/routing.ts` picks one of
-   three places and a plain-language reason:
-   - **On your Symphony** (the box): private and quick jobs.
-   - **Private cloud**: private but big jobs.
-   - **Open cloud**: big jobs with nothing private, and anything that needs the web.
+   two places and a plain-language reason:
+   - **Soloist** (the model on the box): quick jobs, and anything private that
+     isn't big. Nothing leaves the building.
+   - **Orchestra** (Symphony's agent in the business's own private cloud
+     account): big jobs and anything that needs the web. Never used to train
+     AI, and nothing is kept.
+
+   If the owner switches Orchestra off, every job runs on Soloist.
 
    **This is a stand-in for the JEV model.** It uses keywords and the owner's
    "Always keep private" list. Replace the body of `routeTask()` with a call to
-   the JEV model and keep its return shape (`{ place, reason, privateHits,
-   needsConsent }`). Nothing else needs to change.
-2. **Consent.** If a job would send something private to the open cloud, Today
-   asks first. The choices are: remove emails and phone numbers, send as
-   written, keep it in the private cloud, or keep it on the box. The server
-   enforces the same rule (`409`), so it can't be skipped. Removed details are
-   put back when the result is shown.
-3. **Model.** Each place maps to an opencode model chosen in Privacy and
+   the JEV model and keep its return shape (`{ place, reason, privateHits }`).
+   Nothing else needs to change. (Internally the places are still `device` and
+   `private`, so saved settings and old jobs keep working.)
+2. **Model.** Each place maps to an opencode model chosen in Privacy and
    spending (`provider/model`). Empty means opencode's default.
-4. **Check with me first.** This becomes the session's opencode permission
+3. **Check with me first.** This becomes the session's opencode permission
    rules: edits, shell commands and web fetches either `ask` or `allow`.
    Approvals show on the job and under "Needs your OK".
-5. **Spending.** Costs come from opencode's per-session `cost`, totalled per
-   month and per place. At the limit, cloud jobs either pause (`402`) or run on
-   the box instead, whichever the owner picked.
-6. **Saved.** For every job kept off the open cloud, Symphony prices the
-   tokens it used (opencode records them per session) at open-cloud rates
-   and subtracts what the job actually cost. "Compare with" in Privacy and
-   spending picks the rates: your open-cloud model's price from opencode
-   (the default), a specific priced model, or typical frontier prices
-   ($3 in / $15 out per million tokens), which are also the fallback when a
-   model has no price. It's an estimate and doesn't count the box or its
-   electricity. Shown on Today, each job, Privacy and spending, and in the CSV
-   report (`src/lib/symphony/savings.ts`).
-7. **Undo all** reverts the session to before its first message (opencode's
+4. **Spending.** Costs come from opencode's per-session `cost`, totalled per
+   month and per place. At the limit, Orchestra jobs either pause (`402`) or
+   run on Soloist instead, whichever the owner picked.
+5. **Saved.** For every Soloist and Orchestra job, Symphony prices the tokens
+   it used (opencode records them per session) at frontier-model rates and
+   subtracts what the job actually cost. "Compare with" in Privacy and
+   spending picks the rates: typical frontier prices ($3 in / $15 out per
+   million tokens, the default and the fallback when a model has no price) or
+   a specific priced model. Coding agent sessions on any other provider save
+   nothing. It's an estimate and doesn't count the box or its electricity.
+   Shown on Today, each job, Privacy and spending, and in the CSV report
+   (`src/lib/symphony/savings.ts`).
+6. **Undo all** reverts the session to before its first message (opencode's
    revert), which puts changed files back. **Redo** un-reverts.
 
 Where each job ran, and why, is saved on the opencode session as
@@ -147,7 +147,7 @@ Set `SYMPHONY_DATA_DIR` to keep them somewhere else.
 |---|---|
 | `GET, PUT /api/symphony/settings` | Privacy and spending settings |
 | `GET /api/symphony/jobs` | `{ jobs, spending, savings }`; each job carries `tokens`, `wouldHaveCost` and `saved` |
-| `POST /api/symphony/jobs` | `{ text, checkFirst?, place?, consent?, redact? }` → 202 `{ jobId, place, reason }`, or 409 `{ needsConsent, decision }` |
+| `POST /api/symphony/jobs` | `{ text, checkFirst?, place? }` → 202 `{ jobId, place, reason }` (`place` is `device` for Soloist or `private` for Orchestra) |
 | `GET /api/symphony/jobs/:id` | One job, the comparison `rates`, and its removed details (to restore them on screen) |
 | `POST /api/symphony/jobs/:id/undo`, `/redo` | Revert or un-revert the job's changes |
 
@@ -251,7 +251,7 @@ own needs any signed-in account). See [Accounts and first run](#accounts-and-fir
 ```sh
 npm run lint
 npm run typecheck
-npm run check:logic   # event handling, history merge, diffs, routing, redaction, spending, savings
+npm run check:logic   # event handling, history merge, diffs, routing, spending, savings
 npm run check:auth    # passwords, sessions, invites, lockout, roles, origin check
 npm run build
 ```

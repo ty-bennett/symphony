@@ -11,6 +11,6 @@ type Ctx = { params: Promise<{ id: string }> }
 export const GET = withOc(async (_req, { params }: Ctx) => {
   const { id } = await params
   const settings = await readSettings()
-  const [{ job, meta }, rates] = await Promise.all([getJob(id, settings), compareRates(settings)])
-  return Response.json({ job: withSavings(job, rates), rates, redactions: meta?.redactions ?? {} })
+  const [{ job }, rates] = await Promise.all([getJob(id, settings), compareRates(settings)])
+  return Response.json({ job: withSavings(job, rates), rates })
 })

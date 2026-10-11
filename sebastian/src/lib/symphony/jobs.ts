@@ -5,7 +5,7 @@ import type { PublicUser } from "@/lib/auth/types"
 import { OcError, oc, ocJson, parseModel, sendPrompt, unwrap } from "@/lib/opencode/server"
 import type { RawPermission, SessionStatus } from "@/lib/opencode/types"
 import { placeForProvider, PLACE_ORDER } from "./places"
-import { redactContactInfo, routeTask } from "./routing"
+import { routeTask } from "./routing"
 import { ratesFromProviders, readTokens, summarizeSavings, TYPICAL_RATES, withSavings, type PricedProvider } from "./savings"
 import type { Job, JobMeta, Place, Rates, Savings, Settings, Spending } from "./types"
 
@@ -35,13 +35,12 @@ export function readMeta(metadata: unknown): JobMeta | undefined {
     place: m.place as Place,
     reason: typeof m.reason === "string" ? m.reason : "",
     checkFirst: Boolean(m.checkFirst),
-    ...(m.redactions && typeof m.redactions === "object" ? { redactions: m.redactions as Record<string, string> } : {}),
     ...(typeof m.by === "string" ? { by: m.by } : {}),
   }
 }
 
 function configuredModels(settings: Settings): Partial<Record<Place, string>> {
-  return { device: settings.places.device.model, private: settings.places.private.model, open: settings.places.open.model }
+  return { device: settings.places.device.model, private: settings.places.private.model }
 }
 
 export function toJob(
@@ -93,8 +92,7 @@ export async function compareRates(settings: Settings): Promise<Rates> {
   if (choice === "typical") return TYPICAL_RATES
   try {
     const prices = await priceList()
-    const model = choice === "open" ? settings.places.open.model || prices.model || "" : choice
-    return ratesFromProviders(model, prices.providers) ?? TYPICAL_RATES
+    return ratesFromProviders(choice, prices.providers) ?? TYPICAL_RATES
   } catch {
     return TYPICAL_RATES
   }
@@ -157,12 +155,12 @@ export function monthKey(ms: number) {
 
 export function spending(jobs: Job[], settings: Settings, now = Date.now()): Spending {
   const month = monthKey(now)
-  const byPlace: Record<Place, number> = { device: 0, private: 0, open: 0 }
+  const byPlace: Record<Place, number> = { device: 0, private: 0 }
   for (const job of jobs) {
     if (monthKey(job.created) !== month || !job.place) continue
     byPlace[job.place] += job.cost
   }
-  const total = byPlace.device + byPlace.private + byPlace.open
+  const total = byPlace.device + byPlace.private
   return { month, total, byPlace, limit: settings.spending.limit, atLimit: settings.spending.atLimit }
 }
 
@@ -171,16 +169,6 @@ export type NewJob = {
   checkFirst?: boolean
   /** Run somewhere other than where Symphony routed it. */
   place?: Place
-  /** Owner agreed to send private info to the open cloud. */
-  consent?: boolean
-  /** Remove emails and phone numbers before the text leaves the device. */
-  redact?: boolean
-}
-
-export class ConsentRequired extends OcError {
-  constructor(readonly decision: ReturnType<typeof routeTask>) {
-    super("This job would send private information to the open cloud. Choose how to handle it.", 409)
-  }
 }
 
 export async function createJob(
@@ -196,18 +184,9 @@ export async function createJob(
 
   if (input.place && input.place !== decision.place) {
     if (!PLACE_ORDER.includes(input.place)) throw new OcError("Unknown place.", 400)
-    if (input.place === "private" && !settings.places.private.enabled) throw new OcError("The private cloud is switched off.", 400)
-    if (input.place === "open" && !settings.places.open.enabled) throw new OcError("The open cloud is switched off.", 400)
+    if (input.place === "private" && !settings.places.private.enabled) throw new OcError("Orchestra is switched off.", 400)
     place = input.place
     reason = PLACE_ORDER.indexOf(place) < PLACE_ORDER.indexOf(decision.place) ? "you chose to keep it more private" : "you chose this place"
-  }
-
-  if (place === "open") {
-    const touchesPrivate = decision.privateHits.length > 0
-    if (touchesPrivate && settings.places.open.rule === "never") {
-      throw new OcError("Your settings never send private information to the open cloud.", 400)
-    }
-    if ((touchesPrivate || settings.places.open.rule === "ask-always") && !input.consent) throw new ConsentRequired(decision)
   }
 
   if (place !== "device") {
@@ -216,7 +195,7 @@ export async function createJob(
     if (spent.limit > 0 && spent.total >= spent.limit) {
       if (settings.spending.atLimit === "pause") {
         throw new OcError(
-          `You've reached this month's $${spent.limit} limit. Raise it in Privacy and spending, or keep this job on your Symphony.`,
+          `You've reached this month's $${spent.limit} limit. Raise it in Privacy and spending, or run this job on Soloist.`,
           402,
         )
       }
@@ -228,15 +207,7 @@ export async function createJob(
   const checkFirst = input.checkFirst ?? settings.checkFirst
   const model = settings.places[place].model || undefined
   const parsed = parseModel(model)
-  const { text: sendText, redactions } =
-    input.redact && place === "open" ? redactContactInfo(text) : { text, redactions: {} as Record<string, string> }
-  const meta: JobMeta = {
-    place,
-    reason,
-    checkFirst,
-    ...(Object.keys(redactions).length ? { redactions } : {}),
-    ...(user ? { by: user.id } : {}),
-  }
+  const meta: JobMeta = { place, reason, checkFirst, ...(user ? { by: user.id } : {}) }
 
   // An explicit title keeps opencode from generating one, which would send
   // the request to its small model.
@@ -249,7 +220,7 @@ export async function createJob(
       metadata: { symphony: meta },
     }),
   )
-  await sendPrompt(session.id, { text: sendText, model })
+  await sendPrompt(session.id, { text, model })
   return { jobId: session.id, place, reason }
 }
 

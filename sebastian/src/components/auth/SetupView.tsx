@@ -278,7 +278,7 @@ function Onboarding({ name }: { name: string }) {
                   </p>
                 </div>
               ))}
-              <p className={styles.hint}>It always tries the most private place first, and asks before sending anything private to the open cloud.</p>
+              <p className={styles.hint}>It always tries the most private place first: Soloist on the box, then Orchestra in your private cloud for big jobs and the web.</p>
             </aside>
           </div>
         ) : (
@@ -286,7 +286,7 @@ function Onboarding({ name }: { name: string }) {
             <div>
               <h1>How much may Symphony spend each month?</h1>
               <p className={styles.muted}>
-                Only cloud jobs cost money. Jobs {PLACES.device.short} are free. You&apos;ll see the running total under Privacy and spending.
+                Only Orchestra jobs cost money. Jobs {PLACES.device.short} are free. You&apos;ll see the running total under Privacy and spending.
               </p>
             </div>
             <label className={styles.field}>
@@ -310,7 +310,7 @@ function Onboarding({ name }: { name: string }) {
                 checked={settings.spending.atLimit === "pause"}
                 onChange={() => set((s) => ({ ...s, spending: { ...s.spending, atLimit: "pause" } }))}
               >
-                Pause cloud jobs until next month
+                Pause Orchestra jobs until next month
               </Radio>
               <Radio
                 name="at-limit"

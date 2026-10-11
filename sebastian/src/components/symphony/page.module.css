@@ -592,10 +592,6 @@
   overflow-y: auto;
 }
 
-.redacted {
-  color: var(--open-text);
-  font-weight: 600;
-}
 
 /* ---------- savings ---------- */
 

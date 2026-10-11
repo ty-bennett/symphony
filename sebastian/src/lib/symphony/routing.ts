@@ -1,5 +1,5 @@
 // STAND-IN ROUTER. Symphony's real routing comes from the JEV model on the
-// box. Until that is wired in, this keyword version makes the same decision
+// box (Soloist or Orchestra). Until that is wired in, this keyword version makes the same decision
 // from the same inputs, so the rest of the app can be built and tested.
 // Replace routeTask() with a call to the JEV model; keep its return shape.
 import type { Place, RouteDecision, Settings } from "./types"
@@ -36,63 +36,20 @@ export function routeTask(text: string, settings: Settings): RouteDecision {
   let place: Place
   let reason: string
   if (web) {
-    place = "open"
-    reason = "it needs to search the web"
-  } else if (first && big) {
     place = "private"
-    reason = `it's a big job that includes ${first}`
-  } else if (first) {
-    place = "device"
-    reason = `it includes ${first}`
+    reason = "it needs the web"
   } else if (big) {
-    place = "open"
-    reason = "it's a big job with nothing private in it"
+    place = "private"
+    reason = first ? `it's a big job that includes ${first}` : "it's a big job"
   } else {
     place = "device"
-    reason = "it's a quick job"
+    reason = first ? `it includes ${first}` : "it's a quick job"
   }
 
-  // Respect what the owner has switched off: fall back to somewhere more private.
-  const { private: priv, open } = settings.places
-  if (place === "open" && (!open.enabled || (open.rule === "never" && hits.length > 0))) {
-    place = priv.enabled ? "private" : "device"
-    reason = web ? "the open cloud is off, so it won't search the web" : `the open cloud is off for ${hits.length ? "private info" : "jobs"}`
-  }
-  if (place === "private" && !priv.enabled) {
+  // Orchestra switched off: everything stays on the box.
+  if (place === "private" && !settings.places.private.enabled) {
     place = "device"
-    reason = "the private cloud is off"
+    reason = "Orchestra is off"
   }
-
-  const needsConsent = place === "open" && (open.rule === "ask-always" || hits.length > 0)
-  return { place, reason, privateHits: hits, needsConsent }
-}
-
-/**
- * Replace email addresses and phone numbers with placeholders before text
- * leaves the device. Returns the redacted text and how to put values back.
- */
-export function redactContactInfo(text: string): { text: string; redactions: Record<string, string> } {
-  const redactions: Record<string, string> = {}
-  let emails = 0
-  let phones = 0
-  const out = text
-    .replace(new RegExp(EMAIL.source, "g"), (match) => {
-      const key = `[email ${++emails}]`
-      redactions[key] = match
-      return key
-    })
-    .replace(new RegExp(PHONE.source, "g"), (match) => {
-      const key = `[phone ${++phones}]`
-      redactions[key] = match
-      return key
-    })
-  return { text: out, redactions }
-}
-
-/** Put redacted values back, for display on the device only. */
-export function restoreRedactions(text: string, redactions?: Record<string, string>): string {
-  if (!redactions) return text
-  let out = text
-  for (const [key, value] of Object.entries(redactions)) out = out.split(key).join(value)
-  return out
+  return { place, reason, privateHits: hits }
 }

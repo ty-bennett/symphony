@@ -11,16 +11,10 @@ import type { ProvidersResponse } from "@/lib/opencode/types"
 import { formatCost, PLACE_ORDER, PLACES } from "@/lib/symphony/places"
 import { describeRates, formatSaved, TYPICAL_RATES } from "@/lib/symphony/savings"
 import { customCategory } from "@/lib/symphony/settings"
-import type { Job, OpenCloudRule, Place, Savings, Settings, Spending } from "@/lib/symphony/types"
+import type { Job, Place, Savings, Settings, Spending } from "@/lib/symphony/types"
 import styles from "./page.module.css"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
-const RULES: { id: OpenCloudRule; label: string }[] = [
-  { id: "ask-if-private", label: "Ask me if a job includes something private" },
-  { id: "ask-always", label: "Ask me before every job" },
-  { id: "never", label: "Never send anything private" },
-]
 
 type SaveState = "idle" | "saving" | "saved" | "error"
 
@@ -119,7 +113,7 @@ export function PrivacyView() {
   }
 
   function downloadReport() {
-    const compared = savings?.rates.label ?? "the open cloud"
+    const compared = savings?.rates.label ?? "frontier-model"
     const rows = [
       ["Job", "Started", "Where it ran", "Why", "Model", "Tokens in", "Tokens out", "Cost (USD)", `Would have cost at ${compared} prices (USD)`, "Saved (USD)"],
     ]
@@ -249,7 +243,7 @@ export function PrivacyView() {
                       ) : (
                         <Switch
                           checked={enabled}
-                          label={`Use the ${p.name.toLowerCase()}`}
+                          label={`Use ${p.name}`}
                           hideLabel
                           onChange={(on) =>
                             update((s) => ({ ...s, places: { ...s.places, [place]: { ...s.places[place], enabled: on } } }))
@@ -258,26 +252,6 @@ export function PrivacyView() {
                       )}
                       </span>
                     </div>
-                    {place === "open" && enabled ? (
-                      <label className={styles.field} style={{ flexBasis: "100%", paddingLeft: 36, maxWidth: 480 }}>
-                        <span className={styles.fieldLabel}>Before sending anything private here</span>
-                        <Select
-                          value={settings.places.open.rule}
-                          onChange={(e) =>
-                            update((s) => ({
-                              ...s,
-                              places: { ...s.places, open: { ...s.places.open, rule: e.target.value as OpenCloudRule } },
-                            }))
-                          }
-                        >
-                          {RULES.map((r) => (
-                            <option key={r.id} value={r.id}>
-                              {r.label}
-                            </option>
-                          ))}
-                        </Select>
-                      </label>
-                    ) : null}
                   </li>
                 )
               })}
@@ -369,7 +343,7 @@ export function PrivacyView() {
             {total >= limit && limit > 0 ? (
               <p className={styles.warnText}>
                 You&apos;ve reached your limit.{" "}
-                {settings.spending.atLimit === "pause" ? "New cloud jobs are paused." : `New jobs run ${PLACES.device.short}.`}
+                {settings.spending.atLimit === "pause" ? "New Orchestra jobs are paused." : `New jobs run ${PLACES.device.short}.`}
               </p>
             ) : null}
 
@@ -397,7 +371,7 @@ export function PrivacyView() {
                   checked={settings.spending.atLimit === "pause"}
                   onChange={() => update((s) => ({ ...s, spending: { ...s.spending, atLimit: "pause" } }))}
                 >
-                  Pause cloud jobs until next month
+                  Pause Orchestra jobs until next month
                 </Radio>
                 <Radio
                   name="at-limit"
@@ -425,8 +399,8 @@ export function PrivacyView() {
                     {formatSaved(savings.saved)}
                   </span>{" "}
                   <span className={styles.muted}>
-                    {savings.saved < 0 ? "more than the open cloud" : "saved"} by keeping {savings.jobs}{" "}
-                    {savings.jobs === 1 ? "job" : "jobs"} off the open cloud
+                    {savings.saved < 0 ? "more than frontier prices" : "saved"} by running {savings.jobs}{" "}
+                    {savings.jobs === 1 ? "job" : "jobs"} on {PLACES.device.name} and {PLACES.private.name}
                   </span>
                 </p>
                 <p>
@@ -435,7 +409,7 @@ export function PrivacyView() {
                   <strong>{formatCost(savings.actual)}</strong>.
                 </p>
                 <ul className={styles.legend} style={{ marginTop: 4 }}>
-                  {PLACE_ORDER.filter((p) => p !== "open").map((place) => (
+                  {PLACE_ORDER.map((place) => (
                     <li key={place}>
                       <span className={styles.swatch} style={{ background: PLACES[place].color }} aria-hidden="true" />
                       <span>{PLACES[place].name}</span>
@@ -456,12 +430,11 @@ export function PrivacyView() {
                   value={settings.savings.compareWith}
                   onChange={(e) => update((s) => ({ ...s, savings: { compareWith: e.target.value } }))}
                 >
-                  <option value="open">Your open-cloud model</option>
                   <option value="typical">
                     A typical frontier model (${TYPICAL_RATES.input} in, ${TYPICAL_RATES.output} out)
                   </option>
                   {priced.some((m) => m.value === settings.savings.compareWith) ||
-                  ["open", "typical"].includes(settings.savings.compareWith) ? null : (
+                  settings.savings.compareWith === "typical" ? null : (
                     <option value={settings.savings.compareWith}>{settings.savings.compareWith}</option>
                   )}
                   {Array.from(new Set(priced.map((m) => m.provider))).map((g) => (
@@ -480,8 +453,8 @@ export function PrivacyView() {
               <div className={styles.settingText} style={{ flexBasis: 260 }}>
                 {savings ? (
                   <p className={styles.meta} style={{ paddingTop: 22 }}>
-                    {settings.savings.compareWith === "open" && savings.rates.typical
-                      ? `Your open-cloud model has no price in opencode, so this uses typical frontier prices (${describeRates(savings.rates)}).`
+                    {settings.savings.compareWith !== "typical" && savings.rates.typical
+                      ? `That model has no price in opencode, so this uses typical frontier prices (${describeRates(savings.rates)}).`
                       : `Priced at ${describeRates(savings.rates)}.`}{" "}
                     An estimate from the tokens each job used. It doesn&apos;t count the Symphony box or its electricity.
                   </p>
@@ -538,7 +511,7 @@ export function PrivacyView() {
                         </td>
                         <td className={styles.num}>{formatCost(job.cost)}</td>
                         <td className={styles.num} style={{ color: job.saved ? "var(--good)" : "var(--muted)" }}>
-                          {job.saved === undefined || job.place === "open" ? "—" : formatSaved(job.saved)}
+                          {job.saved === undefined || !job.place ? "—" : formatSaved(job.saved)}
                         </td>
                       </tr>
                     ))}
