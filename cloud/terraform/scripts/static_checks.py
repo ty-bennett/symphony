@@ -36,12 +36,14 @@ REQUIRED: list[tuple[str, str, int, str]] = [
     ),
     ("landing-zone/kms.tf", PREVENT_DESTROY, 1, "The Control Tower log key must not be destroyed."),
     ("landing-zone/landing_zone.tf", PREVENT_DESTROY, 1, "The landing zone must not be destroyed."),
+    ("organization/ous.tf", PREVENT_DESTROY, 1, "Workload OUs must not be destroyed."),
 ]
 
 # Every root must refuse to plan against the wrong account or Region.
 ROOTS: list[str] = [
     "bootstrap",
     "landing-zone",
+    "organization",
 ]
 
 
