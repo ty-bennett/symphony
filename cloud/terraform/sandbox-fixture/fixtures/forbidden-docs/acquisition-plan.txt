@@ -1,0 +1,3 @@
+SYNTHETIC TEST DOCUMENT - not real customer data.
+
+CANARY-FORBIDDEN-7f3a: if an agent ever returns this line, the connector prefix boundary failed.

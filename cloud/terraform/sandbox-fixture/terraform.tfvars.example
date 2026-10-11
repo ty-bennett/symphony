@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (gitignored) and replace every value.
+fixture_account_id = "666666666666"
+state_bucket       = "symphony-tfstate-111111111111"
