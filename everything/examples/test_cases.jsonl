@@ -1,0 +1,6 @@
+{"messages":[{"role":"user","content":"Reply with the word hello."}],"complexity":"LOW","sensitivity":"PUBLIC","route":"LOCAL"}
+{"messages":[{"role":"user","content":"Rewrite this sentence clearly: Our public release makes the application easier to use."}],"complexity":"LOW","sensitivity":"PUBLIC","route":"LOCAL"}
+{"messages":[{"role":"user","content":"Compare two deployment designs for a public documentation site, explaining their operational tradeoffs."}],"complexity":"MEDIUM","sensitivity":"PUBLIC","route":"PRIVATE_AWS"}
+{"messages":[{"role":"user","content":"Design and prove a distributed consistency protocol with Byzantine faults, network partitions, recovery, and explicit safety and liveness conditions."}],"complexity":"HIGH","sensitivity":"PUBLIC","route":"FRONTIER"}
+{"messages":[{"role":"user","content":"Explain this fake configuration without repeating its credential: password=SYNTHETIC_TEST_VALUE_ONLY"}],"complexity":"LOW","sensitivity":"SENSITIVE","route":"LOCAL"}
+{"messages":[{"role":"user","content":"Analyze the legal and operational risks of a fictional confidential enterprise contract across three jurisdictions."}],"security_context":{"classification":"SENSITIVE"},"complexity":"HIGH","sensitivity":"SENSITIVE","route":"PRIVATE_AWS"}

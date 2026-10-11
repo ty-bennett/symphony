@@ -8,4 +8,5 @@ artifacts/
 *.safetensors
 *.jsonl
 !examples/*.jsonl
+!everything/examples/test_cases.jsonl
 !.env.example
