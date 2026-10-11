@@ -30,3 +30,29 @@ Open: 3.1–3.4 (mTLS ingress, device enrollment, Cognito at ingress, route poli
 | 6 ZDR re-check | `tenant_ops.py zdr` | PASS: all `none` |
 | 7 Traces | `tenant_ops.py lockdown-logs`; describe-log-groups | PASS: `aws/spans` and runtime log group use the tenant KMS key with 7-day retention; nothing exported |
 | Repeatability | `plan -detailed-exitcode` | PASS: organization, tenant-baseline, tenant-workload, sandbox-fixture, external-aws-connector exit 0 |
+
+## Phase 3c — Jetson ingress (2026-10-11, demo 603238661867 / us-east-1)
+
+Endpoint `https://api.demo.symphony-edge.link/v1/requests` (delegated zone `demo.symphony-edge.link`, ACM, mTLS truststore, REST API `0xp928qei4` stage `live`). Stand-in client: `edge_client.py` with device `laptop-01` and Cognito users alice / bob (TOTP MFA enforced by the pool).
+
+| Criterion | Command or test | Result |
+| --- | --- | --- |
+| Deploy | `terraform apply` tenant-workload | PASS: 43 added, 1 changed (harness prompt), 0 destroyed; later fixes in place only (one expected API deployment replacement) |
+| 1 Stream + first token | `edge_client.py ask` ×5 "How much paid time off…" | PARTIAL: 200 `text/event-stream`, stream opens with `meta` in 0.3–0.65 s, cited answer matches the SigV4 path. First answer token 3.0 / 7.0 / 4.7 / 21.3 / 4.6 s → **p50 4.7 s, target ≤ 3 s not met** (search tool round trip + Kimi K2.5 reasoning; no-tool prompts ~2.7–3.6 s) |
+| 2 Revoked / unknown device | revoke `laptop-02`; rogue self-signed cert; no cert | PASS: revoked → 403 `DEVICE_REVOKED` on the next request (laptop-01 with the same token still allowed); rogue CA → API Gateway 403 `Forbidden`; no cert → TLS connection reset. No model call in any case |
+| 3 Bad user token | no token; garbage; tampered wrong-pool claims | PASS: 401 `USER_UNAUTHORIZED` ×3. Expired token covered by unit test + `aws-jwt-verify` (not waited out live) |
+| 4 Data tier | `--data-tier local-only` | PASS: 403 `DATA_TIER_DENIED`, `latency_ms` 0–1, no harness call |
+| 5 Default endpoint | `curl https://0xp928qei4.execute-api…/live/v1/requests` | PASS: 403; `disableExecuteApiEndpoint = true`; domain TLS_1_2 with pinned truststore version |
+| 6 Memory per user | alice states name / region / table preference; new conversations for alice and bob | PASS: alice → "Alice … East region", inventory as a table (4 facts prefetched); bob → "I don't know your name…", 0 facts |
+| 7 Audit, no text | canaries `CANARY-PROMPT-3c91`, `-7d22`, `-91ab`; search all 10 tenant log groups | PASS after fixes: one audit line per request (request ID, tenant, device, hashed user, route, model, tools, ttfb, latency, tokens, status); 0 matches for canary, system prompt, memory facts, or document text after `OTEL_LOGS_EXPORTER=none` |
+| 8 Eval set | `eval_harness.py` (15 prompts) | PASS: 13/15 (threshold 13). Misses: `red-widgets` answered without reading inventory; `low-stock` mentioned W-100 while excluding it. `web-allowlisted` took 143 s |
+| Repeatability | `plan -detailed-exitcode` | PASS: tenant-workload exit 0 |
+
+Defects found live and fixed (each with a failing test first):
+- API Gateway reports client-certificate serials in **decimal**; the authorizer now converts to the registry's hex (every device was denied).
+- Memory prefetch was `AccessDeniedException`: AgentCore calls `kms:DescribeKey` as the caller → granted via `kms:ViaService` only.
+- Facts injected into the user message were re-extracted by memory, so a hallucinated identity ("Richard Roe, APAC") kept re-saving itself. Facts now ride in the per-request system prompt; the prompt forbids guessing the user's identity; bob's false records were deleted.
+- **Supersedes Phase 3b criterion 7:** the managed runtime logged prompts, memory facts, tool results, and answers as OTel log events despite `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=false` (logs were in-tenant, KMS-encrypted, 7-day retention). Fixed with `OTEL_LOGS_EXPORTER=none`; spans and EMF metrics continue.
+- Phase 3b memory defect (harness did not inject long-term memory) is resolved by the ingress prefetch.
+
+Open: first-token p50 above target; eval misses above; `aws/spans` receives few events at 1% indexing (raise `trace_indexing_percent` for the demo window).
