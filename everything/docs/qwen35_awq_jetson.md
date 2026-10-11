@@ -1,6 +1,6 @@
-# Qwen3.5-4B AWQ on an Orin Nano: standalone smoke test
+# Qwen3.5-2B AWQ on an Orin Nano: standalone smoke test
 
-This tests whether **one real text-only Qwen3.5-4B AWQ model loads and generates on
+This tests whether **one real text-only Qwen3.5-2B AWQ model loads and generates on
 your Orin GPU**, with a short context and batch size one. No training, Strands
 adapter, decision heads, router changes, AWS, or Snowflake. A pass is a small-context
 fit/generation check, **not** proof of routing quality, shared-prefill integration,
@@ -61,38 +61,44 @@ network download; requests themselves never contact a remote inference service.
 
 ```bash
 python everything/scripts/test_qwen35_awq_jetson.py run \
-  --download --work-dir artifacts/qwen35-4b-awq \
-  --show-output --report qwen35-awq-first-run.json
+  --download --work-dir artifacts/qwen35-2b-awq \
+  --show-output --report qwen35-2b-awq-first-run.json
 
 # Subsequent runs are offline, reusing the matching locally built engine.
 python everything/scripts/test_qwen35_awq_jetson.py run \
-  --work-dir artifacts/qwen35-4b-awq \
-  --show-output --report qwen35-awq-warm-run.json
+  --work-dir artifacts/qwen35-2b-awq \
+  --show-output --report qwen35-2b-awq-warm-run.json
 ```
 
 You can replace `--work-dir` with an absolute NVMe path. Downloads are resumable,
-pinned to `QuantTrio/Qwen3.5-4B-AWQ` revision
-`32c292e3a73afe1138518180b1b6d2868c980ee2`. Only Safetensors and tokenizer/config/
+pinned to `QuantTrio/Qwen3.5-2B-AWQ` revision
+`b9b439ecbe34b097cfc9531132fedbf55fec9263`. Only Safetensors and tokenizer/config/
 license artifacts are downloaded, never Python remote code or pickle weights.
-The approximately **6 GB download is mixed precision**: the checkpoint excludes
-vision, attention/DeltaNet, and its first layer from AWQ. Do **not** assume all 4B
-parameters occupy four bits or that runtime RAM is only 2 GB. See the actual
-[checkpoint configuration](https://huggingface.co/QuantTrio/Qwen3.5-4B-AWQ/blob/32c292e3a73afe1138518180b1b6d2868c980ee2/config.json).
+The approximately **3.3 GB download is mixed precision**: the checkpoint excludes
+vision, attention/DeltaNet, and its first layer from AWQ. Do **not** assume all 2B
+parameters occupy four bits or that runtime RAM is only 1 GB. See the actual
+[checkpoint configuration](https://huggingface.co/QuantTrio/Qwen3.5-2B-AWQ/blob/b9b439ecbe34b097cfc9531132fedbf55fec9263/config.json).
 Vision weights may share downloaded shards with text weights, but `--components llm`
 builds/loads **no vision engine**. AWQ is **INT4 weights / FP16 activations (W4A16)**
 for quantized projections; other modules remain higher precision. It is not W8A8.
+
+The default work directory is now `artifacts/qwen35-2b-awq`. Existing 4B downloads
+and engines are left untouched and are not reused. After pulling this change on
+the Jetson, keep your existing venv and run the command above with `--download` to
+fetch the **2B** checkpoint and build its own engine. Do not pass the old 4B
+`--work-dir` or `--model-dir`; architecture validation rejects 4B checkpoints.
 
 To download on a separate machine, install `huggingface_hub`, run the following,
 then copy the complete resulting checkpoint directory to the Jetson:
 
 ```bash
 python everything/scripts/test_qwen35_awq_jetson.py download \
-  --work-dir artifacts/qwen35-4b-awq
+  --work-dir artifacts/qwen35-2b-awq
 
 # On the Jetson, with the native runtime installed:
 python everything/scripts/test_qwen35_awq_jetson.py run \
   --model-dir /absolute/path/to/copied/checkpoint \
-  --work-dir artifacts/qwen35-4b-awq --show-output
+  --work-dir artifacts/qwen35-2b-awq --show-output
 ```
 
 ## What is measured?
@@ -134,9 +140,9 @@ If native diagnostics specifically show memory exhaustion, try a smaller profile
 
 ```bash
 python everything/scripts/test_qwen35_awq_jetson.py run \
-  --work-dir artifacts/qwen35-4b-awq \
+  --work-dir artifacts/qwen35-2b-awq \
   --max-input-len 256 --max-kv-cache-capacity 512 --max-new-tokens 32 \
-  --show-output --report qwen35-awq-small-context.json
+  --show-output --report qwen35-2b-awq-small-context.json
 ```
 
 Changing profile/runtime/checkpoint creates a different engine; the old one is

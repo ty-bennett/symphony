@@ -28,7 +28,7 @@ def checkpoint(tmp_path):
     directory.mkdir()
     config = {
         "model_type": "qwen3_5",
-        "text_config": {"hidden_size": 2560, "num_hidden_layers": 32, "intermediate_size": 9216},
+        "text_config": {"hidden_size": 2048, "num_hidden_layers": 24, "intermediate_size": 6144},
         "quantization_config": {
             "quant_method": "awq",
             "bits": 4,
@@ -101,9 +101,9 @@ def test_download_is_pinned_safetensors_only_and_requires_no_router(monkeypatch,
     )
     smoke.download_checkpoint(tmp_path / "model")
     arguments, options = calls[0]
-    assert arguments == ("QuantTrio/Qwen3.5-4B-AWQ",)
+    assert arguments == ("QuantTrio/Qwen3.5-2B-AWQ",)
     assert len(options["revision"]) == 40
-    assert options["revision"] == smoke.MODEL_REVISION
+    assert options["revision"] == "b9b439ecbe34b097cfc9531132fedbf55fec9263"
     assert options["max_workers"] == 2
     assert not any(p.endswith((".py", ".bin", ".pt")) for p in options["allow_patterns"])
 
@@ -129,7 +129,36 @@ def test_qwen3_not_35_is_rejected(checkpoint):
     config = json.loads((checkpoint / "config.json").read_text())
     config["model_type"] = "qwen3"
     (checkpoint / "config.json").write_text(json.dumps(config))
-    with pytest.raises(smoke.SmokeTestError, match="Qwen3.5-4B"):
+    with pytest.raises(smoke.SmokeTestError, match="Qwen3.5-2B"):
+        smoke.inspect_checkpoint(checkpoint)
+
+
+def test_default_work_directory_is_separate_from_old_4b_artifacts():
+    args = smoke.parse_args(["run"])
+    assert args.work_dir == smoke.Path("artifacts/qwen35-2b-awq").resolve()
+    assert args.model_dir is None
+
+
+def test_2b_checkpoint_architecture_is_accepted(checkpoint):
+    metadata = smoke.inspect_checkpoint(checkpoint)
+    assert metadata["quantization"]["bits"] == 4
+    assert metadata["vision_engine_loaded"] is False
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"hidden_size": 2560},
+        {"num_hidden_layers": 32},
+        {"intermediate_size": 9216},
+        {"hidden_size": 2560, "num_hidden_layers": 32, "intermediate_size": 9216},
+    ],
+)
+def test_old_4b_architecture_is_rejected_before_build_or_load(checkpoint, change):
+    config = json.loads((checkpoint / "config.json").read_text())
+    config["text_config"].update(change)
+    (checkpoint / "config.json").write_text(json.dumps(config))
+    with pytest.raises(smoke.SmokeTestError, match="4B artifacts cannot be reused"):
         smoke.inspect_checkpoint(checkpoint)
 
 
@@ -280,6 +309,37 @@ def test_run_loads_one_backbone_and_report_contains_no_content(
     assert report["memory"]["peak_cuda_allocation_bytes"] is None
     output = capsys.readouterr().out + report_path.read_text()
     assert "SYNTHETIC_PROMPT" not in output and "SYNTHETIC_RESPONSE" not in output
+
+
+def test_default_run_downloads_and_loads_2b_in_its_own_work_directory(
+    monkeypatch, tmp_path, checkpoint, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    native = FakeNative()
+    monkeypatch.setattr(smoke, "doctor", supported_platform)
+    monkeypatch.setattr(smoke, "load_native", lambda: native)
+    expected_dir = tmp_path / "artifacts" / "qwen35-2b-awq" / "checkpoint"
+    downloads = []
+
+    def download(directory):
+        downloads.append(directory)
+        directory.mkdir(parents=True)
+        for path in checkpoint.iterdir():
+            smoke.shutil.copyfile(path, directory / path.name)
+
+    monkeypatch.setattr(smoke, "download_checkpoint", download)
+    monkeypatch.setattr(smoke, "ensure_engine", lambda *args: (tmp_path / "engine", 1.5, False))
+    monkeypatch.setattr(
+        smoke,
+        "CudaProbe",
+        lambda: SimpleNamespace(memory=lambda: {"free_bytes": 100, "total_bytes": 200}),
+    )
+    assert smoke.main(["run", "--download"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert downloads == [expected_dir]
+    assert native.loads[0]["checkpoint_dir"] == str(expected_dir)
+    assert report["model"] == {"id": smoke.MODEL_ID, "revision": smoke.MODEL_REVISION}
+    assert report["status"] == "PASS"
 
 
 def test_native_failure_does_not_echo_secret_exception_contents(monkeypatch, tmp_path, capsys):
