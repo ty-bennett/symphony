@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone, opt-in Qwen3.5-4B INT4 AWQ smoke test. No router/PyTorch dependency.
+"""Standalone, opt-in Qwen3.5-2B INT4 AWQ smoke test. No router/PyTorch dependency.
 
 Uses NVIDIA's experimental checkpoint-direct builder and native TensorRT runtime.
 Only ``run --download`` or ``download`` contacts Hugging Face. Never falls back to
@@ -26,8 +26,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-MODEL_ID = "QuantTrio/Qwen3.5-4B-AWQ"
-MODEL_REVISION = "32c292e3a73afe1138518180b1b6d2868c980ee2"
+MODEL_ID = "QuantTrio/Qwen3.5-2B-AWQ"
+MODEL_REVISION = "b9b439ecbe34b097cfc9531132fedbf55fec9263"
 RUNTIME_VERSION = "0.11.0"
 DEFAULT_PROMPT = "Explain in three short sentences why keeping private data on-device is useful."
 ARTIFACTS = [
@@ -211,11 +211,14 @@ def inspect_checkpoint(model_dir: Path) -> dict[str, Any]:
     quant = config.get("quantization_config", {})
     if (
         config.get("model_type") != "qwen3_5"
-        or text.get("hidden_size") != 2560
-        or text.get("num_hidden_layers") != 32
-        or text.get("intermediate_size") != 9216
+        or text.get("hidden_size") != 2048
+        or text.get("num_hidden_layers") != 24
+        or text.get("intermediate_size") != 6144
     ):
-        raise SmokeTestError("Checkpoint is not the expected dense Qwen3.5-4B architecture.")
+        raise SmokeTestError(
+            "Checkpoint is not the expected dense Qwen3.5-2B architecture. "
+            "Existing 4B artifacts cannot be reused; download into the separate 2B work directory."
+        )
     if (
         quant.get("quant_method") != "awq"
         or quant.get("bits") != 4
@@ -398,7 +401,7 @@ def generate(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["doctor", "download", "run"])
-    parser.add_argument("--work-dir", type=Path, default=Path("artifacts/qwen35-4b-awq"))
+    parser.add_argument("--work-dir", type=Path, default=Path("artifacts/qwen35-2b-awq"))
     parser.add_argument("--model-dir", type=Path, help="Existing local AWQ Safetensors checkpoint.")
     parser.add_argument(
         "--download", action="store_true", help="Explicitly download pinned weights."
@@ -458,7 +461,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "download" or args.download:
                 report["stage"] = "download"
                 print(
-                    "Downloading the pinned AWQ checkpoint (~6 GB); no training/calibration.",
+                    "Downloading the pinned 2B AWQ checkpoint (~3.3 GB); no training/calibration.",
                     file=sys.stderr,
                     flush=True,
                 )

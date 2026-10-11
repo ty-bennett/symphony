@@ -5,10 +5,10 @@ transformer supplies both routing features and the cache for local generation.
 PRIVATE_AWS and FRONTIER return structured handoffs; neither has a network client.
 On-device federation trains and replaces **only the small decision heads**.
 
-## Qwen3.5-4B AWQ Orin Nano smoke test
+## Qwen3.5-2B AWQ Orin Nano smoke test
 
 A separate, opt-in [Jetson smoke test](docs/qwen35_awq_jetson.md) checks whether a
-real **INT4 AWQ / FP16-activation** Qwen3.5-4B text model loads and generates on
+real **INT4 AWQ / FP16-activation** Qwen3.5-2B text model loads and generates on
 your device. It does not change the Gemma/Strands router or require training.
 Start with read-only diagnostics on the Jetson:
 
