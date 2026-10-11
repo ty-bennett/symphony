@@ -1,8 +1,8 @@
 # Single config for the router-heads pipeline. Paths are relative to this file's directory.
 
 backbone:
-  base_repo: Qwen/Qwen3.5-4B          # swap to Qwen/Qwen3.5-2B (+ its SHA below), no code changes
-  base_revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a   # Qwen3.5-2B: 15852e8c16360a2fea060d615a32b45270f8a8fc
+  base_repo: Qwen/Qwen3.5-2B          # LLM part only (vision tower never built); swap back: Qwen/Qwen3.5-4B + its SHA
+  base_revision: 15852e8c16360a2fea060d615a32b45270f8a8fc   # Qwen3.5-4B: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
   text_only: true
   enable_thinking: false
   quantization: int4_awq               # Edge-LLM / ModelOpt recipe name; never changed after Stage 0

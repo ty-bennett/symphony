@@ -1,6 +1,6 @@
 # Router difficulty head on a frozen INT4 AWQ Qwen3.5
 
-Trains one small head on prefill hidden states of a ModelOpt INT4 AWQ `Qwen/Qwen3.5-4B` (text-only, thinking
+Trains one small head on prefill hidden states of a ModelOpt INT4 AWQ `Qwen/Qwen3.5-2B` (LLM part only, thinking
 off), for later deployment on Jetson Orin Nano with TensorRT Edge-LLM. The head has a single float output:
 
 - `d`: task difficulty of the prompt (MLP on the last prompt token at layer L_d; target = standardized 2PL IRT
@@ -9,8 +9,10 @@ off), for later deployment on Jetson Orin Nano with TensorRT Edge-LLM. The head 
 
 Prefill only. The backbone is quantized once (Stage 0) and never modified afterwards. The vision encoder is never built.
 
-Everything is configured in [config.yaml](config.yaml). To use `Qwen/Qwen3.5-2B`, change `backbone.base_repo` and
-`backbone.base_revision`; no code changes are needed.
+Everything is configured in [config.yaml](config.yaml). To use `Qwen/Qwen3.5-4B` instead, change `backbone.base_repo`
+and `backbone.base_revision` (both SHAs are in the config comments); no code changes are needed. The two models share
+the tokenizer and, with thinking off, produce the same prompt, so Stage A token data is identical; only `d_model`
+(2048 vs 2560) and the layer count (24 vs 32) differ.
 
 ## Setup
 
@@ -56,7 +58,11 @@ python export_onnx.py      # -> out/onnx/difficulty.onnx + heads.json sidecar (O
 Copy off the node: `out/heads/`, `out/onnx/`, `<paths.quant>/` (Stage 0 state, `edgellm_ckpt/`, `manifest.json`),
 `config.yaml`, and `out/*.json`, `out/*.md`, `out/timing.jsonl`, `out/logs/`.
 
-Hand-off for the device: `<paths.quant>/edgellm_ckpt/` goes to `tensorrt-edgellm` export. `difficulty.onnx` takes
+Target configuration: Edge-LLM's benchmarked "Qwen3.5-2B-LLM" (Kind: LLM, Vanilla decoding, INT4 AWQ) on Orin Nano
+8GB; see the [Edge-LLM performance benchmarks](https://nvidia.github.io/TensorRT-Edge-LLM/0.9.1/user_guide/performance/performance-benchmarks.html).
+
+Hand-off for the device: `<paths.quant>/edgellm_ckpt/` goes to `tensorrt-edgellm` export. Per those benchmarks, INT4
+runs on Orin use externalized INT4 weights (`--externalize-weights int4_ffn` for dense checkpoints). `difficulty.onnx` takes
 `hidden [d_model]` (fp16) and returns the scalar `d`. The head only works with the backbone it was trained on:
 `out/heads/version.json` records the Stage 0 manifest hash, the chat template hash, L_d and
 `device_max_prompt_tokens`.
@@ -98,7 +104,8 @@ Hand-off for the device: `<paths.quant>/edgellm_ckpt/` goes to `tensorrt-edgellm
 - 24,248 unique LLMRouterBench items (19,398 / 2,426 / 2,424 train/val/test); 3,367 shared between the pools.
 - 374 items excluded by the 8,192-token cap (341 SWE-bench = 68% of SWE-bench, 28 ARC-AGI, 4 HLE, 1 Arena-Hard);
   excluded items keep their IRT `b_std`. 23,874 prompts remain.
-- 9.2M prompt tokens. Extraction storage: 0.37 GB (last-token states at 3 layers).
+- 9.2M prompt tokens. Extraction storage: 0.29 GB (last-token states at 3 layers, d_model 2048).
+- Qwen3.5-2B: 24 decoder layers, so candidate layers are 6, 8, ..., 22.
 - `train.py`, `evaluate.py` and `export_onnx.py` were dry-run on CPU against synthetic shards in `extract.py`'s
   exact format (real metadata, synthetic features).
 
@@ -120,6 +127,6 @@ _pending_
   github.com/ynulihao/LLMRouterBench): MIT. Each source benchmark keeps its own license (AIME, ARC-AGI, ARC-C,
   Arena-Hard, BBH, EmoryNLP, FinQA, GPQA, HLE, HumanEval, K&K, KOR-Bench, LiveCodeBench, LiveMathBench, MATH-500,
   MathBench, MBPP, MedQA, MELD, MMLU-Pro, SimpleQA, SWE-bench Verified, tau2-bench, WinoGrande).
-- **Qwen3.5** (`Qwen/Qwen3.5-4B`, revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`): Apache 2.0, Qwen team,
+- **Qwen3.5** (`Qwen/Qwen3.5-2B`, revision `15852e8c16360a2fea060d615a32b45270f8a8fc`): Apache 2.0, Qwen team,
   Alibaba Cloud.
 - NVIDIA ModelOpt and TensorRT Edge-LLM (Apache 2.0).
