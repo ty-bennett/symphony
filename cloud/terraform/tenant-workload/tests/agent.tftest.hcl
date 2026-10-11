@@ -264,6 +264,20 @@ run "memory_is_encrypted_expiring_and_per_user" {
   }
 }
 
+run "memory_roles_can_use_the_tenant_key_via_agentcore_only" {
+  command = plan
+
+  assert {
+    condition     = one([for st in jsondecode(aws_iam_role_policy.harness.policy).Statement : st.Condition.StringEquals["kms:ViaService"] if st.Sid == "MemoryEncryptionKey"]) == "bedrock-agentcore.us-east-2.amazonaws.com"
+    error_message = "The harness may use the tenant key only through AgentCore (memory events)."
+  }
+
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.memory_kms.policy).Statement[0].Resource == "arn:aws:kms:us-east-2:444444444444:key/22222222-2222-2222-2222-222222222222"
+    error_message = "The memory extraction role may use only the tenant key."
+  }
+}
+
 run "knowledge_base_indexes_only_approved_docs" {
   command = plan
 

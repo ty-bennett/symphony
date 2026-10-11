@@ -103,6 +103,13 @@ resource "aws_iam_role_policy" "harness" {
         Resource = aws_bedrockagentcore_memory.agent.arn
       },
       {
+        Sid       = "MemoryEncryptionKey"
+        Effect    = "Allow"
+        Action    = ["kms:Decrypt", "kms:GenerateDataKey"]
+        Resource  = local.tenant_baseline.tenant_data_kms_key_arn
+        Condition = { StringEquals = { "kms:ViaService" = "bedrock-agentcore.${var.workload_region}.amazonaws.com" } }
+      },
+      {
         Sid    = "WorkloadIdentity"
         Effect = "Allow"
         Action = ["bedrock-agentcore:GetWorkloadAccessToken", "bedrock-agentcore:GetWorkloadAccessTokenForJWT"]

@@ -25,6 +25,21 @@ resource "aws_iam_role_policy_attachment" "memory" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockAgentCoreMemoryBedrockModelInferenceExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "memory_kms" {
+  name = "tenant-key"
+  role = aws_iam_role.memory.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "UseTenantKeyViaAgentCore"
+      Effect    = "Allow"
+      Action    = ["kms:Decrypt", "kms:GenerateDataKey"]
+      Resource  = local.tenant_baseline.tenant_data_kms_key_arn
+      Condition = { StringEquals = { "kms:ViaService" = "bedrock-agentcore.${var.workload_region}.amazonaws.com" } }
+    }]
+  })
+}
+
 resource "aws_bedrockagentcore_memory" "agent" {
   name                      = local.memory_name
   description               = "Per-user memory for the ${var.tenant_id} agent"
