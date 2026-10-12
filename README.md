@@ -1,14 +1,15 @@
 # Symphony
 
-**Private AI for small businesses, on a box in the back office.**
+**Conduct your company.**
 
-Symphony puts a small NVIDIA Jetson in the business. On it runs **Soloist**, a
-local model router built on Qwen3.5-2B. For every prompt, Soloist decides in a
-single forward pass whether the box can answer it or whether it needs more help.
-If the box can, the same pass keeps going and answers locally: nothing leaves
-the building and it costs nothing. If it can't, the prompt goes to
-**Orchestra**, an agent that runs in the business's own dedicated AWS account,
-on Bedrock models with zero data retention.
+Many businesses want what AI can do but can't use existing tools because of
+sensitive data, a lack of in-house expertise, or cost. Symphony lets them use AI
+to move faster while keeping their data fully secure and proprietary.
+
+A small NVIDIA Jetson runs **Soloist**, a router built on Qwen3.5-2B. Soloist
+answers easy prompts on the Jetson for free. It sends hard ones to
+**Orchestra**, an agent in the business's own AWS account that uses
+zero-retention Bedrock models.
 
 Built for Palmetto Hacks, Fall 2026.
 
@@ -28,8 +29,7 @@ Built for Palmetto Hacks, Fall 2026.
 
 ## The gap we fill
 
-Small and mid-sized businesses want what AI can do, but the usual options force
-a trade-off:
+The usual options force a trade-off:
 
 | Option | What goes wrong for a small business |
 | --- | --- |
@@ -47,7 +47,7 @@ AWS account that belongs to the business. That means:
 - **Cost by default.** A local answer costs $0. You only pay for a cloud model
   when the prompt actually needs one.
 - **No AI expertise needed.** The owner signs in, picks what to keep private,
-  sets a monthly limit, and invites the team. Symphony handles the rest.
+  sets a monthly limit and invites the team.
 
 ## How it works
 
@@ -104,23 +104,19 @@ messages → secret scanner → Qwen chat template (thinking off)
 - **Backbone.** `Qwen/Qwen3.5-2B`, quantized once to INT4 AWQ and never changed
   afterwards. It runs with thinking off and only the language model is loaded
   (no vision encoder).
-- **Decision head.** A small regression MLP that reads the layer-10 residual
-  stream at the last prompt token: standardize → Linear(2048, 256) → ReLU →
-  Dropout(0.1) → Linear(256, 1). Its output is a standardized **2PL IRT
-  difficulty** score, learned from which models succeed or fail on each
+- **Decision head.** A small regression MLP on the layer-10 residual stream. It
+  predicts how hard a prompt is, scored with item response theory (IRT) on which
+  models pass or fail each
   [LLMRouterBench](https://huggingface.co/datasets/NPULH/LLMRouterBench) item.
-  Zero is average difficulty; higher means harder. One cutoff turns the score
-  into a route.
+  Zero is average; higher is harder. One cutoff turns the score into a route.
 - **LM head.** For a LOCAL route, Soloist runs the backbone's own LM head on the
   final state to produce the answer. There is no second model and no second
   prompt; the router *is* the local LLM.
-- **About 1 GB of KV cache.** The full prefill has already finished when the
-  decision is made, so the cache (attention K/V plus Qwen's GatedDeltaNet
-  convolution and recurrent state) is ready. The first output token comes
-  straight from the prefill state, and every later token is a single-token step
-  over that cache. Deciding adds almost no time between the prompt and the
-  first token of the answer. Soloist keeps about 1 GB of KV cache in memory for
-  this, which fits next to the INT4 weights in the Orin Nano's memory.
+- **About 1 GB of KV cache.** Deciding adds almost no latency, because the
+  decision and the answer share one prefill. The first token comes straight from
+  the prefill state, and each later token is a single step over the cached K/V
+  and GatedDeltaNet state. The cache fits next to the INT4 weights on the Orin
+  Nano.
 - **Fail-closed safety.** A regex scanner flags private keys, AWS keys, bearer
   tokens, labelled secrets, credential URLs, SSNs and API tokens. Flagged or
   unclassified content is treated as sensitive, and a difficulty score is never
@@ -225,7 +221,7 @@ Bootstrap and SSO runbooks are in [`cloud/runbooks/`](cloud/runbooks/).
 
 ## Multi-tenancy
 
-Symphony isolates businesses with **one AWS account per business**, not with
+Symphony isolates businesses with one AWS account per business, not with
 rows in a shared table:
 
 - **Account vending.** Each tenant account is created through Control Tower
@@ -234,9 +230,6 @@ rows in a shared table:
 - **Separate everything.** Each tenant has its own KMS key, Cognito user pool,
   device registry, API domain, WAF, agent, memory, knowledge base, browser,
   code sandbox, logs and traces. No data store is shared between tenants.
-- **Separate Terraform state.** Tenant roots use keys like
-  `symphony/tenants/<tenant_id>/…tfstate`, and every plan fails if the
-  caller's account, Region or upstream state doesn't match that tenant.
 - **Tenant identity only comes from authentication.** The tenant ID comes from
   the authorizer context (device certificate plus Cognito token), never from a
   request body. A device registered to one tenant can't call another tenant's
@@ -244,8 +237,8 @@ rows in a shared table:
 - **Per-user isolation inside a tenant.** Memory is namespaced by user
   (`/users/{actorId}/…`), jobs record who started them, and members can only
   approve or undo their own jobs.
-- **Per-tenant spend tracking.** Each tenant account has its own AWS Budget,
-  and the gateway's ledger attributes every model call to a person.
+- **Per-tenant spend tracking.** The gateway's ledger attributes every model
+  call to a person.
 
 Adding a business means adding it to `organization/` (which vends the
 account) and applying `tenant-baseline/` and `tenant-workload/` with its
@@ -259,20 +252,20 @@ account) and applying `tenant-baseline/` and `tenant-workload/` with its
 | --- | --- | --- |
 | `symphony-region-guardrail` | All workload OUs | Regional services only in us-east-1 and us-east-2; Bedrock inference only in US Regions (adds us-west-2 for US cross-Region profiles) |
 | `symphony-baseline-protection` | All workload OUs | No leaving the organization; no root-user actions; no long-lived IAM user access keys; no disabling GuardDuty, Security Hub, Access Analyzer, EBS default encryption or the S3 account public access block; no scheduling KMS key deletion. Only the Control Tower execution role is exempt. |
-| `symphony-zero-data-retention` | Customers OU | Bedrock data retention can only be set to **none** |
+| `symphony-zero-data-retention` | Customers OU | Bedrock data retention can only be set to none |
 
 ### Identity and access
 
-- **People:** Cognito per tenant, with email usernames, **TOTP MFA required**,
+- **People:** Cognito per tenant, with email usernames, TOTP MFA required,
   14-character minimum passwords, deletion protection, token revocation,
   60-minute access tokens and no user-existence errors. Company SSO can be
   plugged in as a Cognito identity provider. Roles come from Cognito groups
   (`owner` or `member`), and the API enforces them as well as the UI.
-- **App sign-in:** authorization code flow with PKCE. The ID token is verified
-  against the pool, session cookies are HttpOnly and SameSite=Lax (Secure over
-  HTTPS) and stored only as SHA-256 hashes, refresh tokens are encrypted at
-  rest on the box in mode-600 files, and signing out revokes the refresh token
-  at Cognito. Cross-site requests are refused by an Origin check.
+- **App sign-in:** authorization code flow with PKCE, and the ID token is
+  verified against the pool. Session cookies are HttpOnly and SameSite=Lax, and
+  are stored only as SHA-256 hashes. Refresh tokens are encrypted on the Jetson,
+  and signing out revokes them at Cognito. An Origin check refuses cross-site
+  requests.
 - **Devices:** each Jetson has its own X.509 certificate. The cloud only accepts
   a certificate whose serial is in the tenant's device registry, marked active,
   registered to that tenant and not expired. One registry update revokes a box.
@@ -312,9 +305,6 @@ account) and applying `tenant-baseline/` and `tenant-workload/` with its
   default in every account.
 - **Retention limits:** browser recordings and memory events expire after
   30 days, and trace spans after 7 days.
-- **On the device:** the secret scanner stops credentials and identifiers from
-  being treated as public, and anything the owner marks private stays on
-  Soloist.
 
 ### Agent and model controls
 
@@ -333,7 +323,7 @@ account) and applying `tenant-baseline/` and `tenant-workload/` with its
   account. High and critical findings are sent to SNS alerts.
 - IAM Access Analyzer in every account.
 - Audit logs record the tenant, device, a hashed user ID, the route, the model,
-  token counts and status, **never prompts or answers**. Traces that do
+  token counts and status, never prompts or answers. Traces that do
   contain prompts stay in the tenant account under the tenant key.
 - AWS Budgets alert at 80% forecast and at 80% and 100% actual.
 
@@ -350,9 +340,10 @@ account) and applying `tenant-baseline/` and `tenant-workload/` with its
 
 ## Cost footprint
 
-Symphony is built to cost almost nothing when idle and very little when busy.
+The whole eight-account organization, with the demo tenant deployed, cost $0.80
+in September 2026. October 1–11 cost about $9, and $5 of that was a one-time
+domain registration.
 
-- **Local answers cost $0.** Soloist runs on a box the business already owns.
 - **Serverless only, with nothing running while idle.** Graviton (arm64)
   Lambdas, on-demand DynamoDB, the Cognito Lite tier, S3 Vectors instead of a
   vector database cluster, and Bedrock billed per token.
@@ -372,10 +363,6 @@ Estimates per business (from [`cloud/cost.md`](cloud/cost.md)):
 | Step-up to Opus 4.5 | about $0.065 per request |
 | **10 seats, typical use** | **about $115–124 per month in total** |
 | Jetson Orin Nano Super, one time | about $500 |
-
-In practice, the whole eight-account organization, with the demo tenant
-deployed, cost **$0.80 in September 2026**. It cost about **$9 for October 1–11**,
-and $5 of that was a one-time domain registration.
 
 ## Repository layout
 
