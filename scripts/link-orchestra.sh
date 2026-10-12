@@ -7,7 +7,7 @@
 #   - points the gateway at both and restarts it.
 #
 #   scripts/link-orchestra.sh                       # as the demo user Alice
-#   DEMO_USER=tybennett924+bob@gmail.com scripts/link-orchestra.sh
+#   DEMO_USER=you+bob@example.com scripts/link-orchestra.sh
 #   JETSON_HOST=10.35.x.x scripts/link-orchestra.sh
 set -euo pipefail
 

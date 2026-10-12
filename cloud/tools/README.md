@@ -24,4 +24,4 @@ Run local tests with:
 python3 -m unittest discover -s tools/customer_documents/tests -v
 ```
 
-No AWS resources are created by this folder. Deployment remains gated on an identified tenant account, approved Region and customer-owned integration role, IAM policy review, and the Phase 1 landing-zone checks in `PLAN.md`.
+No AWS resources are created by this folder. Deployment remains gated on an identified tenant account, approved Region and customer-owned integration role, IAM policy review, and the Phase 1 landing-zone checks in `docs/design/cloud/PLAN.md`.

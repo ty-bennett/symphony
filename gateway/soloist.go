@@ -1,5 +1,5 @@
 // Soloist routes first: when SOLOIST_ROUTER_URL points at the edge router
-// (everything/, POST /v1/chat), every prompt goes to Soloist, which decides with
+// (router/, POST /v1/chat), every prompt goes to Soloist, which decides with
 // its difficulty head. LOCAL answers stream back from the box, translated to
 // OpenAI chunks; a handoff goes to Orchestra. A handoff is remembered for the
 // prompt, so the tool calls that follow it stay on Orchestra.

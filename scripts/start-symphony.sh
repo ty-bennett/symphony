@@ -10,7 +10,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-APP=$ROOT/sebastian
+APP=$ROOT/app
 WORKDIR=${1:-$HOME/symphony-workspace}
 JETSON_USER=${JETSON_USER:-admin}
 SSH_KEY=${SSH_KEY:-$HOME/.ssh/id_ed25519}
@@ -59,13 +59,15 @@ jetson 'bash -s' <<'REMOTE'
 set -euo pipefail
 units=~/.config/systemd/user
 mkdir -p "$units/symphony-gateway.service.d"
-cat > "$units/soloist.service" <<'EOF'
+# The router folder was renamed from everything/ to router/; boxes set up before keep the old name.
+router=router; [ -d ~/symphony/router ] || router=everything
+cat > "$units/soloist.service" <<EOF
 [Unit]
 Description=Soloist: Symphony's edge router and local model (127.0.0.1:8000)
 After=network-online.target
 
 [Service]
-WorkingDirectory=%h/symphony/everything
+WorkingDirectory=%h/symphony/$router
 Environment=PYTHONPATH=src
 ExecStart=%h/symphony/.venv-qwen-awq/bin/python -m edge_router.api.server --host 127.0.0.1 --port 8000
 Restart=on-failure

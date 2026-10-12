@@ -1,6 +1,6 @@
 # Symphony Terraform foundation
 
-Terraform for the Phase 1 AWS landing zone in [`../PLAN.md`](../PLAN.md). Each directory below is a separate root with its own state file, account guard, and README. Apply them in order with [`../runbooks/foundation-bootstrap.md`](../runbooks/foundation-bootstrap.md); nothing here has been applied until that runbook's evidence exists.
+Terraform for the Phase 1 AWS landing zone in [`docs/design/cloud/PLAN.md`](../../docs/design/cloud/PLAN.md). Each directory below is a separate root with its own state file, account guard, and README. Apply them in order with [`../runbooks/foundation-bootstrap.md`](../runbooks/foundation-bootstrap.md); nothing here has been applied until that runbook's evidence exists.
 
 | Order | Root | Account | Region | State key |
 | --- | --- | --- | --- | --- |
