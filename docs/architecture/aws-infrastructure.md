@@ -5,6 +5,10 @@ This slide-scale diagram is derived from every Terraform root under
 `docs/superpowers/specs/`. It represents the configured `demo` pilot. Solid
 arrows are request or data flows; dotted arrows are governance relationships.
 
+For the inventory of what was actually deployed, how the pieces worked
+together on a request, and the teardown record, see
+[`aws-environment.md`](aws-environment.md).
+
 ```mermaid
 flowchart TB
   classDef account fill:#eff6ff,stroke:#2563eb,color:#172554

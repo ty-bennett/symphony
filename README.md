@@ -168,7 +168,9 @@ All AWS infrastructure is Terraform in [`cloud/terraform/`](cloud/terraform/):
 eight roots applied in order, each with its own state file and an account
 guard. Every root is tested offline with mocked providers. An architecture
 diagram is in
-[`docs/architecture/aws-infrastructure.md`](docs/architecture/aws-infrastructure.md).
+[`docs/architecture/aws-infrastructure.md`](docs/architecture/aws-infrastructure.md),
+and the as-built inventory of the demo environment (now torn down) is in
+[`docs/architecture/aws-environment.md`](docs/architecture/aws-environment.md).
 
 ```mermaid
 flowchart TB
