@@ -24,17 +24,21 @@ import (
 )
 
 type Config struct {
-	Listen       string
-	SoloistURL   string // OpenAI-compatible local server (llama.cpp)
-	SoloistModel string
-	CloudURL     string // https://api.<tenant>.symphony-edge.link
-	CloudClient  *http.Client
-	AppTokenURL  string // the app's /api/internal/token
-	LocalKey     string // OpenCode's provider apiKey
-	Secret       string // shared with the app for /internal/*
-	DataDir      string
-	Prices       map[string]Price
-	Now          func() time.Time
+	Listen          string
+	SoloistURL      string // OpenAI-compatible local server (llama.cpp)
+	SoloistModel    string
+	RouterURL       string // edge router (POST /v1/chat); when set, Soloist decides every prompt
+	DefaultUser     string // Cognito sub for Orchestra handoffs in sessions the app never registered
+	CognitoClientID string // the Jetson app client; with a stored refresh token, the gateway renews tokens itself
+	CognitoURL      string // https://cognito-idp.<region>.amazonaws.com/
+	CloudURL        string // https://api.<tenant>.symphony-edge.link
+	CloudClient     *http.Client
+	AppTokenURL     string // the app's /api/internal/token
+	LocalKey        string // OpenCode's provider apiKey
+	Secret          string // shared with the app for /internal/*
+	DataDir         string
+	Prices          map[string]Price
+	Now             func() time.Time
 }
 
 // Route is where one OpenCode session's prompts go.
@@ -80,16 +84,22 @@ func (r *Routes) Set(route Route) error {
 
 // Lookup returns the session's route, else its parent's (subagents), else Soloist.
 func (r *Routes) Lookup(session, parent string) Route {
+	route, _ := r.Find(session, parent)
+	return route
+}
+
+// Find is Lookup that also says whether the app registered the route.
+func (r *Routes) Find(session, parent string) (Route, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if route, ok := r.m[session]; ok {
-		return route
+		return route, true
 	}
 	if route, ok := r.m[parent]; ok && parent != "" {
 		route.Session = session
-		return route
+		return route, true
 	}
-	return Route{Session: session, Place: "device"}
+	return Route{Session: session, Place: "device"}, false
 }
 
 type token struct {
@@ -98,12 +108,13 @@ type token struct {
 }
 
 type Gateway struct {
-	cfg    Config
-	routes *Routes
-	ledger *Ledger
-	local  *http.Client
-	mu     sync.Mutex
-	tokens map[string]token
+	cfg      Config
+	routes   *Routes
+	ledger   *Ledger
+	handoffs handoffs
+	local    *http.Client
+	mu       sync.Mutex
+	tokens   map[string]token
 }
 
 func New(cfg Config) (*Gateway, error) {
@@ -235,22 +246,25 @@ func (g *Gateway) userToken(ctx context.Context, sub string) (string, error) {
 	if ok && g.cfg.Now().Before(t.expires) {
 		return t.value, nil
 	}
-	req, _ := http.NewRequestWithContext(ctx, "GET", g.cfg.AppTokenURL+"?sub="+sub, nil)
-	req.Header.Set("X-Symphony-Internal", g.cfg.Secret)
-	res, err := g.local.Do(req)
+	// A refresh token kept on this box wins; otherwise ask the app.
+	body, found, err := g.refreshAtCognito(ctx, sub)
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return "", fmt.Errorf("token for user: status %d", res.StatusCode)
-	}
-	var body struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&body); err != nil || body.AccessToken == "" {
-		return "", errors.New("token for user: empty")
+	if !found {
+		req, _ := http.NewRequestWithContext(ctx, "GET", g.cfg.AppTokenURL+"?sub="+sub, nil)
+		req.Header.Set("X-Symphony-Internal", g.cfg.Secret)
+		res, err := g.local.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != 200 {
+			return "", fmt.Errorf("token for user: status %d", res.StatusCode)
+		}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil || body.AccessToken == "" {
+			return "", errors.New("token for user: empty")
+		}
 	}
 	g.mu.Lock()
 	g.tokens[sub] = token{value: body.AccessToken, expires: g.cfg.Now().Add(time.Duration(body.ExpiresIn-60) * time.Second)}
@@ -269,7 +283,14 @@ func (g *Gateway) chat(w http.ResponseWriter, r *http.Request) {
 		apiError(w, 400, "INVALID_REQUEST", "Body must be JSON")
 		return
 	}
-	route := g.routes.Lookup(r.Header.Get("X-Opencode-Session-Id"), r.Header.Get("X-Opencode-Parent-Session-Id"))
+	route, registered := g.routes.Find(r.Header.Get("X-Opencode-Session-Id"), r.Header.Get("X-Opencode-Parent-Session-Id"))
+	if g.cfg.RouterURL != "" {
+		// A job the app pinned to the box stays there; every other prompt is Soloist's call.
+		var done bool
+		if route, done = g.soloistFirst(w, r, body, route, registered && route.Place == "device"); done {
+			return
+		}
+	}
 	if route.Paused {
 		apiError(w, 402, "SPENDING_LIMIT", "This month's spending limit is reached; Orchestra is paused")
 		return

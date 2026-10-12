@@ -1,4 +1,4 @@
-# AWS Budgets notify; they are not a spending cap. Defaults from PLAN.md:
+# AWS Budgets notify; they are not a spending cap. Defaults from docs/design/cloud/PLAN.md:
 # 80% forecast, 80% actual, and 100% actual of the customer's monthly amount.
 locals {
   budget_notifications = [

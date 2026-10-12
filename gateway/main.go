@@ -84,22 +84,30 @@ func run() error {
 	}
 
 	g, err := New(Config{
-		Listen:       env("SYMPHONY_GATEWAY_LISTEN", "127.0.0.1:8088"),
-		SoloistURL:   env("SOLOIST_URL", "http://127.0.0.1:8080"),
-		SoloistModel: env("SOLOIST_MODEL", "qwen3-4b"),
-		CloudURL:     env("SYMPHONY_CLOUD_URL", "https://api.demo.symphony-edge.link"),
-		CloudClient:  cloudClient,
-		AppTokenURL:  env("SYMPHONY_APP_TOKEN_URL", "http://127.0.0.1:3000/api/internal/token"),
-		LocalKey:     localKey,
-		Secret:       secret,
-		DataDir:      dataDir,
-		Prices:       prices,
+		Listen:          env("SYMPHONY_GATEWAY_LISTEN", "127.0.0.1:8088"),
+		SoloistURL:      env("SOLOIST_URL", "http://127.0.0.1:8080"),
+		SoloistModel:    env("SOLOIST_MODEL", "qwen3-4b"),
+		RouterURL:       strings.TrimRight(os.Getenv("SOLOIST_ROUTER_URL"), "/"),
+		DefaultUser:     os.Getenv("SYMPHONY_DEFAULT_USER_SUB"),
+		CognitoClientID: os.Getenv("SYMPHONY_COGNITO_CLIENT_ID"),
+		CognitoURL:      env("SYMPHONY_COGNITO_URL", "https://cognito-idp."+env("SYMPHONY_COGNITO_REGION", "us-east-1")+".amazonaws.com/"),
+		CloudURL:        env("SYMPHONY_CLOUD_URL", "https://api.demo.symphony-edge.link"),
+		CloudClient:     cloudClient,
+		AppTokenURL:     env("SYMPHONY_APP_TOKEN_URL", "http://127.0.0.1:3000/api/internal/token"),
+		LocalKey:        localKey,
+		Secret:          secret,
+		DataDir:         dataDir,
+		Prices:          prices,
 	})
 	if err != nil {
 		return err
 	}
 	server := &http.Server{Addr: g.cfg.Listen, Handler: g.Handler(), ReadHeaderTimeout: 10 * time.Second}
-	fmt.Printf("symphony-gateway on http://%s (Soloist %s, Orchestra %s)\n", g.cfg.Listen, g.cfg.SoloistURL, g.cfg.CloudURL)
+	soloist := g.cfg.SoloistURL
+	if g.cfg.RouterURL != "" {
+		soloist = g.cfg.RouterURL + ", routing every prompt"
+	}
+	fmt.Printf("symphony-gateway on http://%s (Soloist %s, Orchestra %s)\n", g.cfg.Listen, soloist, g.cfg.CloudURL)
 	return server.ListenAndServe()
 }
 

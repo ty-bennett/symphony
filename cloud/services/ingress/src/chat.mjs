@@ -39,7 +39,7 @@ export const CLOUD_TOOLS = [
   },
 ]
 const CLOUD = new Set(CLOUD_TOOLS.map((t) => t.name))
-export const MAX_CLOUD_ROUNDS = 3
+export const MAX_CLOUD_ROUNDS = 1
 
 const parseArgs = (raw) => {
   try {
@@ -84,7 +84,7 @@ async function* rounds(input, { deps, auth, usage, counters }) {
       return
     }
     if (round >= MAX_CLOUD_ROUNDS) {
-      yield { text: "\n\n(Orchestra stopped after several tool steps; ask again to continue.)" }
+      yield { text: "\n\n(Orchestra stopped after one tool step; ask again to continue.)" }
       yield { end: { stop: "end_turn", calls: [] } }
       return
     }
