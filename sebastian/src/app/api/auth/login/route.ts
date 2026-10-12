@@ -1,17 +1,22 @@
-import { sessionCookie } from "@/lib/auth/session"
-import { checkLogin, startSession } from "@/lib/auth/store"
-import { withOc } from "@/lib/opencode/server"
+import { randomBytes } from "node:crypto"
+import { authorizeUrl, cognitoConfig, LOGIN_COOKIE, pkce } from "@/lib/auth/cognito"
+import { cookie } from "@/lib/auth/session"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-// { email, password } -> session cookie. Five misses in a row lock that email for 30 seconds.
-export const POST = withOc(
-  async (req) => {
-    const body = (await req.json()) as { email?: unknown; password?: unknown }
-    const user = await checkLogin(body.email, body.password)
-    const token = await startSession(user.id)
-    return Response.json({ user }, { headers: { "set-cookie": sessionCookie(token, req) } })
-  },
-  { public: true },
-)
+// Starts sign-in: off to the Cognito login page (or straight to the company's SSO).
+export async function GET(req: Request) {
+  const cfg = cognitoConfig(req)
+  const { verifier, challenge } = pkce()
+  const state = randomBytes(16).toString("base64url")
+  const next = new URL(req.url).searchParams.get("next") ?? "/"
+  const safe = next.startsWith("/") && !next.startsWith("//") ? next : "/"
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: authorizeUrl(cfg, { state, challenge }),
+      "set-cookie": cookie(LOGIN_COOKIE, `${state}.${verifier}.${encodeURIComponent(safe)}`, req, 600),
+    },
+  })
+}

@@ -1,14 +1,10 @@
-import { requireUser } from "@/lib/auth/session"
-import { removeUser } from "@/lib/auth/store"
-import { ownerOnly } from "@/lib/opencode/server"
+import { withOc } from "@/lib/opencode/server"
+import { teamCall } from "@/lib/auth/team"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 type Ctx = { params: Promise<{ id: string }> }
 
-// Removes a member and signs them out everywhere. The owner can't be removed.
-export const DELETE = ownerOnly(async (req, { params }: Ctx) => {
-  await removeUser((await params).id, await requireUser(req))
-  return Response.json({ ok: true })
-})
+// Disables the person in Cognito and ends all their sessions.
+export const DELETE = withOc(async (req, { params }: Ctx) => teamCall(req, "DELETE", `/${encodeURIComponent((await params).id)}`), { role: "owner" })

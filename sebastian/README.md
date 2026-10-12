@@ -10,7 +10,7 @@ setting).
 | Today | `/` | Start a job, see what needs your OK, recent work |
 | Work | `/work`, `/work/:id` | Every job, and one job's steps, result, changes and Undo |
 | Coding agent | `/coding-agent` | opencode itself, for people who want the full view |
-| Team | `/team` | Who can sign in; invite links |
+| Team | `/team` | Who can sign in; email invites |
 | Privacy and spending | `/privacy` | Where jobs may run, what stays private, monthly limit, report |
 
 All of them run on opencode: a Symphony **job** is an opencode session. Start
@@ -22,17 +22,20 @@ The logo is a treble clef (`Logo` in `src/components/ui/Icon.tsx`; app icons in
 
 ## Accounts and first run
 
-The first time anyone opens Symphony, `/setup` asks them to create the
-**owner** account, then walks through three steps: the business (name and
-type), what to keep private, and the monthly spending limit. Nothing else
-opens until that's done.
+Accounts live in the tenant's Cognito user pool, not on the box. **Sign in**
+on `/login` goes to the Cognito login page (or straight to the company's SSO
+when `COGNITO_IDENTITY_PROVIDER` is set) and comes back to
+`/api/auth/callback`. People in the Cognito `owner` group are the **owner**;
+everyone else is a **team member**.
 
-The owner invites staff from **Team**: **Invite someone** makes a link
-(`/join?code=…`) that works once, for 7 days. The person opens it, picks their
-own name, email and password, and is signed in as a **team member**. No email
-is sent and nothing leaves the box, so it works offline. Make the invite while
-you're on Symphony's network address, not `localhost`, or the link only works
-on your own computer.
+The first time the owner signs in, `/setup` walks through three steps: the
+business (name and type), what to keep private, and the monthly spending
+limit. Nothing else opens until that's done.
+
+The owner invites staff from **Team** by email. Cognito sends the invitation,
+and the person signs in with it (or with company SSO). Team calls go through
+the gateway to the cloud's Team API as the owner, so the box never holds AWS
+credentials.
 
 | | Owner | Team member |
 |---|---|---|
@@ -40,17 +43,26 @@ on your own computer.
 | Approve, undo or redo a job | Any job | Only jobs they started |
 | Privacy and spending, Team, Coding agent | Yes | No (pages and API both refuse) |
 
-Forgot a password? The owner removes the person and sends a new invite. If
-the owner forgets theirs, stop the app and delete `.symphony/auth.json`; the
-next visit starts setup again (settings and jobs are kept).
+Forgot a password? Cognito's login page has **Forgot your password?**; with
+company SSO, the company resets it.
+
+Set `COGNITO_DOMAIN`, `COGNITO_CLIENT_ID` and `COGNITO_USER_POOL_ID` (and
+`SYMPHONY_PUBLIC_URL` if the box is reached at a different address than the
+request says). Sign-in refuses to start without them, unless
+`OC_ALLOW_UNAUTHENTICATED=1` treats everyone as the owner for a local demo.
 
 How it's stored and checked:
 
-- Accounts live in `.symphony/auth.json` (mode 600). Passwords are hashed with
-  scrypt; session tokens and invite codes are stored only as SHA-256 hashes.
+- Sign-in uses the authorization code flow with PKCE; the ID token is
+  verified against the pool before a session starts.
+- Sessions live in `.symphony/sessions.json` (mode 600). Session cookies are
+  stored only as SHA-256 hashes, and each person's Cognito refresh token is
+  encrypted with a key in `.symphony/session.key` (mode 600). Signing out
+  revokes the refresh token at Cognito.
 - Signing in sets an HttpOnly, SameSite=Lax cookie (`symphony_session`) good
   for 30 days, marked Secure when the app is served over HTTPS.
-- Five wrong passwords for an email lock it for 30 seconds.
+- The gateway gets a fresh access token for whoever started a job from
+  `/api/internal/token`, which needs the gateway's shared secret.
 - Every API route goes through `checkAuth()` in `src/lib/opencode/server.ts`:
   it refuses requests from another site (Origin check), then signed-out
   requests (401), then members on owner-only routes (403). Jobs remember who
@@ -158,16 +170,14 @@ is owner-only and keeps any field you leave out.
 
 | Route | Who | Does |
 |---|---|---|
-| `GET /api/auth/me` | anyone | `{ state: "setup" }`, `{ state: "signed-out" }` or `{ state: "signed-in", user, onboarded }` |
-| `POST /api/auth/setup` | first run only | `{ name, email, password }` → owner account, signed in |
-| `POST /api/auth/login` | anyone | `{ email, password }` → session cookie |
-| `POST /api/auth/logout` | anyone | ends the session |
-| `GET /api/auth/join?code=` | anyone | `{ valid }` |
-| `POST /api/auth/join` | invite holder | `{ code, name, email, password }` → member account, signed in |
-| `GET, POST /api/auth/invites` | owner | list; create → `{ invite, code }` (the code is shown once) |
-| `DELETE /api/auth/invites/:id` | owner | cancel an invite |
-| `GET /api/auth/users` | owner | everyone on the team |
-| `DELETE /api/auth/users/:id` | owner | remove a member and end their sessions |
+| `GET /api/auth/me` | anyone | `{ state: "signed-out" }` or `{ state: "signed-in", user, onboarded }` |
+| `GET /api/auth/login?next=` | anyone | redirects to Cognito (PKCE) |
+| `GET /api/auth/callback` | anyone | Cognito's redirect back; sets the session cookie |
+| `POST /api/auth/logout` | anyone | ends the session and revokes its refresh token |
+| `GET /api/auth/users` | owner | `{ users: [{ id, email, name, role, enabled, signIn, invited }] }` |
+| `POST /api/auth/users` | owner | `{ email, name? }` → Cognito emails an invitation |
+| `DELETE /api/auth/users/:id` | owner | disable the person in Cognito and sign them out everywhere |
+| `GET /api/internal/token?sub=` | gateway only | a fresh access token for that person (needs the shared secret) |
 
 ## Coding agent tab
 
@@ -260,6 +270,6 @@ own needs any signed-in account). See [Accounts and first run](#accounts-and-fir
 npm run lint
 npm run typecheck
 npm run check:logic   # event handling, history merge, diffs, routing, spending, savings
-npm run check:auth    # passwords, sessions, invites, lockout, roles, origin check
+npm run check:auth    # Cognito sign-in, sessions, gateway tokens, roles, origin check
 npm run build
 ```

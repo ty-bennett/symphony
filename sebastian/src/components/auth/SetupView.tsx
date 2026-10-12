@@ -10,7 +10,7 @@ import { api } from "@/lib/opencode/client"
 import { PLACE_ORDER, PLACES } from "@/lib/symphony/places"
 import { customCategory } from "@/lib/symphony/settings"
 import type { Settings } from "@/lib/symphony/types"
-import { Brand, ErrorNote, Field, message, postJson } from "./shared"
+import { Brand, ErrorNote, Field, message } from "./shared"
 import styles from "./auth.module.css"
 
 const BUSINESS_TYPES = ["Bakery and café", "Restaurant or food truck", "Retail shop", "Salon or spa", "Office or services", "Other"]
@@ -27,13 +27,12 @@ const HINTS: Record<string, string> = {
 const STEPS = ["Your business", "Privacy", "Monthly limit"]
 
 /**
- * First run. Creates the owner's account, then walks them through the three
- * things Symphony needs to know before the first job.
+ * First run, once the owner has signed in: the three things Symphony needs
+ * to know before the first job.
  */
 export function SetupView() {
   const { me } = useMe()
   if (!me) return <Shell>{null}</Shell>
-  if (me.state === "setup") return <CreateOwner />
   if (me.state === "signed-in" && me.user.role === "owner" && !me.onboarded) return <Onboarding name={me.user.name} />
   // Anyone else is sent on by the auth gate.
   return <Shell>{null}</Shell>
@@ -45,65 +44,6 @@ function Shell({ children, wide }: { children: React.ReactNode; wide?: boolean }
       <Brand />
       {children}
     </div>
-  )
-}
-
-function CreateOwner() {
-  const { refresh } = useMe()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function submit() {
-    setBusy(true)
-    setError(null)
-    try {
-      await postJson("/api/auth/setup", { name, email, password })
-      await refresh()
-    } catch (e) {
-      setError(message(e))
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Shell>
-      <form
-        className={styles.card}
-        onSubmit={(e) => {
-          e.preventDefault()
-          void submit()
-        }}
-      >
-        <div>
-          <h1>Welcome to Symphony</h1>
-          <p className={styles.muted}>
-            Create the owner account. You&apos;ll decide what stays private and what Symphony may spend, and you can invite your team
-            after.
-          </p>
-        </div>
-        <ErrorNote>{error}</ErrorNote>
-        <div className={styles.form}>
-          <Field label="Your name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} />
-          <Field label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Field
-            label="Choose a password"
-            hint="At least 8 characters. It stays on this box; there's no email reset, so keep it somewhere safe."
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        <Button type="submit" variant="primary" className={styles.full} disabled={busy || !name.trim() || !email || password.length < 8}>
-          {busy ? "Creating" : "Create account"}
-        </Button>
-      </form>
-    </Shell>
   )
 }
 

@@ -19,8 +19,8 @@ const matches = (path: string, list: string[]) => list.some((p) => path === p ||
 export const isPublicPath = (path: string) => matches(path, PUBLIC_PATHS)
 
 /**
- * Sends people where they need to be: first run to /setup, signed-out to
- * /login, an owner who hasn't finished setup back to /setup. The API enforces
+ * Sends people where they need to be: signed-out to /login, an owner who
+ * hasn't finished setup to /setup. The API enforces
  * the same rules; this just avoids showing pages that would only say no.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -44,16 +44,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const publicPage = isPublicPath(pathname)
   useEffect(() => {
     if (!me) return
-    if (me.state === "setup" && pathname !== "/setup") router.replace("/setup")
-    else if (me.state === "signed-out" && !publicPage) {
+    if (me.state === "signed-out" && !publicPage) {
       const next = `${pathname}${typeof window === "undefined" ? "" : window.location.search}`
       router.replace(next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`)
-    } else if (me.state === "signed-out" && pathname === "/setup") {
-      router.replace("/login")
     } else if (me.state === "signed-in") {
       const needsSetup = me.user.role === "owner" && !me.onboarded
       if (needsSetup && pathname !== "/setup") router.replace("/setup")
-      else if (!needsSetup && (pathname === "/login" || pathname === "/join" || pathname === "/setup")) router.replace("/")
+      else if (!needsSetup && (pathname === "/login" || pathname === "/setup")) router.replace("/")
     }
   }, [me, pathname, publicPage, router])
 

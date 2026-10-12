@@ -1,6 +1,6 @@
 // Server-only: a Symphony "job" is an opencode session plus the routing
 // decision Symphony stored on its metadata.
-import { listUsers } from "@/lib/auth/store"
+import { knownPeople } from "@/lib/auth/store"
 import type { PublicUser } from "@/lib/auth/types"
 import { OcError, oc, ocJson, parseModel, sendPrompt, unwrap } from "@/lib/opencode/server"
 import type { RawPermission, SessionStatus } from "@/lib/opencode/types"
@@ -116,7 +116,7 @@ async function snapshot() {
 }
 
 async function userNames() {
-  return new Map((await listUsers().catch(() => [])).map((u) => [u.id, u]))
+  return new Map((await knownPeople().catch(() => [])).map((u) => [u.id, u]))
 }
 
 export async function listJobs(settings: Settings): Promise<Job[]> {

@@ -128,7 +128,6 @@ export async function checkAuth(req: Request, role: Role = "member"): Promise<Re
   const bad = originProblem(req)
   if (bad) return bad
   const who = await whoIs(req)
-  if (who.state === "setup") return Response.json({ error: "Set up Symphony first.", auth: "setup" }, { status: 401 })
   if (who.state === "signed-out") return Response.json({ error: "Sign in first.", auth: "signed-out" }, { status: 401 })
   if (role === "owner" && who.user.role !== "owner") {
     return Response.json({ error: "Only the owner can do that." }, { status: 403 })
